@@ -1,0 +1,2140 @@
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101827">
+
+<title>RainTrack CR</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+
+<style>
+
+/* =========================================
+   1. DISEÑO GENERAL
+========================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: white;
+    min-height: 100vh;
+}
+
+header {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo {
+    font-size: 23px;
+    font-weight: bold;
+}
+
+.logo span {
+    color: #38bdf8;
+}
+
+.status {
+    background: #163c36;
+    color: #4ade80;
+    padding: 8px 11px;
+    border-radius: 20px;
+    font-size: 11px;
+}
+
+.status.error {
+    background: #472323;
+    color: #fca5a5;
+}
+
+main {
+    padding: 10px 16px 30px;
+    max-width: 1800px;
+    margin: auto;
+}
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 13px;
+    margin: 8px 0 18px;
+}
+
+.section-title {
+    font-size: 17px;
+    margin: 22px 0 12px;
+}
+
+.panel {
+    background: #1e293b;
+    padding: 17px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+}
+
+.location-name {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 8px 0 4px;
+}
+
+.muted {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+/* =========================================
+   2. CLIMA ACTUAL
+========================================= */
+
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 17px 0;
+}
+
+.weather-icon {
+    font-size: 43px;
+}
+
+.weather-description {
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.weather-detail {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.data-item {
+    background: #273449;
+    padding: 12px 7px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.data-item strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 5px;
+}
+
+.data-item small {
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+/* =========================================
+   3. BUSCADOR
+========================================= */
+
+.search-box {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.search-box input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    background: #101827;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-box input:focus {
+    border-color: #38bdf8;
+}
+
+.search-box button,
+.toggle-button {
+    background: #0284c7;
+    color: white;
+    border: none;
+    padding: 12px 17px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.search-results {
+    margin-top: 10px;
+    display: grid;
+    gap: 7px;
+}
+
+.result-button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 9px;
+    border: 1px solid #334155;
+    background: #273449;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+}
+
+.result-button:hover {
+    border-color: #38bdf8;
+}
+
+.secondary-button {
+    background: #334155;
+    color: white;
+    border: none;
+    padding: 9px 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+/* =========================================
+   4. PRONOSTICO
+========================================= */
+
+.forecast-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 24px 0 12px;
+}
+
+.forecast-header .section-title {
+    margin: 0;
+}
+
+.toggle-button {
+    padding: 9px 13px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Esta regla garantiza que hidden funcione */
+
+[hidden] {
+    display: none !important;
+}
+
+.forecast-summary {
+    background: #1e293b;
+    border-radius: 13px;
+    padding: 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.forecast-summary strong {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.hourly-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.hour-card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 13px 5px;
+    text-align: center;
+}
+
+.hour-time {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.hour-icon {
+    font-size: 25px;
+    margin: 10px 0;
+}
+
+.probability {
+    color: #38bdf8;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.hour-card small {
+    display: block;
+    color: #94a3b8;
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.rain-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid #334155;
+}
+
+.rain-row:last-child {
+    border-bottom: none;
+}
+
+.rain-row strong {
+    color: #38bdf8;
+    white-space: nowrap;
+}
+
+.rain-row span {
+    text-align: right;
+    color: #cbd5e1;
+}
+
+.summary-note {
+    color: #94a3b8;
+    font-size: 11px;
+    margin-top: 12px;
+}
+
+/* =========================================
+   5. MAPA
+========================================= */
+
+.map-container {
+    position: relative;
+    height: 480px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #e9e5e1;
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+}
+
+.map-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 5;
+    background: #101827e8;
+    padding: 10px 13px;
+    border-radius: 9px;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.radar-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-size: 11px;
+    color: #cbd5e1;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.radar-info {
+    margin-top: 10px;
+    color: #94a3b8;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.maplibregl-popup-content {
+    color: #101827;
+    font-size: 13px;
+    border-radius: 9px;
+}
+
+/* =========================================
+   6. PIE DE PAGINA
+========================================= */
+
+footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 10px;
+    padding: 20px;
+    line-height: 1.8;
+}
+
+footer a {
+    color: #38bdf8;
+}
+
+/* =========================================
+   7. DISEÑO PARA TELEFONOS
+========================================= */
+
+@media(max-width: 600px) {
+
+    header {
+        padding: 16px 12px;
+    }
+
+    .logo {
+        font-size: 19px;
+    }
+
+    main {
+        padding: 10px;
+    }
+
+    .map-container {
+        height: 55vh;
+        min-height: 350px;
+    }
+
+    .hourly-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .search-box button {
+        padding: 12px;
+    }
+
+    .rain-row {
+        font-size: 12px;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+        🌧️ RainTrack <span>CR</span>
+    </div>
+
+    <div class="status" id="systemStatus">
+        ● Iniciando...
+    </div>
+
+</header>
+
+<main>
+
+<h2>Radar de lluvia</h2>
+
+<p class="subtitle">
+    Consulta precipitaciones y pronósticos en Costa Rica
+</p>
+
+
+<!-- =====================================
+     MI ZONA
+===================================== -->
+
+<h3 class="section-title">📍 Mi zona</h3>
+
+<section class="panel">
+
+    <div class="muted">Ubicación principal</div>
+
+    <div class="location-name">
+        Santa Rosa de Poás
+    </div>
+
+    <div class="muted">
+        Alajuela, Costa Rica
+    </div>
+
+    <div class="weather-main">
+
+        <div class="weather-icon" id="homeIcon">
+            🌤️
+        </div>
+
+        <div>
+
+            <div class="weather-description" id="homeCondition">
+                Consultando clima...
+            </div>
+
+            <div class="weather-detail" id="homeTemperature">
+                Esperando información
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="data-grid">
+
+        <div class="data-item">
+            <strong id="homeRain">--</strong>
+            <small>Precipitación mm</small>
+        </div>
+
+        <div class="data-item">
+            <strong id="homeHumidity">--</strong>
+            <small>Humedad</small>
+        </div>
+
+        <div class="data-item">
+            <strong id="homeWind">--</strong>
+            <small>Viento km/h</small>
+        </div>
+
+    </div>
+
+    <div class="radar-info" id="homeUpdated">
+        Consultando información meteorológica...
+    </div>
+
+</section>
+
+
+<!-- =====================================
+     BUSCADOR
+===================================== -->
+
+<h3 class="section-title">
+    🔎 Buscar otro destino
+</h3>
+
+<section class="panel">
+
+    <div class="muted">
+        Escribe una ciudad, cantón o localidad de Costa Rica.
+    </div>
+
+    <form class="search-box" id="searchForm">
+
+        <input
+            type="search"
+            id="locationInput"
+            placeholder="Ej. Puntarenas, Liberia, Cartago..."
+            minlength="2"
+            required
+        >
+
+        <button type="submit" id="searchButton">
+            Buscar
+        </button>
+
+    </form>
+
+    <div class="search-results" id="searchResults"></div>
+
+</section>
+
+
+<!-- =====================================
+     DESTINO SELECCIONADO
+===================================== -->
+
+<section class="panel" id="destinationPanel" hidden>
+
+    <div class="muted">
+        Destino seleccionado
+    </div>
+
+    <div class="location-name" id="destinationName"></div>
+
+    <div class="muted" id="destinationRegion"></div>
+
+    <div class="weather-main">
+
+        <div class="weather-icon" id="destinationIcon">
+            🌤️
+        </div>
+
+        <div>
+
+            <div class="weather-description" id="destinationCondition">
+                Consultando...
+            </div>
+
+            <div class="weather-detail" id="destinationTemperature">
+                --
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="data-grid">
+
+        <div class="data-item">
+            <strong id="destinationRain">--</strong>
+            <small>Precipitación mm</small>
+        </div>
+
+        <div class="data-item">
+            <strong id="destinationHumidity">--</strong>
+            <small>Humedad</small>
+        </div>
+
+        <div class="data-item">
+            <strong id="destinationWind">--</strong>
+            <small>Viento km/h</small>
+        </div>
+
+    </div>
+
+    <div class="radar-info" id="destinationUpdated"></div>
+
+    <button class="secondary-button" id="returnHome" type="button">
+        Volver a mi zona
+    </button>
+
+</section>
+
+
+<!-- =====================================
+     PRONOSTICO COMPLETO
+===================================== -->
+
+<div class="forecast-header">
+
+    <h3 class="section-title" id="forecastTitle">
+        Pronóstico por hora · Santa Rosa de Poás
+    </h3>
+
+    <button
+        class="toggle-button"
+        id="toggleForecast"
+        type="button"
+        aria-expanded="true"
+    >
+        Ocultar ▲
+    </button>
+
+</div>
+
+
+<!--
+    IMPORTANTE:
+    TODO el pronóstico está dentro de este contenedor.
+    El botón ocultará absolutamente todo este bloque.
+-->
+
+<div id="forecastDetails">
+
+    <!-- RESUMEN DE LLUVIA -->
+
+    <div class="forecast-summary">
+
+        <strong id="summaryTitle">
+            Lluvia prevista en Santa Rosa de Poás
+        </strong>
+
+        <div id="summaryText">
+            Esperando información meteorológica...
+        </div>
+
+    </div>
+
+
+    <!-- PRONOSTICO POR HORA -->
+
+    <div class="hourly-grid" id="hourlyForecast">
+
+        <div class="hour-card">
+            Consultando...
+        </div>
+
+    </div>
+
+
+    <!-- INFORMACION ADICIONAL -->
+
+    <div class="radar-info">
+
+        La probabilidad indica la posibilidad de precipitación.
+        La cantidad se expresa en milímetros (mm).
+        Son estimaciones de un modelo meteorológico.
+
+    </div>
+
+</div>
+
+
+<!-- =====================================
+     MAPA
+===================================== -->
+
+<h3 class="section-title">
+    Mapa de precipitaciones
+</h3>
+
+<div class="map-container">
+
+    <div id="map"></div>
+
+    <div class="map-label" id="mapLabel">
+        📍 Santa Rosa de Poás
+    </div>
+
+</div>
+
+<div class="radar-legend">
+
+    <span>
+        <i class="legend-dot" style="background:#38bdf8"></i>
+        Lluvia ligera
+    </span>
+
+    <span>
+        <i class="legend-dot" style="background:#22c55e"></i>
+        Moderada
+    </span>
+
+    <span>
+        <i class="legend-dot" style="background:#facc15"></i>
+        Fuerte
+    </span>
+
+    <span>
+        <i class="legend-dot" style="background:#ef4444"></i>
+        Intensa
+    </span>
+
+</div>
+
+
+<section class="panel" style="margin-top:15px">
+
+    <strong>Estado del radar</strong>
+
+    <div class="radar-info" id="radarInfo">
+        Esperando datos del radar...
+    </div>
+
+</section>
+
+</main>
+
+
+<footer>
+
+    RainTrack CR · Datos meteorológicos:
+
+    <a href="https://open-meteo.com/" target="_blank">
+        Open-Meteo
+    </a>
+
+    y
+
+    <a href="https://www.rainviewer.com/" target="_blank">
+        RainViewer
+    </a>.
+
+    <br>
+
+    Mapa:
+
+    <a href="https://openfreemap.org/" target="_blank">
+        OpenFreeMap
+    </a>
+
+    · Datos de OpenStreetMap.
+
+</footer>
+
+
+<!-- =====================================
+     LIBRERIA DEL MAPA
+===================================== -->
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+
+<script>
+
+// ============================================
+// 1. UBICACION PRINCIPAL
+// ============================================
+
+const homeLocation = {
+
+    name: "Santa Rosa de Poás",
+
+    region: "Alajuela, Costa Rica",
+
+    latitude: 10.10,
+
+    longitude: -84.30
+
+};
+
+let destinationLocation = null;
+
+let locationMarker = null;
+
+let destinationRequestId = 0;
+
+
+// ============================================
+// 2. MAPA POSITRON
+// ============================================
+
+const map = new maplibregl.Map({
+
+    container: 'map',
+
+    style: 'https://tiles.openfreemap.org/styles/positron',
+
+    center: [
+        homeLocation.longitude,
+        homeLocation.latitude
+    ],
+
+    zoom: 10,
+
+    attributionControl: true
+
+});
+
+map.addControl(
+    new maplibregl.NavigationControl(),
+    'top-right'
+);
+
+
+// ============================================
+// 3. FUNCIONES AUXILIARES
+// ============================================
+
+function setStatus(message, error = false) {
+
+    const status = document.getElementById('systemStatus');
+
+    status.textContent = message;
+
+    status.classList.toggle('error', error);
+
+}
+
+
+function weatherDescription(code) {
+
+    if (code === 0) return 'Cielo despejado';
+
+    if (code === 1) return 'Mayormente despejado';
+
+    if (code === 2) return 'Parcialmente nublado';
+
+    if (code === 3) return 'Nublado';
+
+    if (code === 45 || code === 48) return 'Neblina';
+
+    if (code >= 51 && code <= 57) return 'Llovizna';
+
+    if (code >= 61 && code <= 67) return 'Lluvia';
+
+    if (code >= 71 && code <= 77) return 'Nieve';
+
+    if (code >= 80 && code <= 82) return 'Chubascos';
+
+    if (code >= 85 && code <= 86) return 'Chubascos de nieve';
+
+    if (code >= 95) return 'Tormenta eléctrica';
+
+    return 'Condición variable';
+
+}
+
+
+function weatherIcon(code) {
+
+    if (code === 0) return '☀️';
+
+    if (code === 1) return '🌤️';
+
+    if (code === 2) return '⛅';
+
+    if (code === 3) return '☁️';
+
+    if (code === 45 || code === 48) return '🌫️';
+
+    if (code >= 51 && code <= 57) return '🌦️';
+
+    if (code >= 61 && code <= 67) return '🌧️';
+
+    if (code >= 71 && code <= 77) return '❄️';
+
+    if (code >= 80 && code <= 82) return '🌧️';
+
+    if (code >= 85 && code <= 86) return '🌨️';
+
+    if (code >= 95) return '⛈️';
+
+    return '🌤️';
+
+}
+
+
+function formatHour(value) {
+
+    const match = value.match(/T(\d{2}):/);
+
+    if (!match) return value;
+
+    const hour = Number(match[1]);
+
+    const displayHour = hour % 12 || 12;
+
+    const period = hour < 12 ? 'a. m.' : 'p. m.';
+
+    return `${displayHour}:00 ${period}`;
+
+}
+
+
+function formatDateTime(value) {
+
+    return new Date(value).toLocaleString('es-CR', {
+
+        dateStyle: 'short',
+
+        timeStyle: 'short'
+
+    });
+
+}
+
+
+function isRainCode(code) {
+
+    return (
+
+        (code >= 51 && code <= 67) ||
+
+        (code >= 80 && code <= 82) ||
+
+        code >= 95
+
+    );
+
+}
+
+
+function isRaining(current) {
+
+    const amount = Math.max(
+
+        Number(current.precipitation || 0),
+
+        Number(current.rain || 0),
+
+        Number(current.showers || 0)
+
+    );
+
+    return amount > 0.1 ||
+
+        isRainCode(Number(current.weather_code || 0));
+
+}
+
+
+// ============================================
+// 4. MARCADOR DEL MAPA
+// ============================================
+
+function showLocationOnMap(location, animate = true) {
+
+    const coordinates = [
+
+        location.longitude,
+
+        location.latitude
+
+    ];
+
+    if (animate) {
+
+        map.flyTo({
+
+            center: coordinates,
+
+            zoom: 11,
+
+            essential: true,
+
+            duration: 1200
+
+        });
+
+    }
+
+    if (locationMarker) {
+
+        locationMarker.remove();
+
+    }
+
+    const popup = new maplibregl.Popup({
+
+        offset: 25
+
+    }).setText(location.name);
+
+    locationMarker = new maplibregl.Marker({
+
+        color: '#0284c7'
+
+    })
+
+    .setLngLat(coordinates)
+
+    .setPopup(popup)
+
+    .addTo(map);
+
+    document.getElementById('mapLabel').textContent =
+        '📍 ' + location.name;
+
+}
+
+
+// ============================================
+// 5. CONSULTAR OPEN-METEO
+// ============================================
+
+async function getWeather(location) {
+
+    const controller = new AbortController();
+
+    const timeout = setTimeout(() => {
+
+        controller.abort();
+
+    }, 15000);
+
+    const parameters = new URLSearchParams({
+
+        latitude: location.latitude,
+
+        longitude: location.longitude,
+
+        current: [
+
+            'temperature_2m',
+
+            'relative_humidity_2m',
+
+            'apparent_temperature',
+
+            'precipitation',
+
+            'rain',
+
+            'showers',
+
+            'weather_code',
+
+            'wind_speed_10m'
+
+        ].join(','),
+
+        hourly: [
+
+            'precipitation_probability',
+
+            'precipitation',
+
+            'rain',
+
+            'showers',
+
+            'weather_code',
+
+            'temperature_2m'
+
+        ].join(','),
+
+        forecast_days: '2',
+
+        timezone: 'auto',
+
+        temperature_unit: 'celsius',
+
+        wind_speed_unit: 'kmh',
+
+        precipitation_unit: 'mm'
+
+    });
+
+    try {
+
+        const response = await fetch(
+
+            'https://api.open-meteo.com/v1/forecast?' +
+            parameters.toString(),
+
+            {
+                signal: controller.signal
+            }
+
+        );
+
+        if (!response.ok) {
+
+            throw new Error(
+                `Error meteorológico: ${response.status}`
+            );
+
+        }
+
+        const data = await response.json();
+
+        if (!data.current || !data.hourly) {
+
+            throw new Error('Datos meteorológicos incompletos');
+
+        }
+
+        return data;
+
+    } catch (error) {
+
+        if (error.name === 'AbortError') {
+
+            throw new Error(
+                'La consulta tardó demasiado. Intenta nuevamente.'
+            );
+
+        }
+
+        throw error;
+
+    } finally {
+
+        clearTimeout(timeout);
+
+    }
+
+}
+
+
+// ============================================
+// 6. MOSTRAR CLIMA ACTUAL
+// ============================================
+
+function displayWeather(data, prefix) {
+
+    const current = data.current;
+
+    const code = Number(current.weather_code || 0);
+
+    document.getElementById(prefix + 'Icon').textContent =
+
+        weatherIcon(code);
+
+    document.getElementById(prefix + 'Condition').textContent =
+
+        isRaining(current)
+            ? 'Lluvia estimada ahora'
+            : weatherDescription(code);
+
+    document.getElementById(prefix + 'Temperature').textContent =
+
+        `${Number(current.temperature_2m).toFixed(1)} °C · Sensación ${Number(current.apparent_temperature).toFixed(1)} °C`;
+
+    document.getElementById(prefix + 'Rain').textContent =
+
+        Number(current.precipitation || 0).toFixed(1);
+
+    document.getElementById(prefix + 'Humidity').textContent =
+
+        current.relative_humidity_2m + '%';
+
+    document.getElementById(prefix + 'Wind').textContent =
+
+        Number(current.wind_speed_10m).toFixed(1);
+
+    document.getElementById(prefix + 'Updated').textContent =
+
+        `Hora de referencia: ${formatDateTime(current.time)}. Fuente: Open-Meteo.`;
+
+}
+
+
+// ============================================
+// 7. RESUMEN DE LLUVIA
+// ============================================
+
+function displayRainSummary(data, locationName) {
+
+    const hourly = data.hourly;
+
+    const title = document.getElementById('summaryTitle');
+
+    const text = document.getElementById('summaryText');
+
+    title.textContent =
+        `Lluvia prevista en ${locationName}`;
+
+    const startIndex = hourly.time.findIndex(
+
+        time => time >= data.current.time
+
+    );
+
+    const start = startIndex >= 0 ? startIndex : 0;
+
+    const hours = [];
+
+    let maxProbability = -1;
+
+    let maxProbabilityHour = null;
+
+    let probabilityAvailable = false;
+
+    const end = Math.min(
+
+        start + 24,
+
+        hourly.time.length
+
+    );
+
+    for (let i = start; i < end; i++) {
+
+        const rawProbability =
+            hourly.precipitation_probability[i];
+
+        const probability =
+            rawProbability === null ||
+            rawProbability === undefined
+                ? null
+                : Number(rawProbability);
+
+        const amount = Number(
+
+            hourly.precipitation[i] || 0
+
+        );
+
+        const code = Number(
+
+            hourly.weather_code[i] || 0
+
+        );
+
+        if (probability !== null) {
+
+            probabilityAvailable = true;
+
+            if (probability > maxProbability) {
+
+                maxProbability = probability;
+
+                maxProbabilityHour = hourly.time[i];
+
+            }
+
+        }
+
+        const rainExpected =
+
+            (probability !== null && probability >= 30) ||
+
+            amount >= 0.1 ||
+
+            isRainCode(code);
+
+        if (rainExpected) {
+
+            hours.push({
+
+                time: hourly.time[i],
+
+                probability: probability,
+
+                amount: amount
+
+            });
+
+        }
+
+    }
+
+    if (!probabilityAvailable) {
+
+        text.textContent =
+            'No fue posible determinar la probabilidad de lluvia para esta localidad.';
+
+        return;
+
+    }
+
+    if (hours.length > 0) {
+
+        const rows = hours.map(item => {
+
+            const chance = item.probability === null
+
+                ? 'Probabilidad no disponible'
+
+                : `${item.probability}% de probabilidad`;
+
+            return `
+
+                <div class="rain-row">
+
+                    <strong>
+                        ${formatHour(item.time)}
+                    </strong>
+
+                    <span>
+                        ${chance} · ${item.amount.toFixed(1)} mm
+                    </span>
+
+                </div>
+
+            `;
+
+        });
+
+        text.innerHTML = `
+
+            <strong>
+                🌧️ Se estima posibilidad de lluvia en estos horarios:
+            </strong>
+
+            <div>
+                ${rows.join('')}
+            </div>
+
+            <div class="summary-note">
+                Cantidad estimada de precipitación por hora.
+                Pronóstico para las próximas 24 horas.
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+    if (maxProbability < 15) {
+
+        text.innerHTML = `
+
+            <strong>
+                ☀️ No se esperan lluvias significativas.
+            </strong>
+
+            <br>
+
+            La probabilidad máxima estimada para las próximas
+            24 horas es del ${maxProbability}%.
+
+            <br>
+
+            Hora de mayor probabilidad:
+            ${formatHour(maxProbabilityHour)}.
+
+        `;
+
+    } else {
+
+        text.innerHTML = `
+
+            <strong>
+                🌤️ No se identifican horas con lluvia significativa prevista.
+            </strong>
+
+            <br>
+
+            La mayor posibilidad de precipitación es del
+            ${maxProbability}%.
+
+            <br>
+
+            Se presenta a las ${formatHour(maxProbabilityHour)}.
+
+        `;
+
+    }
+
+}
+
+
+// ============================================
+// 8. PRONOSTICO POR HORA
+// ============================================
+
+function displayHourly(data, locationName) {
+
+    const hourly = data.hourly;
+
+    const container =
+        document.getElementById('hourlyForecast');
+
+    container.innerHTML = '';
+
+    let startIndex = hourly.time.findIndex(
+
+        time => time >= data.current.time
+
+    );
+
+    if (startIndex < 0) {
+
+        startIndex = 0;
+
+    }
+
+    const hours = hourly.time.slice(
+
+        startIndex,
+
+        startIndex + 12
+
+    );
+
+    hours.forEach((time, index) => {
+
+        const i = startIndex + index;
+
+        const code = Number(
+
+            hourly.weather_code[i] || 0
+
+        );
+
+        const probability =
+            hourly.precipitation_probability[i];
+
+        const rain = hourly.precipitation[i];
+
+        const temperature = hourly.temperature_2m[i];
+
+        const card = document.createElement('div');
+
+        card.className = 'hour-card';
+
+        card.innerHTML = `
+
+            <div class="hour-time">
+                ${formatHour(time)}
+            </div>
+
+            <div class="hour-icon">
+                ${weatherIcon(code)}
+            </div>
+
+            <div class="probability">
+                ${probability === null ? '--' : probability + '%'}
+            </div>
+
+            <small>Prob. de lluvia</small>
+
+            <small>
+                ${Number(rain || 0).toFixed(1)} mm
+            </small>
+
+            <small>
+                ${Number(temperature).toFixed(1)} °C
+            </small>
+
+        `;
+
+        container.appendChild(card);
+
+    });
+
+    displayRainSummary(data, locationName);
+
+}
+
+
+// ============================================
+// 9. CONSULTAR MI ZONA
+// ============================================
+
+async function loadHomeWeather() {
+
+    try {
+
+        const data = await getWeather(homeLocation);
+
+        displayWeather(data, 'home');
+
+        if (!destinationLocation) {
+
+            displayHourly(data, homeLocation.name);
+
+        }
+
+        setStatus('● Datos meteorológicos activos');
+
+        return data;
+
+    } catch (error) {
+
+        document.getElementById('homeCondition').textContent =
+            'No se pudo obtener información';
+
+        document.getElementById('homeUpdated').textContent =
+            error.message;
+
+        setStatus('● Error meteorológico', true);
+
+        console.error('Error clima principal:', error);
+
+        return null;
+
+    }
+
+}
+
+
+// ============================================
+// 10. BUSCADOR DE LOCALIDADES
+// ============================================
+
+document.getElementById('searchForm').addEventListener(
+
+    'submit',
+
+    async function(event) {
+
+        event.preventDefault();
+
+        const input =
+            document.getElementById('locationInput');
+
+        const resultsContainer =
+            document.getElementById('searchResults');
+
+        const button =
+            document.getElementById('searchButton');
+
+        const query = input.value.trim();
+
+        if (query.length < 2) {
+
+            return;
+
+        }
+
+        button.disabled = true;
+
+        button.textContent = 'Buscando...';
+
+        resultsContainer.textContent =
+            'Buscando localidades en Costa Rica...';
+
+        const controller = new AbortController();
+
+        const timeout = setTimeout(
+
+            () => controller.abort(),
+
+            15000
+
+        );
+
+        try {
+
+            const parameters = new URLSearchParams({
+
+                name: query,
+
+                count: '10',
+
+                language: 'es',
+
+                format: 'json',
+
+                countryCode: 'CR'
+
+            });
+
+            const response = await fetch(
+
+                'https://geocoding-api.open-meteo.com/v1/search?' +
+                parameters.toString(),
+
+                {
+                    signal: controller.signal
+                }
+
+            );
+
+            if (!response.ok) {
+
+                throw new Error('Error en la búsqueda');
+
+            }
+
+            const data = await response.json();
+
+            const results = (data.results || []).filter(
+
+                place => place.country_code === 'CR'
+
+            );
+
+            resultsContainer.innerHTML = '';
+
+            if (results.length === 0) {
+
+                resultsContainer.textContent =
+                    'No encontramos esa localidad. Prueba con otro nombre.';
+
+                return;
+
+            }
+
+            results.forEach(place => {
+
+                const regionParts = [
+
+                    place.admin1,
+
+                    place.admin2,
+
+                    place.admin3
+
+                ].filter(Boolean);
+
+                const region = [
+
+                    ...new Set(
+
+                        regionParts.filter(
+
+                            value => value.toLowerCase() !==
+                            place.name.toLowerCase()
+
+                        )
+
+                    )
+
+                ].join(', ');
+
+                const resultButton =
+                    document.createElement('button');
+
+                resultButton.className = 'result-button';
+
+                resultButton.textContent =
+
+                    `${place.name} · ${region || 'Costa Rica'}`;
+
+                resultButton.addEventListener(
+
+                    'click',
+
+                    function() {
+
+                        selectDestination({
+
+                            name: place.name,
+
+                            region: region || 'Costa Rica',
+
+                            latitude: place.latitude,
+
+                            longitude: place.longitude
+
+                        });
+
+                        resultsContainer.innerHTML = '';
+
+                    }
+
+                );
+
+                resultsContainer.appendChild(resultButton);
+
+            });
+
+        } catch (error) {
+
+            resultsContainer.textContent =
+
+                error.name === 'AbortError'
+
+                    ? 'La búsqueda tardó demasiado. Intenta nuevamente.'
+
+                    : 'No fue posible realizar la búsqueda. Revisa tu conexión.';
+
+            console.error('Error búsqueda:', error);
+
+        } finally {
+
+            clearTimeout(timeout);
+
+            button.disabled = false;
+
+            button.textContent = 'Buscar';
+
+        }
+
+    }
+
+);
+
+
+// ============================================
+// 11. SELECCIONAR DESTINO
+// ============================================
+
+async function selectDestination(location) {
+
+    destinationLocation = location;
+
+    const requestId = ++destinationRequestId;
+
+    document.getElementById('destinationPanel')
+
+        .hidden = false;
+
+    document.getElementById('destinationName').textContent =
+
+        location.name;
+
+    document.getElementById('destinationRegion').textContent =
+
+        location.region;
+
+    document.getElementById('destinationIcon').textContent = '🌤️';
+
+    document.getElementById('destinationCondition').textContent =
+
+        `Consultando clima de ${location.name}...`;
+
+    document.getElementById('destinationTemperature').textContent =
+
+        'Esperando información meteorológica';
+
+    document.getElementById('destinationRain').textContent = '--';
+
+    document.getElementById('destinationHumidity').textContent = '--';
+
+    document.getElementById('destinationWind').textContent = '--';
+
+    document.getElementById('destinationUpdated').textContent =
+
+        'Consultando fuente meteorológica...';
+
+    document.getElementById('forecastTitle').textContent =
+
+        `Pronóstico por hora · ${location.name}`;
+
+    document.getElementById('summaryTitle').textContent =
+
+        `Lluvia prevista en ${location.name}`;
+
+    document.getElementById('summaryText').textContent =
+
+        `Estamos consultando el pronóstico de ${location.name}.`;
+
+    document.getElementById('hourlyForecast').innerHTML =
+
+        '<div class="hour-card">Consultando pronóstico...</div>';
+
+    showLocationOnMap(location);
+
+    setStatus('● Consultando destino...');
+
+    try {
+
+        const data = await getWeather(location);
+
+        if (requestId !== destinationRequestId) {
+
+            return;
+
+        }
+
+        displayWeather(data, 'destination');
+
+        displayHourly(data, location.name);
+
+        setStatus('● Datos meteorológicos activos');
+
+    } catch (error) {
+
+        if (requestId !== destinationRequestId) {
+
+            return;
+
+        }
+
+        document.getElementById('destinationCondition').textContent =
+
+            'No se pudo consultar el clima';
+
+        document.getElementById('destinationTemperature').textContent =
+
+            error.message;
+
+        document.getElementById('destinationRain').textContent = '--';
+
+        document.getElementById('destinationHumidity').textContent = '--';
+
+        document.getElementById('destinationWind').textContent = '--';
+
+        document.getElementById('destinationUpdated').textContent =
+
+            'Verifica tu conexión e inténtalo nuevamente.';
+
+        document.getElementById('summaryTitle').textContent =
+
+            `Pronóstico no disponible · ${location.name}`;
+
+        document.getElementById('summaryText').textContent =
+
+            'No se pudieron obtener datos meteorológicos. No es posible determinar si lloverá.';
+
+        document.getElementById('hourlyForecast').innerHTML =
+
+            '<div class="hour-card">Pronóstico no disponible.</div>';
+
+        setStatus('● Error de consulta', true);
+
+        console.error('Error consultando destino:', error);
+
+    }
+
+}
+
+
+// ============================================
+// 12. VOLVER A MI ZONA
+// ============================================
+
+document.getElementById('returnHome').addEventListener(
+
+    'click',
+
+    async function() {
+
+        destinationRequestId++;
+
+        destinationLocation = null;
+
+        document.getElementById('destinationPanel').hidden = true;
+
+        document.getElementById('forecastTitle').textContent =
+
+            'Pronóstico por hora · Santa Rosa de Poás';
+
+        document.getElementById('summaryTitle').textContent =
+
+            'Lluvia prevista en Santa Rosa de Poás';
+
+        document.getElementById('summaryText').textContent =
+
+            'Consultando información meteorológica...';
+
+        document.getElementById('hourlyForecast').innerHTML =
+
+            '<div class="hour-card">Consultando...</div>';
+
+        showLocationOnMap(homeLocation);
+
+        await loadHomeWeather();
+
+    }
+
+);
+
+
+// ============================================
+// 13. BOTON MOSTRAR / OCULTAR
+// ============================================
+
+const toggleForecast =
+    document.getElementById('toggleForecast');
+
+const forecastDetails =
+    document.getElementById('forecastDetails');
+
+toggleForecast.addEventListener('click', function() {
+
+    // Cambiar directamente la propiedad hidden.
+
+    forecastDetails.hidden = !forecastDetails.hidden;
+
+    // Comprobar el estado real del bloque.
+
+    const isHidden = forecastDetails.hidden;
+
+    // Actualizar el texto del botón.
+
+    toggleForecast.textContent = isHidden
+        ? 'Mostrar ▼'
+        : 'Ocultar ▲';
+
+    // Actualizar accesibilidad.
+
+    toggleForecast.setAttribute(
+        'aria-expanded',
+        String(!isHidden)
+    );
+
+});
+
+
+// ============================================
+// 14. RADAR RAINVIEWER
+// ============================================
+
+let radarFrameTime = null;
+
+async function loadRadar() {
+
+    const radarInfo =
+        document.getElementById('radarInfo');
+
+    try {
+
+        const response = await fetch(
+
+            'https://api.rainviewer.com/public/weather-maps.json'
+
+        );
+
+        if (!response.ok) {
+
+            throw new Error('Radar no disponible');
+
+        }
+
+        const data = await response.json();
+
+        const frames = data.radar?.past || [];
+
+        if (frames.length === 0) {
+
+            throw new Error('No hay imágenes de radar');
+
+        }
+
+        const lastFrame = frames[frames.length - 1];
+
+        if (radarFrameTime === lastFrame.time) {
+
+            return;
+
+        }
+
+        const tileURL =
+
+            `${data.host}${lastFrame.path}/256/{z}/{x}/{y}/2/1_0.png`;
+
+        if (map.getLayer('rainviewer-radar')) {
+
+            map.removeLayer('rainviewer-radar');
+
+        }
+
+        if (map.getSource('rainviewer-radar')) {
+
+            map.removeSource('rainviewer-radar');
+
+        }
+
+        map.addSource('rainviewer-radar', {
+
+            type: 'raster',
+
+            tiles: [tileURL],
+
+            tileSize: 256,
+
+            maxzoom: 7,
+
+            attribution: 'Weather data by RainViewer'
+
+        });
+
+        const firstSymbolLayer = map.getStyle().layers.find(
+
+            layer => layer.type === 'symbol'
+
+        )?.id;
+
+        const radarLayer = {
+
+            id: 'rainviewer-radar',
+
+            type: 'raster',
+
+            source: 'rainviewer-radar',
+
+            paint: {
+
+                'raster-opacity': 0.72,
+
+                'raster-fade-duration': 300
+
+            }
+
+        };
+
+        if (firstSymbolLayer) {
+
+            map.addLayer(radarLayer, firstSymbolLayer);
+
+        } else {
+
+            map.addLayer(radarLayer);
+
+        }
+
+        radarFrameTime = lastFrame.time;
+
+        const radarTime = new Date(
+
+            lastFrame.time * 1000
+
+        ).toLocaleString('es-CR', {
+
+            dateStyle: 'short',
+
+            timeStyle: 'short'
+
+        });
+
+        radarInfo.textContent =
+
+            `Radar conectado. Última imagen disponible: ${radarTime}. Fuente: RainViewer.`;
+
+    } catch (error) {
+
+        radarInfo.textContent =
+
+            'No fue posible obtener imágenes del radar. Los pronósticos meteorológicos siguen disponibles.';
+
+        console.error('Error RainViewer:', error);
+
+    }
+
+}
+
+
+// ============================================
+// 15. INICIAR APLICACION
+// ============================================
+
+map.on('load', async function() {
+
+    showLocationOnMap(homeLocation, false);
+
+    await Promise.allSettled([
+
+        loadHomeWeather(),
+
+        loadRadar()
+
+    ]);
+
+});
+
+
+// ============================================
+// 16. ACTUALIZACIONES AUTOMATICAS
+// ============================================
+
+// Actualizar clima cada 15 minutos.
+
+setInterval(async function() {
+
+    await loadHomeWeather();
+
+    if (destinationLocation) {
+
+        const location = destinationLocation;
+
+        const requestId = destinationRequestId;
+
+        try {
+
+            const data = await getWeather(location);
+
+            if (
+
+                requestId !== destinationRequestId ||
+
+                destinationLocation !== location
+
+            ) {
+
+                return;
+
+            }
+
+            displayWeather(data, 'destination');
+
+            displayHourly(data, location.name);
+
+        } catch (error) {
+
+            if (requestId === destinationRequestId) {
+
+                document.getElementById('destinationUpdated').textContent =
+
+                    'No se pudo actualizar el pronóstico: ' + error.message;
+
+            }
+
+            console.error('Error actualizando destino:', error);
+
+        }
+
+    }
+
+}, 15 * 60 * 1000);
+
+
+// Actualizar radar cada 10 minutos.
+
+setInterval(loadRadar, 10 * 60 * 1000);
+
+
+</script>
+
+</body>
+</html>
