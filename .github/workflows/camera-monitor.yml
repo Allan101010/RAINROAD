@@ -1,4 +1,4 @@
-name: RainTrack CR v1.5 - monitoreo de cámaras
+name: RainTrack CR v1.6 - monitoreo de cámaras
 
 on:
   push:
@@ -69,9 +69,19 @@ jobs:
             git commit -m "Actualizar monitoreo meteorológico de cámaras"
             git fetch origin main
             if ! git rebase origin/main; then
-              git rebase --abort || true
-              echo "::warning::Hubo una publicación simultánea; se conserva main y el próximo ciclo volverá a intentarlo."
-              exit 0
+              echo "::warning::Se detectó una actualización simultánea de los JSON meteorológicos; se conservarán los resultados de este ciclo."
+              conflicts="$(git diff --name-only --diff-filter=U)"
+              unexpected="$(printf '%s\\n' "$conflicts" | grep -Ev '^(camera-alerts.json|camera-catalog.json)
+          fi
+ || true)"
+              if [ -n "$unexpected" ]; then
+                git rebase --abort || true
+                echo "::error::Conflicto inesperado fuera de los JSON generados: $unexpected"
+                exit 1
+              fi
+              git checkout --theirs -- camera-alerts.json camera-catalog.json
+              git add camera-alerts.json camera-catalog.json
+              GIT_EDITOR=true git rebase --continue
             fi
             git push origin HEAD:main
           fi
