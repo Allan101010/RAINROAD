@@ -7,8 +7,8 @@ capturas públicas disponibles y clasifica la escena con un modelo abierto
 de condiciones meteorológicas. No intenta acceder a cámaras privadas ni
 extraer vídeo de plataformas externas.
 
-El análisis es orientativo: "rain/storm" significa indicios visuales,
-no una confirmación meteorológica oficial.
+El análisis es orientativo: "rain/storm" es una clase del modelo, no una medición ni una probabilidad meteorológica calibrada.
+Una cámara por sí sola nunca confirma lluvia; los registros instrumentales se informan por separado.
 """
 
 from __future__ import annotations
@@ -38,6 +38,10 @@ ALERTS_PATH = Path("camera-alerts.json")
 CATALOG_MAX_AGE = timedelta(hours=6)
 CAMERA_ONLINE_MAX_AGE = timedelta(minutes=20)
 CAMERA_DELAYED_MAX_AGE = timedelta(hours=1)
+CAMERA_NAME_OVERRIDES = {
+    "punta-islita-default": "Comedero bajo",
+    "punta-islita-lapas-rojas-copa": "Vista de copa de las lapas rojas",
+}
 HTTP_TIMEOUT = 25
 USER_AGENT = "RainTrackCR/1.5 (public weather-camera monitor; contact via project repository)"
 MAX_IMAGE_BYTES = 18 * 1024 * 1024
@@ -523,6 +527,7 @@ def build_catalog(session: requests.Session) -> list[dict]:
                 camera_name = h2.get_text(" ", strip=True) if h2 else link_label
                 if not camera_name or camera_name.lower() in {"qué se ve", "qué se ve"}:
                     camera_name = link_label or site_name
+                camera_name = CAMERA_NAME_OVERRIDES.get(f"{site_slug}-{cam_slug}", camera_name)
 
                 offline = page_is_offline(camera_soup)
                 snapshot_url = extract_snapshot_url(camera_soup, resolved_url)
@@ -1467,19 +1472,32 @@ def main() -> int:
     for result, image, metadata in outdoor_images:
         try:
             rain_probability, predicted_label, predicted_confidence = classify_image(image, weather_model_bundle)
-            result["rain_probability"] = round(rain_probability, 4)
+            model_score = round(rain_probability, 4)
+            result["model_score"] = model_score
+            # Campo heredado para compatibilidad con lectores anteriores.
+            # No debe interpretarse como probabilidad meteorológica calibrada.
+            result["rain_probability"] = model_score
             result["predicted_label"] = predicted_label
             result["confidence"] = round(predicted_confidence, 4)
 
             if rain_probability >= 0.82:
-                result["status"] = "rain"
-                result["message"] = "Indicios visuales fuertes de lluvia. Confirmar abriendo la cámara."
-            elif rain_probability >= 0.62:
+                result["signal_level"] = "high"
                 result["status"] = "possible"
-                result["message"] = "La IA observa posibles indicios de lluvia; requiere comprobación visual."
+                result["message"] = (
+                    "El clasificador detecta una señal visual elevada compatible con lluvia, "
+                    "pero no la confirma. Contrastar con otras cámaras, radar o estaciones."
+                )
+            elif rain_probability >= 0.62:
+                result["signal_level"] = "moderate"
+                result["status"] = "possible"
+                result["message"] = (
+                    "El clasificador detecta una señal visual compatible con lluvia; "
+                    "requiere corroboración independiente."
+                )
             else:
+                result["signal_level"] = "low"
                 result["status"] = "clear"
-                result["message"] = "El análisis no encontró indicios visuales suficientes de lluvia."
+                result["message"] = "El clasificador no encontró una señal visual suficiente de lluvia."
 
             if result.get("scene_context_override"):
                 result["message"] += " Contexto exterior verificado: " + result["scene_context_override"] + "."
@@ -1569,8 +1587,8 @@ def main() -> int:
         "scene_model": SCENE_MODEL_ID,
         "model_note": (
             "La evaluación de encuadre y la clasificación meteorológica son experimentales. "
-            "Los indicios visuales pueden confundirse con nubes, niebla, vapor, oscuridad o imágenes desactualizadas. "
-            "No son una medición oficial de lluvia."
+            "La puntuación model_score/rain_probability es una salida interna del clasificador, no una probabilidad meteorológica calibrada. "
+            "Una cámara por sí sola no confirma lluvia: las señales visuales requieren corroboración y las mediciones instrumentales se muestran por separado."
         ),
         "directory_sites": len(SITES),
         "camera_count": len(results),

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7.5</title>
+  <title>RainTrack CR v1.7.6</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -255,7 +255,7 @@
     .camera-popup a { display: inline-block; margin-top: 7px; color: #0369a1; font-weight: 700; }
 
     .camera-marker.rain { background: #dc2626; }
-    .camera-marker.possible { background: #d97706; }
+    .camera-marker.possible, .camera-marker.mixed { background: #d97706; }
     .camera-marker.clear { background: #7c3aed; }
     .camera-marker.offline { background: #475569; }
     .camera-marker.stale { background: #64748b; }
@@ -266,6 +266,7 @@
     .camera-marker.station-marker { border-radius: 9px; background: #0e7490; }
     .camera-marker.station-marker.rain { background: #dc2626; }
     .camera-popup { min-width: 190px; }
+    .camera-popup .camera-popup-note { display: block; margin-top: 7px; color: #475569; font-size: 10px; line-height: 1.4; }
     .camera-popup .camera-popup-status {
       margin-top: 7px;
       padding: 6px 7px;
@@ -683,7 +684,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.5</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.6</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1435,8 +1436,9 @@
 
     function cameraStatusText(status) {
       return ({
-        rain: "Indicios fuertes de lluvia",
-        possible: "Posible lluvia",
+        rain: "Señal visual elevada del modelo · sin confirmar",
+        possible: "Señal visual compatible con lluvia · sin confirmar",
+        mixed: "Resultados distintos entre cámaras",
         clear: "Sin indicios visuales",
         offline: "Sin señal / cámara no disponible",
         stale: "Imagen sin actualización por más de 1 hora",
@@ -1468,11 +1470,15 @@
       if (!rows.length) return "pending";
 
       const currentRows = rows.filter(item =>
-        ["online", "unknown"].includes(item.availability_status || "unknown")
+        ["online", "unknown"].includes(item.availability_status || "unknown") &&
+        item.scene_assessment === "outdoor"
       );
-      if (currentRows.some(item => item.status === "rain" && item.scene_assessment === "outdoor")) return "rain";
-      if (currentRows.some(item => item.status === "possible" && item.scene_assessment === "outdoor")) return "possible";
-      if (currentRows.some(item => item.status === "clear" && item.scene_assessment === "outdoor")) return "clear";
+      const hasVisualSignal = currentRows.some(item => ["rain", "possible"].includes(item.status));
+      const hasClearView = currentRows.some(item => item.status === "clear");
+      if (hasVisualSignal && hasClearView) return "mixed";
+      // Una clasificación automática aislada nunca convierte una cámara en lluvia confirmada.
+      if (hasVisualSignal) return "possible";
+      if (hasClearView) return "clear";
       if (rows.some(item => item.availability_status === "delayed")) return "delayed";
       if (rows.some(item => item.availability_status === "stale" || item.status === "stale")) return "stale";
       if (rows.some(item => item.availability_status === "offline" || item.status === "offline")) return "offline";
@@ -1513,13 +1519,18 @@
       stack.hidden = false;
       stack.innerHTML = active.slice(0, 4).map(item => {
         const isStation = item.alert_type === "station";
-        const isRain = item.status === "rain";
-        const label = isStation ? "Lluvia medida por estación" : isRain ? "Indicios fuertes de lluvia" : "Posible lluvia";
+        const isRain = isStation && item.status === "rain";
+        const label = isStation
+          ? "Lluvia medida por estación"
+          : item.status === "rain"
+            ? "Señal visual elevada (sin confirmar)"
+            : "Posible señal visual de lluvia";
+        const modelScore = Number(item.model_score ?? item.rain_probability);
         const detail = isStation
           ? Number(item.rain_last_hour_mm).toFixed(1) + " mm en la última hora"
-          : Number.isFinite(Number(item.rain_probability))
-            ? Math.round(Number(item.rain_probability) * 100) + "% de confianza visual"
-            : "Análisis visual";
+          : Number.isFinite(modelScore)
+            ? "Puntuación del modelo: " + Math.round(modelScore * 100) + "% · no es probabilidad de lluvia"
+            : "Análisis visual sin confirmar";
         return `<div class="camera-alert-item ${isRain ? "rain" : "possible"}">
           <span class="camera-alert-icon">${isStation ? "🌧️" : isRain ? "🌧️" : "☔"}</span>
           <div><strong>${escapeHtml(label)} · ${escapeHtml(item.camera_name || item.station_name || item.site_name || "Cámara")}</strong>
@@ -1552,7 +1563,7 @@
         const element = document.createElement("button");
         element.type = "button";
         element.className = "camera-marker " + status;
-        element.textContent = status === "rain" ? "🌧️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : "📷";
+        element.textContent = status === "mixed" ? "⚠️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : "📷";
         element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
 
         const siteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
@@ -1561,7 +1572,7 @@
         const cameraRows = siteCameras.slice(0, 10).map(item => {
           const state = cameraStatusText(item.status);
           const availability = cameraAvailabilityText(item.availability_status || "unknown");
-          const icon = item.status === "rain" ? "🌧️" : item.status === "possible" ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" ? "×" : "·";
+          const icon = ["rain", "possible"].includes(item.status) ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" ? "×" : "·";
           const age = item.image_age_minutes != null && Number.isFinite(Number(item.image_age_minutes))
             ? " · " + Math.round(Number(item.image_age_minutes)) + " min"
             : "";
@@ -1571,11 +1582,13 @@
             : "";
           return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}${sourceLink}</span><span>${icon} ${escapeHtml(state)}<br><small>${escapeHtml(availability + age + recovered)}</small></span></div>`;
         }).join("");
-        const summary = status === "rain"
-          ? "Hay una cámara exterior reciente con indicios fuertes de lluvia."
-          : status === "possible"
-            ? "Hay una cámara exterior reciente con posible lluvia."
-            : status === "offline"
+        const summary = status === "mixed"
+          ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
+          : status === "rain"
+            ? "El clasificador asignó una señal visual elevada, pero no hay confirmación meteorológica independiente."
+            : status === "possible"
+              ? "El clasificador detecta una señal visual compatible con lluvia, pero requiere corroboración. No es lluvia confirmada."
+              : status === "offline"
               ? "Las cámaras de este sitio no están proporcionando imágenes."
               : status === "stale"
                 ? "Las imágenes disponibles no se han actualizado recientemente."
@@ -1589,6 +1602,7 @@
           <div>${escapeHtml(camera.zone)} · ${escapeHtml(camera.detail)}</div>
           <div class="camera-popup-status">${escapeHtml(summary)}</div>
           ${cameraRows ? `<div class="camera-popup-list">${cameraRows}</div>` : ""}
+          <small class="camera-popup-note">La IA clasifica imágenes; no mide lluvia. Su puntuación no equivale a una probabilidad meteorológica. Contrasta con radar y estaciones.</small>
           <a href="${escapeHtml(camera.url)}" target="_blank" rel="noopener">Ver cámaras de este sitio ↗</a>
         </div>`;
         const marker = new maplibregl.Marker({ element, anchor: "center" })
