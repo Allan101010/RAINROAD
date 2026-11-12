@@ -595,6 +595,13 @@
     // Elimina la ubicación fija de versiones anteriores: ahora se usa GPS en cada ingreso.
     localStorage.removeItem("raintrackcr_home_location_v2");
     const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+
+    // El mapa se limita a Costa Rica: permite acercar y alejar, pero no
+    // navegar libremente por el resto del mundo.
+    const CR_BOUNDARY_URL = "https://geojson-maps.kyd.au/countries/10m/CRI.geojson";
+    const CR_MAINLAND_BOUNDS = [[-85.98, 7.95], [-82.52, 11.25]];
+    const CR_NAVIGATION_BOUNDS = [[-86.25, 7.65], [-82.25, 11.55]];
+    const CR_MASK_COLOR = "#dce4e7";
     const OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
     const OPEN_METEO_GEOCODING = "https://geocoding-api.open-meteo.com/v1/search";
 
@@ -751,6 +758,145 @@
     }
 
     // ------------------------------------------------------------
+    // ENFOQUE EXCLUSIVO EN COSTA RICA
+    // ------------------------------------------------------------
+    function signedRingArea(ring) {
+      let area = 0;
+      for (let i = 0; i < ring.length - 1; i++) {
+        const [x1, y1] = ring[i];
+        const [x2, y2] = ring[i + 1];
+        area += (x1 * y2) - (x2 * y1);
+      }
+      return area / 2;
+    }
+
+    function orientGeoJsonRing(ring, counterClockwise) {
+      const copy = ring.map(point => [Number(point[0]), Number(point[1])]);
+      if (copy.length && (
+        copy[0][0] !== copy[copy.length - 1][0] ||
+        copy[0][1] !== copy[copy.length - 1][1]
+      )) {
+        copy.push([...copy[0]]);
+      }
+      const isCounterClockwise = signedRingArea(copy) > 0;
+      if (isCounterClockwise !== counterClockwise) copy.reverse();
+      return copy;
+    }
+
+    async function addCostaRicaFocusMask() {
+      // Se utiliza el polígono de Costa Rica para ocultar visualmente el
+      // resto del mapa. Si el servicio de límites no responde, los límites
+      // de navegación siguen activos como protección alternativa.
+      const boundary = await fetchJson(CR_BOUNDARY_URL);
+      const feature = boundary.type === "FeatureCollection"
+        ? boundary.features.find(item =>
+            item.properties && (
+              item.properties.adm0_a3 === "CRI" ||
+              item.properties.sov_a3 === "CRI" ||
+              item.properties.name === "Costa Rica"
+            )
+          )
+        : boundary.type === "Feature" ? boundary : null;
+
+      if (!feature || !feature.geometry) {
+        throw new Error("El servicio no devolvió el límite de Costa Rica.");
+      }
+
+      const geometry = feature.geometry;
+      const polygons = geometry.type === "Polygon"
+        ? [geometry.coordinates]
+        : geometry.type === "MultiPolygon"
+          ? geometry.coordinates
+          : [];
+
+      const countryOuterRings = polygons
+        .map(polygon => polygon && polygon[0])
+        .filter(ring => Array.isArray(ring) && ring.length >= 4)
+        .map(ring => orientGeoJsonRing(ring, false));
+
+      if (!countryOuterRings.length) {
+        throw new Error("No se pudo interpretar el polígono de Costa Rica.");
+      }
+
+      // El anillo exterior cubre el mundo y los anillos interiores dejan
+      // visible únicamente el territorio costarricense.
+      const worldRing = orientGeoJsonRing([
+        [-180, -85.051129],
+        [180, -85.051129],
+        [180, 85.051129],
+        [-180, 85.051129],
+        [-180, -85.051129]
+      ], true);
+
+      const maskFeature = {
+        type: "Feature",
+        properties: { name: "Fuera de Costa Rica" },
+        geometry: {
+          type: "Polygon",
+          coordinates: [worldRing, ...countryOuterRings]
+        }
+      };
+
+      map.addSource("raintrack-cr-mask-source", {
+        type: "geojson",
+        data: maskFeature
+      });
+
+      // Se agrega al final del estilo para cubrir carreteras y etiquetas
+      // de países vecinos. El hueco del polígono deja ver Costa Rica.
+      map.addLayer({
+        id: "raintrack-cr-outside-mask",
+        type: "fill",
+        source: "raintrack-cr-mask-source",
+        paint: {
+          "fill-color": CR_MASK_COLOR,
+          "fill-opacity": 0.985
+        }
+      });
+
+      map.addSource("raintrack-cr-boundary-source", {
+        type: "geojson",
+        data: feature
+      });
+
+      map.addLayer({
+        id: "raintrack-cr-boundary-line",
+        type: "line",
+        source: "raintrack-cr-boundary-source",
+        paint: {
+          "line-color": "#0284c7",
+          "line-width": 2,
+          "line-opacity": 0.9
+        }
+      });
+    }
+
+    function countryFitPadding() {
+      const width = map.getContainer().clientWidth || window.innerWidth;
+      // En pantallas anchas se reserva espacio lateral para que el país
+      // no quede diminuto dentro de un mapa panorámico.
+      const side = width > 1000
+        ? Math.round(width * 0.27)
+        : Math.round(width * 0.06);
+
+      return {
+        top: 22,
+        bottom: 22,
+        left: side,
+        right: side
+      };
+    }
+
+    function showCostaRicaOverview(animate = true) {
+      if (!map) return;
+      map.fitBounds(CR_MAINLAND_BOUNDS, {
+        padding: countryFitPadding(),
+        duration: animate ? 650 : 0,
+        maxZoom: 8.4
+      });
+    }
+
+    // ------------------------------------------------------------
     // MAPA OPENFREEMAP / MAPLIBRE
     // ------------------------------------------------------------
     function initMap() {
@@ -764,8 +910,11 @@
         style: MAP_STYLE,
         center: [-84.10, 9.75],
         zoom: 7.2,
-        minZoom: 5,
+        minZoom: 6.7,
         maxZoom: 16,
+        maxBounds: CR_NAVIGATION_BOUNDS,
+        maxBoundsViscosity: 1,
+        renderWorldCopies: false,
         attributionControl: true,
         cooperativeGestures: true
       });
@@ -773,19 +922,44 @@
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
       map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 110 }), "bottom-left");
 
-      map.on("load", () => {
+      map.on("load", async () => {
         mapReady = true;
-        $("mapStatusChip").textContent = "Mapa listo · Cargando precipitación…";
-        updateMapMarkers();
-        if (homeLocation) {
-          map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 12, speed: 1.1 });
+        $("mapStatusChip").textContent = "Preparando mapa de Costa Rica…";
+
+        try {
+          await addCostaRicaFocusMask();
+          $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa limitado al país";
+        } catch (error) {
+          console.warn("No se pudo cargar el contorno de Costa Rica; se mantienen los límites de navegación:", error);
+          $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Navegación limitada";
         }
+
+        showCostaRicaOverview(false);
+        updateMapMarkers();
+
+        if (homeLocation) {
+          map.flyTo({
+            center: [homeLocation.lon, homeLocation.lat],
+            zoom: 12,
+            speed: 1.1
+          });
+        }
+
         loadRadarSource();
       });
 
       map.on("zoomend", updateZoomHint);
       map.on("error", (event) => {
         console.warn("MapLibre:", event && event.error ? event.error : event);
+      });
+
+      // Si se rota el teléfono o cambia el tamaño de la ventana, se vuelve
+      // a encuadrar Costa Rica solo cuando el usuario aún no ha interactuado.
+      let userMovedMap = false;
+      map.on("dragstart", () => { userMovedMap = true; });
+      map.on("zoomstart", () => { userMovedMap = true; });
+      window.addEventListener("resize", () => {
+        if (mapReady && !userMovedMap) showCostaRicaOverview(false);
       });
     }
 
@@ -1364,7 +1538,17 @@
 
       if (homeLocation) {
         $("mapLocationChip").textContent = "📍 Mi ubicación actual";
-        if (mapReady) map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 12, speed: 1.1 });
+        if (mapReady) {
+          const [west, south] = CR_NAVIGATION_BOUNDS[0];
+          const [east, north] = CR_NAVIGATION_BOUNDS[1];
+          const gpsInsideCostaRica = homeLocation.lon >= west && homeLocation.lon <= east &&
+            homeLocation.lat >= south && homeLocation.lat <= north;
+          if (gpsInsideCostaRica) {
+            map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 12, speed: 1.1 });
+          } else {
+            showCostaRicaOverview(true);
+          }
+        }
         updateMapMarkers();
         if (homeWeatherData) renderForecast(homeWeatherData.location, homeWeatherData.data);
         else loadWeatherForLocation(homeLocation, "home");
@@ -1455,7 +1639,16 @@
           $("mapLocationChip").textContent = "📍 Mi ubicación actual";
 
           if (mapReady) {
-            map.flyTo({ center: [longitude, latitude], zoom: accuracy && accuracy > 700 ? 10.5 : 12, speed: 1.1 });
+            const [west, south] = CR_NAVIGATION_BOUNDS[0];
+            const [east, north] = CR_NAVIGATION_BOUNDS[1];
+            const gpsInsideCostaRica = longitude >= west && longitude <= east &&
+              latitude >= south && latitude <= north;
+            if (gpsInsideCostaRica) {
+              map.flyTo({ center: [longitude, latitude], zoom: accuracy && accuracy > 700 ? 10.5 : 12, speed: 1.1 });
+            } else {
+              showCostaRicaOverview(true);
+              $("mapLocationChip").textContent = "🇨🇷 Mapa enfocado en Costa Rica";
+            }
             updateMapMarkers();
           }
 
