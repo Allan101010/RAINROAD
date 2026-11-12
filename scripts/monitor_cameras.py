@@ -877,14 +877,14 @@ def extract_imn_table_values(html: str) -> dict:
                     # "12/11/2026 11:14:36 a.m. 35,4 0,00 0,00 28,44 19,44".
                     raw = values[0]
                     match = re.match(
-                        r"^(\\d{1,2}/\\d{1,2}/\\d{4}(?:\\s+\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:a\\.?\\s*m\\.?|p\\.?\\s*m\\.?)?)?)\\s+(.+)$",
+                        r"^(\d{1,2}/\d{1,2}/\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?)?)\s+(.+)$",
                         raw,
                         re.IGNORECASE,
                     )
                     if match:
                         date_text, remainder = match.groups()
                         numeric_values = re.findall(
-                            r"[-+]?(?:\\d{1,3}(?:[.\\s]\\d{3})+|\\d+)(?:[.,]\\d+)?",
+                            r"[-+]?(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?",
                             remainder,
                         )
                         values = [date_text] + numeric_values
