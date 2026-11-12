@@ -77,8 +77,11 @@ jobs:
                 echo "::error::Conflicto inesperado fuera de los JSON generados: $unexpected"
                 exit 1
               fi
-              git checkout --theirs -- camera-alerts.json camera-catalog.json
-              git add camera-alerts.json camera-catalog.json
+              while IFS= read -r file; do
+                [ -n "$file" ] || continue
+                git checkout --theirs -- "$file"
+                git add "$file"
+              done <<< "$conflicts"
               GIT_EDITOR=true git rebase --continue
             fi
             git push origin HEAD:main
