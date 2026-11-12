@@ -291,7 +291,8 @@
     .camera-popup .camera-popup-row span:last-child {
       font-weight: 700;
       text-align: right;
-      white-space: nowrap;
+      white-space: normal;
+      max-width: 155px;
     }
     .camera-alert-stack {
       position: absolute;
@@ -682,7 +683,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.4</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.5</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -731,7 +732,8 @@
             </select>
             <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (21 sitios · 8 OVSICORI · 2 IMN)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
-            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>\n            <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos. Todas las cámaras públicas son candidatas: la IA evalúa si el encuadre muestra suficiente entorno exterior. Las imágenes demoradas o sin actualización no generan alertas actuales.</p>
+            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
+            <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos. Todas las cámaras públicas son candidatas: la IA evalúa si el encuadre muestra suficiente entorno exterior. Las imágenes demoradas o sin actualización no generan alertas actuales.</p>
           </div>
         </div>
 
