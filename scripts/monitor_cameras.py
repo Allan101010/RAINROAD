@@ -846,7 +846,7 @@ def parse_imn_local_datetime(value: str | None) -> datetime | None:
     text = text.replace("a. m.", "am").replace("p. m.", "pm")
     text = text.replace("a.m.", "am").replace("p.m.", "pm")
     text = text.replace("a. m", "am").replace("p. m", "pm")
-    text = re.sub(r"\\s+", " ", text)
+    text = re.sub(r"\s+", " ", text)
     for fmt in ("%d/%m/%Y %I:%M:%S %p", "%d/%m/%Y %I:%M %p"):
         try:
             local = datetime.strptime(text, fmt).replace(tzinfo=timezone(timedelta(hours=-6)))
@@ -892,9 +892,15 @@ def extract_imn_table_values(html: str) -> dict:
         {},
     )
 
-    timestamp = (
-        parse_imn_local_datetime(accumulated.get("fecha"))
-        or parse_imn_local_datetime(hourly.get("fecha"))
+    timestamps = [
+        parsed
+        for parsed in (parse_imn_local_datetime(row.get("fecha")) for row in parsed_tables)
+        if parsed is not None
+    ]
+    timestamp = max(timestamps) if timestamps else None
+    table_debug = " || ".join(
+        f"headers={','.join(row.keys())}; fecha={row.get('fecha', '')}"
+        for row in parsed_tables[:5]
     )
     return {
         "image_timestamp": timestamp.replace(microsecond=0).isoformat().replace("+00:00", "Z") if timestamp else None,
@@ -907,6 +913,7 @@ def extract_imn_table_values(html: str) -> dict:
         "wind_speed_kmh": parse_localized_number(current.get("velocidad")),
         "pressure_hpa": parse_localized_number(hourly.get("p_atm") or hourly.get("pres_mb")),
         "table_row_count": len(parsed_tables),
+        "table_debug": table_debug,
         "data_source": "imn_html_table",
     }
 
@@ -1029,6 +1036,7 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             table_values = fetch_imn_table(session, station["table_url"])
             result.update(table_values)
             result.update(assess_station_freshness(result.get("image_timestamp")))
+            result.pop("table_debug", None)
             result["status"] = result["availability_status"]
             rain_amount = result.get("rain_last_hour_mm")
             result["rain_observed"] = (
@@ -1046,8 +1054,10 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             else:
                 result["message"] = "Lectura instrumental reciente obtenida directamente de la tabla HTML del IMN."
             logging.info(
-                "IMN %s tabla: hora=%s lluvia_hora=%s lluvia_7am=%s temperatura=%s viento=%s humedad=%s estado=%s",
+                "IMN %s tabla: filas=%s detalle=%s hora=%s lluvia_hora=%s lluvia_7am=%s temperatura=%s viento=%s humedad=%s estado=%s",
                 station["id"],
+                result.get("table_row_count"),
+                result.get("table_debug"),
                 result.get("image_timestamp"),
                 result.get("rain_last_hour_mm"),
                 result.get("rain_since_7am_mm"),
