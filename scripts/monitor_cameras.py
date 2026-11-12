@@ -867,13 +867,24 @@ OUTDOOR_PROMPTS = [
     "An outdoor webcam showing a beach, coastline, ocean or open landscape under the sky.",
     "An outdoor webcam showing a forest canopy, treetops, mountains and the open air.",
     "An outdoor wildlife webcam showing an animal in its natural habitat with visible trees, sky or weather-exposed surroundings.",
+    "An outdoor animal feeder, open-air aviary or wildlife rehabilitation patio with visible branches, leaves, natural daylight or open sky, even when an animal fills most of the frame.",
 ]
 INDOOR_PROMPTS = [
-    "A close-up wildlife webcam showing only an animal with no visible outdoor surroundings or sky.",
-    "An indoor animal enclosure, nest box, cage, terrarium, aquarium or room.",
-    "A close-up of an animal filling nearly the whole image, with no visible landscape or weather-exposed environment.",
+    "A close-up wildlife webcam showing only an animal, with no visible foliage, sky, natural daylight or outdoor surroundings.",
+    "A fully enclosed indoor animal enclosure, nest box, cage, terrarium, aquarium or room with no visible exterior environment.",
+    "A close-up of an animal filling nearly the whole image, with no visible outdoor context or weather-exposed environment.",
     "An indoor security camera view of a room or building.",
+    "A rescued animal resting on blankets inside a room, with no visible outdoor habitat or natural environment.",
 ]
+
+# Contextos exteriores confirmados en las fichas públicas y capturas de estas cámaras.
+# Se conservan como aptas aunque el animal ocupe gran parte del encuadre.
+CAMERA_OUTDOOR_CONTEXT_OVERRIDES = {
+    "punta-islita-default": "comedero exterior entre ramas y vegetación, con luz natural en el bosque de Punta Islita",
+    "punta-islita-lapas-rojas-copa": "comedero en la copa de los árboles, con ramas y bosque seco visibles",
+    "toucan-rescue-ranch-toucan-tv": "aviario con malla, ramas, plantas y luz natural del entorno exterior",
+    "toucan-rescue-ranch-toucan-sloth-playground": "patio al aire libre con árboles, ramas y césped",
+}
 
 
 def assess_weather_view(image: Image.Image, model_bundle) -> tuple[str, float, float]:
@@ -1345,6 +1356,7 @@ def main() -> int:
             "scene_assessment": "pending",
             "scene_outdoor_score": None,
             "scene_indoor_score": None,
+            "scene_context_override": None,
             "rain_probability": None,
             "predicted_label": None,
             "confidence": None,
@@ -1408,6 +1420,11 @@ def main() -> int:
     for result, image, metadata in images_to_classify:
         try:
             assessment, outdoor_score, indoor_score = assess_weather_view(image, scene_model_bundle)
+            context_override = CAMERA_OUTDOOR_CONTEXT_OVERRIDES.get(result.get("id"))
+            if context_override:
+                assessment = "outdoor"
+                result["scene_context_override"] = context_override
+                logging.info("Cámara %s: entorno exterior verificado; se conserva para análisis meteorológico.", result.get("id"))
             result["scene_assessment"] = assessment
             result["scene_outdoor_score"] = outdoor_score
             result["scene_indoor_score"] = indoor_score
@@ -1464,6 +1481,8 @@ def main() -> int:
                 result["status"] = "clear"
                 result["message"] = "El análisis no encontró indicios visuales suficientes de lluvia."
 
+            if result.get("scene_context_override"):
+                result["message"] += " Contexto exterior verificado: " + result["scene_context_override"] + "."
             if result.get("availability_status") == "delayed":
                 result["message"] += " La imagen está demorada; no se usa como alerta de lluvia actual."
             elif result.get("availability_status") == "unknown":
