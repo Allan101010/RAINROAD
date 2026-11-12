@@ -20,6 +20,7 @@ import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
@@ -29,11 +30,15 @@ from PIL import Image, ImageOps
 
 BASE_URL = "https://webcamscostarica.com/"
 MODEL_ID = "prithivMLmods/Weather-Image-Classification"
+SCENE_MODEL_ID = "openai/clip-vit-base-patch32"
+CATALOG_SCHEMA_VERSION = 2
 CATALOG_PATH = Path("camera-catalog.json")
 ALERTS_PATH = Path("camera-alerts.json")
 CATALOG_MAX_AGE = timedelta(hours=6)
+CAMERA_ONLINE_MAX_AGE = timedelta(minutes=2)
+CAMERA_DELAYED_MAX_AGE = timedelta(hours=1)
 HTTP_TIMEOUT = 25
-USER_AGENT = "RainTrackCR/1.3 (public weather-camera monitor; contact via project repository)"
+USER_AGENT = "RainTrackCR/1.5 (public weather-camera monitor; contact via project repository)"
 MAX_IMAGE_BYTES = 18 * 1024 * 1024
 
 # Coordenadas del sitio publicadas por Webcams Costa Rica. Son referencias
@@ -70,17 +75,99 @@ OFFLINE_PHRASES = (
     "ahora no emite",
 )
 
-# Cámaras de animales/recintos no son vistas meteorológicas. Siguen
-# apareciendo en el catálogo y en el mapa, pero no se clasifican como lluvia.
+# No se excluye una cámara por su categoría o nombre. Todas son candidatas;
+# un modelo visual independiente decide si el encuadre muestra suficiente
+# entorno exterior para que el análisis meteorológico tenga sentido.
 def is_weather_view(site_slug: str, camera_name: str) -> tuple[bool, str]:
-    name = (camera_name or "").lower()
-    if site_slug in {"toucan-rescue-ranch", "punta-islita"}:
-        return False, "Cámara de fauna; no se usa para detección meteorológica."
-    if site_slug == "sarapiqui":
-        if "dosel" in name or "selva" in name:
-            return True, "Vista exterior del dosel; análisis orientativo."
-        return False, "Cámara de nido/fauna; no se usa para detección meteorológica."
-    return True, "Vista exterior; análisis visual orientativo."
+    return True, "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología."
+
+
+# Cámaras oficiales OVSICORI-UNA. Las coordenadas son referencias del volcán
+# para el mapa, no la posición topográfica exacta de cada lente.
+OVSICORI_CAMERAS = [
+    {
+        "id": "ovsicori-poas-crater", "site_slug": "volcan-poas",
+        "site_name": "Volcán Poás", "zone": "Valle Central",
+        "lat": 10.1980, "lon": -84.2310,
+        "camera_name": "OVSICORI · Cráter del Poás",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-crater-v-poas",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/livecraterpoas/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del Volcán Poás."
+    },
+    {
+        "id": "ovsicori-poas-suroeste", "site_slug": "volcan-poas",
+        "site_name": "Volcán Poás", "zone": "Valle Central",
+        "lat": 10.1980, "lon": -84.2310,
+        "camera_name": "OVSICORI · Poás, suroeste del cráter",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-poas-so-del-crater",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/livepoas/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del Volcán Poás; cámara a 1,8 km al suroeste del cráter."
+    },
+    {
+        "id": "ovsicori-poas-chahuites", "site_slug": "volcan-poas",
+        "site_name": "Volcán Poás", "zone": "Valle Central",
+        "lat": 10.1980, "lon": -84.2310,
+        "camera_name": "OVSICORI · Poás desde Chahuites",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-poas-chahuites",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/livechahuites/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del Volcán Poás."
+    },
+    {
+        "id": "ovsicori-rincon-sensoria", "site_slug": "volcan-rincon-de-la-vieja",
+        "site_name": "Volcán Rincón de la Vieja", "zone": "Guanacaste",
+        "lat": 10.8300, "lon": -85.3240,
+        "camera_name": "OVSICORI · Rincón de la Vieja, Sensoria",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/rincon-de-la-vieja-sensoria2",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/liverincon/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del volcán; cámara ubicada aproximadamente 4 km al norte."
+    },
+    {
+        "id": "ovsicori-rincon-curubande", "site_slug": "volcan-rincon-de-la-vieja",
+        "site_name": "Volcán Rincón de la Vieja", "zone": "Guanacaste",
+        "lat": 10.8300, "lon": -85.3240,
+        "camera_name": "OVSICORI · Rincón de la Vieja, Curubandé",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-rincon-de-la-vieja-curubande",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/livecurubande/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del volcán; la cámara está en el sector de Curubandé."
+    },
+    {
+        "id": "ovsicori-rincon-gavilan", "site_slug": "volcan-rincon-de-la-vieja",
+        "site_name": "Volcán Rincón de la Vieja", "zone": "Guanacaste",
+        "lat": 10.8300, "lon": -85.3240,
+        "camera_name": "OVSICORI · Rincón de la Vieja, Gavilán",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/rincon-de-la-vieja-gavilan",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/liverincon2/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del volcán; cámara ubicada en Buenos Aires de Upala."
+    },
+    {
+        "id": "ovsicori-irazu", "site_slug": "volcan-irazu",
+        "site_name": "Volcán Irazú", "zone": "Valle Central",
+        "lat": 9.9790, "lon": -83.8520,
+        "camera_name": "OVSICORI · Volcán Irazú",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-2-v-turrialba",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/liveirazu/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del Volcán Irazú."
+    },
+    {
+        "id": "ovsicori-turrialba", "site_slug": "volcan-turrialba",
+        "site_name": "Volcán Turrialba", "zone": "Valle Central",
+        "lat": 10.0250, "lon": -83.7670,
+        "camera_name": "OVSICORI · Volcán Turrialba",
+        "page_url": "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-turrialba",
+        "snapshot_url": "https://www.ovsicori.una.ac.cr/images/stories/camaras/liveturrialba/camara.jpg",
+        "source_type": "ovsicori",
+        "coordinate_note": "Coordenada de referencia del Volcán Turrialba; cámara instalada al este del cráter."
+    },
+]
+
+
 
 
 def utc_now() -> datetime:
@@ -254,8 +341,9 @@ def build_catalog(session: requests.Session) -> list[dict]:
                 "camera_name": "Ficha no disponible",
                 "page_url": site_url,
                 "snapshot_url": None,
-                "weather_relevant": False,
-                "reason": "No se pudo leer la ficha pública en esta revisión.",
+                "source_type": "webcamscostarica",
+                "weather_relevant": True,
+                "reason": "Ficha pendiente de revisión; se intentará recuperar la captura en cada ciclo.",
                 "initial_status": "not_available",
             })
             continue
@@ -298,7 +386,8 @@ def build_catalog(session: requests.Session) -> list[dict]:
                     "camera_name": camera_name,
                     "page_url": resolved_url,
                     "snapshot_url": snapshot_url,
-                    "weather_relevant": weather_relevant,
+                    "source_type": "webcamscostarica",
+                    "weather_relevant": True,
                     "reason": reason,
                     "initial_status": initial_status,
                 })
@@ -315,12 +404,40 @@ def build_catalog(session: requests.Session) -> list[dict]:
                     "camera_name": link_label or site_name,
                     "page_url": camera_page_url,
                     "snapshot_url": None,
-                    "weather_relevant": False,
-                    "reason": "No se pudo consultar la cámara en esta revisión.",
+                    "source_type": "webcamscostarica",
+                    "weather_relevant": True,
+                    "reason": "No se pudo consultar la cámara en esta revisión; se reintentará.",
                     "initial_status": "not_available",
                 })
 
-    return catalog
+    # Añadir las ocho cámaras oficiales del OVSICORI-UNA.
+    for camera in OVSICORI_CAMERAS:
+        row = dict(camera)
+        row.update({
+            "weather_relevant": True,
+            "reason": "Cámara exterior oficial OVSICORI-UNA; evaluación visual y control de antigüedad de imagen.",
+            "initial_status": "pending",
+        })
+        catalog.append(row)
+
+    # Evitar analizar varias veces la misma imagen repetida en distintas
+    # variantes de una ficha. Se conserva la fuente oficial OVSICORI cuando
+    # comparte la misma URL de imagen con una ficha agregadora.
+    deduplicated: dict[tuple[str, str], dict] = {}
+    without_snapshot: list[dict] = []
+    for camera in catalog:
+        snapshot = camera.get("snapshot_url")
+        if not snapshot:
+            without_snapshot.append(camera)
+            continue
+        parsed = urlparse(snapshot)
+        normalized = urlunparse(parsed._replace(query="", fragment=""))
+        key = (camera.get("site_slug", ""), normalized)
+        existing = deduplicated.get(key)
+        if existing is None or camera.get("source_type") == "ovsicori":
+            deduplicated[key] = camera
+
+    return list(deduplicated.values()) + without_snapshot
 
 
 def load_catalog(session: requests.Session) -> list[dict]:
@@ -329,7 +446,13 @@ def load_catalog(session: requests.Session) -> list[dict]:
             saved = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
             generated_text = saved.get("generated_at") if isinstance(saved, dict) else None
             saved_cameras = saved.get("cameras", []) if isinstance(saved, dict) else saved
-            if generated_text and saved_cameras:
+            schema_version = saved.get("schema_version", 0) if isinstance(saved, dict) else 0
+            required_ovsicori = {camera["id"] for camera in OVSICORI_CAMERAS}
+            present_ovsicori = {
+                camera.get("id") for camera in saved_cameras
+                if isinstance(camera, dict) and camera.get("source_type") == "ovsicori"
+            }
+            if generated_text and saved_cameras and schema_version >= CATALOG_SCHEMA_VERSION and required_ovsicori.issubset(present_ovsicori):
                 generated = datetime.fromisoformat(generated_text.replace("Z", "+00:00"))
                 age = datetime.now(timezone.utc) - generated
                 if age < CATALOG_MAX_AGE:
@@ -342,7 +465,11 @@ def load_catalog(session: requests.Session) -> list[dict]:
     if catalog:
         CATALOG_PATH.write_text(
             json.dumps(
-                {"generated_at": iso_now(), "cameras": catalog},
+                {
+                    "schema_version": CATALOG_SCHEMA_VERSION,
+                    "generated_at": iso_now(),
+                    "cameras": catalog,
+                },
                 ensure_ascii=False,
                 indent=2,
             ),
