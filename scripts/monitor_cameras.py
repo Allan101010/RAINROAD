@@ -394,11 +394,15 @@ def fetch_snapshot(session: requests.Session, url: str) -> tuple[Image.Image, di
 
 def load_weather_model():
     import torch
-    from transformers import AutoProcessor, AutoModelForImageClassification
+    from transformers import AutoImageProcessor, SiglipForImageClassification
 
     torch.set_num_threads(2)
-    processor = AutoProcessor.from_pretrained(MODEL_ID)
-    model = AutoModelForImageClassification.from_pretrained(MODEL_ID)
+
+    # Este repositorio publica un clasificador SigLIP2 de imágenes.
+    # Se carga el procesador visual y la arquitectura específica documentada
+    # por el modelo, sin intentar inicializar el tokenizador de texto.
+    processor = AutoImageProcessor.from_pretrained(MODEL_ID)
+    model = SiglipForImageClassification.from_pretrained(MODEL_ID)
     model.eval()
     return torch, processor, model
 
