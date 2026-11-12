@@ -1082,6 +1082,26 @@ def main() -> int:
 
     results.sort(key=lambda item: (item.get("zone", ""), item.get("site_name", ""), item.get("camera_name", "")))
 
+    # Estaciones IMN: lecturas instrumentales independientes del análisis visual.
+    stations = collect_imn_stations(session)
+    station_alerts = [
+        {
+            "alert_type": "station",
+            "status": "rain",
+            "station_id": station["id"],
+            "station_name": station["station_name"],
+            "site_name": station["station_name"],
+            "camera_name": station["station_name"],
+            "page_url": station["page_url"],
+            "rain_last_hour_mm": station.get("rain_last_hour_mm"),
+            "rain_since_7am_mm": station.get("rain_since_7am_mm"),
+            "availability_status": station.get("availability_status"),
+            "image_timestamp": station.get("image_timestamp"),
+        }
+        for station in stations
+        if station.get("rain_observed")
+    ]
+
     alerts = [
         item for item in results
         if item.get("status") in {"rain", "possible"}
@@ -1106,10 +1126,16 @@ def main() -> int:
             {"name": "Webcams Costa Rica", "url": BASE_URL, "type": "public_webcams"},
             {"name": "OVSICORI-UNA", "url": "https://www.ovsicori.una.ac.cr/index.php/camaras", "type": "official_volcano_cameras"},
             {
+                "name": "IMN · estaciones automáticas",
+                "url": "https://www.imn.ac.cr/es/web/imn/estaciones-automaticas",
+                "type": "official_station_observations",
+                "note": "Se leen los paneles públicos de Aranjuez y Volcán Turrialba; el IMN advierte que sus datos son preliminares y pueden retrasarse."
+            },
+            {
                 "name": "Parapente Pura Vida",
                 "url": "https://parapentepuravida.com/eltiempo/",
                 "type": "methodology_reference",
-                "note": "Se usa como referencia metodológica de lectura combinada; sus estaciones y embeds no se ingieren como mediciones hasta disponer de un endpoint público estable y verificable."
+                "note": "Se adopta su metodología de contrastar estaciones, satélite, pronóstico y cámaras. Sus embeds de terceros se mantienen como referencia hasta disponer de un endpoint público estable para cada estación."
             },
         ],
         "model": MODEL_ID,
@@ -1121,15 +1147,22 @@ def main() -> int:
         ),
         "directory_sites": len(SITES),
         "camera_count": len(results),
+        "station_count": len(stations),
         "evaluated_count": sum(
             1 for item in results
             if item.get("scene_assessment") == "outdoor" and item.get("status") in {"rain", "possible", "clear"}
         ),
         "availability_counts": availability_counts,
         "scene_counts": scene_counts,
+        "station_availability_counts": {
+            state: sum(1 for item in stations if item.get("availability_status") == state)
+            for state in ("online", "delayed", "stale", "offline", "unknown", "not_available")
+        },
         "alerts": alerts,
+        "station_alerts": station_alerts,
         "recovered_cameras": recovered_cameras,
         "cameras": results,
+        "stations": stations,
     }
 
     old_time = previous_publish_time(previous_payload)
@@ -1149,7 +1182,7 @@ def main() -> int:
         "Monitor terminado: %s cámaras catalogadas, %s evaluables, %s alertas; disponibilidad=%s; encuadres=%s.",
         len(results),
         payload["evaluated_count"],
-        len(alerts),
+        len(alerts) + len(station_alerts),
         availability_counts,
         scene_counts,
     )
@@ -1168,9 +1201,12 @@ if __name__ == "__main__":
             "model": MODEL_ID,
             "scene_model": SCENE_MODEL_ID,
             "camera_count": 0,
+            "station_count": 0,
             "evaluated_count": 0,
             "alerts": [],
+            "station_alerts": [],
             "cameras": [],
+            "stations": [],
             "error": str(exc),
         }
         ALERTS_PATH.write_text(json.dumps(fallback, ensure_ascii=False, indent=2), encoding="utf-8")
