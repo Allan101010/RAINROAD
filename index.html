@@ -1555,7 +1555,10 @@
             ? " · " + Math.round(Number(item.image_age_minutes)) + " min"
             : "";
           const recovered = item.recovered ? " · RECUPERADA" : "";
-          return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}</span><span>${icon} ${escapeHtml(state)}<br><small>${escapeHtml(availability + age + recovered)}</small></span></div>`;
+          const sourceLink = item.page_url
+            ? `<br><small><a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${item.source_type === "ovsicori" ? "Fuente OVSICORI ↗" : "Abrir fuente ↗"}</a></small>`
+            : "";
+          return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}${sourceLink}</span><span>${icon} ${escapeHtml(state)}<br><small>${escapeHtml(availability + age + recovered)}</small></span></div>`;
         }).join("");
         const summary = status === "rain"
           ? "Hay una cámara exterior reciente con indicios fuertes de lluvia."
