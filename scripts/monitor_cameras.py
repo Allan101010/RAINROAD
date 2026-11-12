@@ -871,7 +871,11 @@ def extract_imn_table_values(html: str) -> dict:
             headers = [normalize_imn_header(cell) for cell in cells]
             data_row = None
             for candidate in rows[index + 1:]:
-                values = [cell.get_text(" ", strip=True) for cell in candidate.find_all(["th", "td"])]
+                values = [
+                    cell.get_text(" ", strip=True)
+                    for cell in candidate.find_all(["th", "td"])
+                    if cell.get_text(" ", strip=True)
+                ]
                 if len(values) == 1 and len(headers) > 1:
                     # Algunas tablas del IMN envuelven toda la fila en una sola celda:
                     # "12/11/2026 11:14:36 a.m. 35,4 0,00 0,00 28,44 19,44".
