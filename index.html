@@ -1,3 +1,11 @@
+========================================================================================
+ARCHIVOS COMPLETOS PARA COPIAR Y PEGAR
+========================================================================================
+
+
+========================================================================================
+ARCHIVO: index.html
+========================================================================================
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,7 +13,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.2</title>
+  <title>RainTrack CR v1.3</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -253,6 +261,79 @@
     .camera-popup { color: #172033; font: 12px/1.45 Arial, sans-serif; }
     .camera-popup strong { display: block; margin-bottom: 4px; font-size: 13px; }
     .camera-popup a { display: inline-block; margin-top: 7px; color: #0369a1; font-weight: 700; }
+
+    .camera-marker.rain { background: #dc2626; }
+    .camera-marker.possible { background: #d97706; }
+    .camera-marker.clear { background: #7c3aed; }
+    .camera-popup { min-width: 190px; }
+    .camera-popup .camera-popup-status {
+      margin-top: 7px;
+      padding: 6px 7px;
+      border-radius: 7px;
+      background: #eef2f7;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .camera-popup .camera-popup-list {
+      display: grid;
+      gap: 5px;
+      margin-top: 8px;
+      padding-top: 7px;
+      border-top: 1px solid #d7dee8;
+    }
+    .camera-popup .camera-popup-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 10px;
+    }
+    .camera-popup .camera-popup-row span:last-child {
+      font-weight: 700;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .camera-alert-stack {
+      position: absolute;
+      z-index: 18;
+      left: 12px;
+      bottom: 12px;
+      display: grid;
+      gap: 7px;
+      width: min(340px, calc(100% - 24px));
+      pointer-events: none;
+    }
+    .camera-alert-stack[hidden] { display: none !important; }
+    .camera-alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 9px 11px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 11px;
+      color: #fff;
+      background: rgba(16,24,39,.96);
+      box-shadow: 0 6px 20px rgba(0,0,0,.28);
+      pointer-events: auto;
+      font-size: 11px;
+      line-height: 1.45;
+      backdrop-filter: blur(7px);
+    }
+    .camera-alert-item.rain { border-left: 4px solid #ef4444; }
+    .camera-alert-item.possible { border-left: 4px solid #f59e0b; }
+    .camera-alert-item .camera-alert-icon { font-size: 18px; line-height: 1; }
+    .camera-alert-item strong { display: block; font-size: 11px; }
+    .camera-alert-item small { display: block; margin-top: 3px; color: #cbd5e1; font-size: 10px; }
+    .camera-alert-item a { display: inline-block; margin-top: 4px; color: #7dd3fc; font-weight: 750; text-decoration: none; }
+    .camera-monitor-note {
+      margin-top: 8px;
+      padding: 8px 9px;
+      border-radius: 9px;
+      color: #cbd5e1;
+      background: rgba(56,189,248,.08);
+      font-size: 10px;
+      line-height: 1.45;
+    }
     .map-status-chip {
       position: absolute;
       z-index: 5;
@@ -601,7 +682,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.2</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.3</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -648,9 +729,9 @@
               <option value="convection">Convección profunda</option>
               <option value="radargif">Radar animado IMN</option>
             </select>
-            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras públicas</span></label>
+            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras públicas (20 sitios)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
-            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
+            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>\n            <p class="layer-hint">Monitoreo visual de cámaras: revisión automática aproximada cada 15 minutos. Solo se analiza lluvia en imágenes públicas accesibles y encuadres exteriores; las cámaras de fauna también aparecen, pero no se usan para detectar lluvia.</p>
           </div>
         </div>
 
@@ -664,6 +745,8 @@
           <div class="imn-card-note">«Consultada» indica cuándo RainTrack solicitó la imagen. La hora de observación es la que aparece impresa dentro del producto del IMN. Descargarla de nuevo no garantiza que el IMN haya publicado datos nuevos.</div>
           <a class="imn-card-link" id="imnSourceLink" href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">Fuente oficial IMN ↗</a>
         </div>
+
+        <div class="camera-alert-stack" id="cameraAlertStack" aria-live="polite" hidden></div>
       </div>
 
       <div class="map-toolbar">
@@ -917,23 +1000,31 @@
       }
     };
 
-    // Cámaras públicas: los marcadores abren la página del operador.
-    // Poás es una imagen de OVSICORI que se renueva; San José es un directo 4K.
+    // Directorio Webcams Costa Rica: 34 cámaras agrupadas en 20 sitios.
+    // Los puntos son coordenadas del sitio/localidad publicadas por el directorio,
+    // no necesariamente la ubicación física exacta de cada lente.
+    // Cada marcador abre la ficha del sitio, donde se muestran sus cámaras.
     const PUBLIC_CAMERAS = [
-      {
-        name: "Volcán Poás · cráter",
-        lat: 10.1980,
-        lon: -84.2310,
-        detail: "Imagen de OVSICORI-UNA que se renueva con frecuencia; no es vídeo continuo.",
-        url: "https://webcamscostarica.com/volcan-poas/"
-      },
-      {
-        name: "San José · panorámica 4K",
-        lat: 9.9330,
-        lon: -84.0800,
-        detail: "Cámara panorámica en directo. El punto del mapa representa la ciudad, no la ubicación exacta de la cámara.",
-        url: "https://webcamscostarica.com/san-jose/"
-      }
+      { slug: "playa-flamingo", name: "Playa Flamingo", zone: "Guanacaste", lat: 10.4340, lon: -85.7860, url: "https://webcamscostarica.com/playa-flamingo/", detail: "Bahía y atardecer · 2 cámaras" },
+      { slug: "playa-hermosa-guanacaste", name: "Playa Hermosa de Guanacaste", zone: "Guanacaste", lat: 10.5750, lon: -85.6770, url: "https://webcamscostarica.com/playa-hermosa-guanacaste/", detail: "Bahía de Papagayo · 1 cámara" },
+      { slug: "playas-del-coco", name: "Playas del Coco", zone: "Guanacaste", lat: 10.5530, lon: -85.6940, url: "https://webcamscostarica.com/playas-del-coco/", detail: "Bahía de Playas del Coco · 1 cámara" },
+      { slug: "tamarindo", name: "Tamarindo", zone: "Guanacaste", lat: 10.3000, lon: -85.8410, url: "https://webcamscostarica.com/tamarindo/", detail: "Playa y surf · 4 cámaras" },
+      { slug: "volcan-rincon-de-la-vieja", name: "Volcán Rincón de la Vieja", zone: "Guanacaste", lat: 10.8300, lon: -85.3240, url: "https://webcamscostarica.com/volcan-rincon-de-la-vieja/", detail: "Imágenes del volcán · 3 cámaras" },
+      { slug: "jaco", name: "Jacó", zone: "Pacífico Central", lat: 9.6140, lon: -84.6290, url: "https://webcamscostarica.com/jaco/", detail: "Playa y bahía · 3 cámaras" },
+      { slug: "manuel-antonio", name: "Manuel Antonio", zone: "Pacífico Central", lat: 9.3920, lon: -84.1400, url: "https://webcamscostarica.com/manuel-antonio/", detail: "Playa Espadilla · 1 cámara" },
+      { slug: "playa-herradura", name: "Playa Herradura", zone: "Pacífico Central", lat: 9.6600, lon: -84.6350, url: "https://webcamscostarica.com/playa-herradura/", detail: "Bahía de Herradura · 1 cámara" },
+      { slug: "quepos", name: "Quepos", zone: "Pacífico Central", lat: 9.4050, lon: -84.1570, url: "https://webcamscostarica.com/quepos/", detail: "Bahía de Quepos · 1 cámara" },
+      { slug: "punta-islita", name: "Lapas rojas de Punta Islita", zone: "Península de Nicoya", lat: 9.8530, lon: -85.3980, url: "https://webcamscostarica.com/punta-islita/", detail: "Comederos de lapas · 2 cámaras · no aptas para lluvia" },
+      { slug: "nosara", name: "Nosara", zone: "Península de Nicoya", lat: 9.9400, lon: -85.6650, url: "https://webcamscostarica.com/nosara/", detail: "Costa y surf · 1 cámara" },
+      { slug: "reserva-karen-mogensen", name: "Reserva Karen Mogensen", zone: "Península de Nicoya", lat: 9.8690, lon: -85.0580, url: "https://webcamscostarica.com/reserva-karen-mogensen/", detail: "Bosque de la reserva · 1 cámara" },
+      { slug: "santa-teresa", name: "Santa Teresa", zone: "Península de Nicoya", lat: 9.6460, lon: -85.1690, url: "https://webcamscostarica.com/santa-teresa/", detail: "Playa y surf · puede estar fuera de emisión" },
+      { slug: "cartago", name: "Cartago", zone: "Valle Central", lat: 9.8640, lon: -83.9190, url: "https://webcamscostarica.com/cartago/", detail: "Panorámica de Cartago e Irazú · 1 cámara" },
+      { slug: "cerros-de-escazu", name: "Cerros de Escazú", zone: "Valle Central", lat: 9.9040, lon: -84.1580, url: "https://webcamscostarica.com/cerros-de-escazu/", detail: "Cerro Bebedero · 1 cámara" },
+      { slug: "san-jose", name: "San José", zone: "Valle Central", lat: 9.9330, lon: -84.0800, url: "https://webcamscostarica.com/san-jose/", detail: "Panorámica 4K · 1 cámara" },
+      { slug: "toucan-rescue-ranch", name: "Toucan Rescue Ranch", zone: "Valle Central", lat: 10.0350, lon: -84.1000, url: "https://webcamscostarica.com/toucan-rescue-ranch/", detail: "Perezosos y tucanes · 3 cámaras · no aptas para lluvia" },
+      { slug: "volcan-irazu", name: "Volcán Irazú", zone: "Valle Central", lat: 9.9790, lon: -83.8520, url: "https://webcamscostarica.com/volcan-irazu/", detail: "Imagen del cráter · 1 cámara" },
+      { slug: "volcan-poas", name: "Volcán Poás", zone: "Valle Central", lat: 10.1980, lon: -84.2310, url: "https://webcamscostarica.com/volcan-poas/", detail: "Cráter del Poás · imágenes del OVSICORI" },
+      { slug: "sarapiqui", name: "Lapas verdes de Sarapiquí", zone: "Zona Norte", lat: 10.4560, lon: -84.0190, url: "https://webcamscostarica.com/sarapiqui/", detail: "Nido y dosel del bosque · 2 cámaras; solo el dosel puede evaluarse" }
     ];
 
     let homeLocation = null;
@@ -955,6 +1046,8 @@
     let weatherRefreshTimer = null;
     let imnRefreshTimer = null;
     let cameraMarkers = [];
+    let cameraMonitorData = null;
+    let cameraMonitorTimer = null;
 
     let routeMode = "saved";
     let routeWorkLocation = null;
@@ -1320,21 +1413,111 @@
       cameraMarkers = [];
     }
 
+    function cameraStatusText(status) {
+      return ({
+        rain: "Indicios fuertes de lluvia",
+        possible: "Posible lluvia",
+        clear: "Sin indicios visuales",
+        offline: "Sin emisión",
+        stale: "Imagen posiblemente desactualizada",
+        not_monitored: "No apta para análisis de lluvia",
+        not_available: "Sin imagen analizable",
+        error: "Error de lectura"
+      })[status] || "Esperando análisis";
+    }
+
+    function cameraStatusForSite(siteSlug) {
+      const rows = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
+        ? cameraMonitorData.cameras.filter(item => item.site_slug === siteSlug)
+        : [];
+      if (rows.some(item => item.status === "rain")) return "rain";
+      if (rows.some(item => item.status === "possible")) return "possible";
+      return "clear";
+    }
+
+    function renderCameraAlerts() {
+      const stack = $("cameraAlertStack");
+      if (!stack) return;
+      const generatedAt = cameraMonitorData && cameraMonitorData.generated_at
+        ? new Date(cameraMonitorData.generated_at)
+        : null;
+      const fresh = generatedAt && !Number.isNaN(generatedAt.getTime())
+        && (Date.now() - generatedAt.getTime()) <= 80 * 60 * 1000;
+      const active = fresh && cameraMonitorData && Array.isArray(cameraMonitorData.alerts)
+        ? cameraMonitorData.alerts.filter(item => item.status === "rain" || item.status === "possible")
+        : [];
+
+      if (!active.length) {
+        stack.hidden = true;
+        stack.innerHTML = "";
+        return;
+      }
+
+      stack.hidden = false;
+      stack.innerHTML = active.slice(0, 3).map(item => {
+        const isRain = item.status === "rain";
+        const label = isRain ? "Indicios fuertes de lluvia" : "Posible lluvia";
+        const probability = Number.isFinite(Number(item.rain_probability))
+          ? Math.round(Number(item.rain_probability) * 100) + "% de confianza visual"
+          : "Análisis visual";
+        return `<div class="camera-alert-item ${isRain ? "rain" : "possible"}">
+          <span class="camera-alert-icon">${isRain ? "🌧️" : "☔"}</span>
+          <div><strong>${escapeHtml(label)} · ${escapeHtml(item.camera_name || item.site_name || "Cámara")}</strong>
+          <small>${escapeHtml(item.site_name || "")} · ${escapeHtml(probability)}</small>
+          <a href="${escapeHtml(item.page_url || "https://webcamscostarica.com/")}" target="_blank" rel="noopener">Comprobar cámara ↗</a></div>
+        </div>`;
+      }).join("");
+    }
+
+    async function loadCameraMonitoringData() {
+      try {
+        const response = await fetch("camera-alerts.json?rt=" + Date.now(), { cache: "no-store" });
+        if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
+        cameraMonitorData = await response.json();
+        renderCameraAlerts();
+        if (mapReady && $("camerasToggle").checked) addCameraMarkers();
+      } catch (error) {
+        console.info("Monitor visual de cámaras pendiente:", error.message);
+        renderCameraAlerts();
+      }
+    }
+
     function addCameraMarkers() {
       if (!mapReady) return;
       clearCameraMarkers();
-      if (!$('camerasToggle').checked) return;
+      if (!$("camerasToggle").checked) return;
 
       PUBLIC_CAMERAS.forEach(camera => {
+        const status = cameraStatusForSite(camera.slug);
         const element = document.createElement("button");
         element.type = "button";
-        element.className = "camera-marker";
-        element.textContent = "📷";
-        element.setAttribute("aria-label", "Abrir cámara: " + camera.name);
-        const popupHtml = `<div class="camera-popup"><strong>${escapeHtml(camera.name)}</strong><div>${escapeHtml(camera.detail)}</div><a href="${camera.url}" target="_blank" rel="noopener">Abrir cámara ↗</a></div>`;
+        element.className = "camera-marker " + status;
+        element.textContent = status === "rain" ? "🌧️" : status === "possible" ? "☔" : "📷";
+        element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
+
+        const siteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
+          ? cameraMonitorData.cameras.filter(item => item.site_slug === camera.slug)
+          : [];
+        const cameraRows = siteCameras.slice(0, 8).map(item => {
+          const state = cameraStatusText(item.status);
+          const icon = item.status === "rain" ? "🌧️" : item.status === "possible" ? "☔" : item.status === "clear" ? "✓" : "·";
+          return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}</span><span>${icon} ${escapeHtml(state)}</span></div>`;
+        }).join("");
+        const summary = status === "rain"
+          ? "Hay una cámara de este sitio con indicios fuertes de lluvia."
+          : status === "possible"
+            ? "Hay una cámara de este sitio con posible lluvia."
+            : "No hay una alerta visual activa para este sitio.";
+        const popupHtml = `<div class="camera-popup">
+          <strong>${escapeHtml(camera.name)}</strong>
+          <div>${escapeHtml(camera.zone)} · ${escapeHtml(camera.detail)}</div>
+          <div class="camera-popup-status">${escapeHtml(summary)}</div>
+          ${cameraRows ? `<div class="camera-popup-list">${cameraRows}</div>` : ""}
+          <a href="${escapeHtml(camera.url)}" target="_blank" rel="noopener">Ver cámaras de este sitio ↗</a>
+        </div>`;
         const marker = new maplibregl.Marker({ element, anchor: "center" })
           .setLngLat([camera.lon, camera.lat])
-          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "270px" }).setHTML(popupHtml))
+          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "310px" }).setHTML(popupHtml))
           .addTo(map);
         cameraMarkers.push(marker);
       });
@@ -2587,6 +2770,9 @@
     function startAutomaticUpdates() {
       if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
       weatherRefreshTimer = setInterval(refreshWeatherData, 30 * 60 * 1000);
+      loadCameraMonitoringData();
+      if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
+      cameraMonitorTimer = setInterval(loadCameraMonitoringData, 5 * 60 * 1000);
       setInterval(() => {
         if (mapReady) loadRadarSource();
       }, 5 * 60 * 1000);
@@ -2606,3 +2792,710 @@
   </script>
 </body>
 </html>
+
+========================================================================================
+ARCHIVO: camera-alerts.json
+========================================================================================
+{
+  "status": "pending",
+  "generated_at": null,
+  "interval_minutes": 15,
+  "source_url": "https://webcamscostarica.com/",
+  "model": "prithivMLmods/Weather-Image-Classification",
+  "directory_sites": 20,
+  "camera_count": 34,
+  "evaluated_count": 0,
+  "alerts": [],
+  "cameras": [],
+  "message": "Esperando la primera ejecución de GitHub Actions."
+}
+
+========================================================================================
+ARCHIVO: camera-catalog.json
+========================================================================================
+{
+  "generated_at": null,
+  "cameras": []
+}
+
+========================================================================================
+ARCHIVO: requirements-camera-monitor.txt
+========================================================================================
+requests==2.32.3
+beautifulsoup4==4.13.4
+Pillow==11.2.1
+transformers==4.50.0
+safetensors>=0.5.3
+
+
+========================================================================================
+ARCHIVO: scripts/monitor_cameras.py
+========================================================================================
+#!/usr/bin/env python3
+"""
+RainTrack CR - monitor visual de cámaras públicas de Costa Rica.
+
+Descubre las cámaras de cada ficha de Webcams Costa Rica, obtiene las
+capturas públicas disponibles y clasifica la escena con un modelo abierto
+de condiciones meteorológicas. No intenta acceder a cámaras privadas ni
+extraer vídeo de plataformas externas.
+
+El análisis es orientativo: "rain/storm" significa indicios visuales,
+no una confirmación meteorológica oficial.
+"""
+
+from __future__ import annotations
+
+import io
+import json
+import logging
+import re
+import sys
+import time
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
+
+import requests
+from bs4 import BeautifulSoup
+from PIL import Image, ImageOps
+
+BASE_URL = "https://webcamscostarica.com/"
+MODEL_ID = "prithivMLmods/Weather-Image-Classification"
+CATALOG_PATH = Path("camera-catalog.json")
+ALERTS_PATH = Path("camera-alerts.json")
+CATALOG_MAX_AGE = timedelta(hours=6)
+HTTP_TIMEOUT = 25
+USER_AGENT = "RainTrackCR/1.3 (public weather-camera monitor; contact via project repository)"
+MAX_IMAGE_BYTES = 18 * 1024 * 1024
+
+# Coordenadas del sitio publicadas por Webcams Costa Rica. Son referencias
+# cartográficas del lugar, no la ubicación exacta de cada cámara.
+SITES = [
+    ("playa-flamingo", "Playa Flamingo", "Guanacaste", 10.4340, -85.7860),
+    ("playa-hermosa-guanacaste", "Playa Hermosa de Guanacaste", "Guanacaste", 10.5750, -85.6770),
+    ("playas-del-coco", "Playas del Coco", "Guanacaste", 10.5530, -85.6940),
+    ("tamarindo", "Tamarindo", "Guanacaste", 10.3000, -85.8410),
+    ("volcan-rincon-de-la-vieja", "Volcán Rincón de la Vieja", "Guanacaste", 10.8300, -85.3240),
+    ("jaco", "Jacó", "Pacífico Central", 9.6140, -84.6290),
+    ("manuel-antonio", "Manuel Antonio", "Pacífico Central", 9.3920, -84.1400),
+    ("playa-herradura", "Playa Herradura", "Pacífico Central", 9.6600, -84.6350),
+    ("quepos", "Quepos", "Pacífico Central", 9.4050, -84.1570),
+    ("punta-islita", "Lapas rojas de Punta Islita", "Península de Nicoya", 9.8530, -85.3980),
+    ("nosara", "Nosara", "Península de Nicoya", 9.9400, -85.6650),
+    ("reserva-karen-mogensen", "Reserva Karen Mogensen", "Península de Nicoya", 9.8690, -85.0580),
+    ("santa-teresa", "Santa Teresa", "Península de Nicoya", 9.6460, -85.1690),
+    ("cartago", "Cartago", "Valle Central", 9.8640, -83.9190),
+    ("cerros-de-escazu", "Cerros de Escazú", "Valle Central", 9.9040, -84.1580),
+    ("san-jose", "San José", "Valle Central", 9.9330, -84.0800),
+    ("toucan-rescue-ranch", "Toucan Rescue Ranch", "Valle Central", 10.0350, -84.1000),
+    ("volcan-irazu", "Volcán Irazú", "Valle Central", 9.9790, -83.8520),
+    ("volcan-poas", "Volcán Poás", "Valle Central", 10.1980, -84.2310),
+    ("sarapiqui", "Lapas verdes de Sarapiquí", "Zona Norte", 10.4560, -84.0190),
+]
+
+OFFLINE_PHRASES = (
+    "ahora no está emitiendo",
+    "no está emitiendo ahora mismo",
+    "no está enviando imágenes ahora",
+    "esta cámara no está enviando imágenes",
+    "no envía imágenes desde",
+    "ahora no emite",
+)
+
+# Cámaras de animales/recintos no son vistas meteorológicas. Siguen
+# apareciendo en el catálogo y en el mapa, pero no se clasifican como lluvia.
+def is_weather_view(site_slug: str, camera_name: str) -> tuple[bool, str]:
+    name = (camera_name or "").lower()
+    if site_slug in {"toucan-rescue-ranch", "punta-islita"}:
+        return False, "Cámara de fauna; no se usa para detección meteorológica."
+    if site_slug == "sarapiqui":
+        if "dosel" in name or "selva" in name:
+            return True, "Vista exterior del dosel; análisis orientativo."
+        return False, "Cámara de nido/fauna; no se usa para detección meteorológica."
+    return True, "Vista exterior; análisis visual orientativo."
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def iso_now() -> str:
+    return utc_now().replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def session_with_headers() -> requests.Session:
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    })
+    return session
+
+
+def get_page(session: requests.Session, url: str) -> tuple[str, str]:
+    response = session.get(url, timeout=HTTP_TIMEOUT)
+    response.raise_for_status()
+    response.encoding = response.apparent_encoding or "utf-8"
+    return response.text, response.url
+
+
+def text_content(soup: BeautifulSoup) -> str:
+    return re.sub(r"\s+", " ", soup.get_text(" ", strip=True)).lower()
+
+
+def page_is_offline(soup: BeautifulSoup) -> bool:
+    text = text_content(soup)
+    return any(phrase in text for phrase in OFFLINE_PHRASES)
+
+
+def same_site_path(url_a: str, url_b: str) -> bool:
+    a = urlparse(url_a)
+    b = urlparse(url_b)
+    return a.netloc == b.netloc and a.path.rstrip("/") == b.path.rstrip("/")
+
+
+def extract_camera_variants(
+    session: requests.Session, page_url: str, soup: BeautifulSoup
+) -> list[tuple[str, str, str]]:
+    """Returns camera variants (slug, label, page URL) for a site."""
+    variants: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+
+    for anchor in soup.find_all("a", href=True):
+        href = anchor.get("href", "").strip()
+        if "cam=" not in href:
+            continue
+        full_url = urljoin(page_url, href)
+        if not same_site_path(full_url, page_url):
+            continue
+        cam_values = parse_qs(urlparse(full_url).query).get("cam", [])
+        if not cam_values:
+            continue
+        cam_slug = cam_values[0].strip()
+        if not cam_slug or cam_slug in seen:
+            continue
+        seen.add(cam_slug)
+        label = anchor.get_text(" ", strip=True)
+        label = re.sub(r"\s+", " ", label).strip()
+        variants.append((cam_slug, label or cam_slug, full_url))
+
+    if variants:
+        # Algunas fichas muestran una cámara por defecto además de los enlaces
+        # ?cam=. Se incorpora solo si el título no está ya representado.
+        h2 = soup.find("h2")
+        default_name = h2.get_text(" ", strip=True) if h2 else ""
+        if default_name and not any(default_name.lower() in label.lower() or label.lower() in default_name.lower()
+                                    for _, label, _ in variants):
+            variants.insert(0, ("default", default_name, page_url))
+        return variants
+
+    h2 = soup.find("h2")
+    name = h2.get_text(" ", strip=True) if h2 else ""
+    if not name:
+        h1 = soup.find("h1")
+        name = h1.get_text(" ", strip=True) if h1 else "Cámara"
+    return [("default", name, page_url)]
+
+
+def snapshot_score(url: str, alt: str) -> int:
+    parsed = urlparse(url)
+    host_path = (parsed.netloc + parsed.path).lower()
+    alt = (alt or "").lower()
+    score = 0
+    if "/snap/" in parsed.path.lower():
+        score += 20
+    if "ovsicori.una.ac.cr/images/stories/camaras/" in host_path and "camara" in host_path:
+        score += 20
+    if "meteo.unimore.it/meteo/ossgeo/" in host_path:
+        score += 20
+    if "phenocam" in host_path:
+        score += 18
+    if "cámara" in alt or "camara" in alt or "imagen en directo" in alt or "webcam" in alt:
+        score += 8
+    if "/assets/fotos/" in parsed.path.lower():
+        score -= 25
+    if any(ext in parsed.path.lower() for ext in (".jpg", ".jpeg", ".png", ".webp")):
+        score += 2
+    return score
+
+
+def extract_snapshot_url(soup: BeautifulSoup, page_url: str) -> str | None:
+    candidates: list[tuple[int, str]] = []
+
+    for img in soup.find_all("img"):
+        alt = img.get("alt", "")
+        for attr in ("src", "data-src", "data-lazy-src"):
+            raw = img.get(attr)
+            if raw:
+                full = urljoin(page_url, raw.strip())
+                score = snapshot_score(full, alt)
+                if score >= 10:
+                    candidates.append((score, full))
+
+        srcset = img.get("srcset")
+        if srcset:
+            first = srcset.split(",")[0].strip().split(" ")[0]
+            full = urljoin(page_url, first)
+            score = snapshot_score(full, alt)
+            if score >= 10:
+                candidates.append((score, full))
+
+    for meta in soup.find_all("meta"):
+        if meta.get("property") == "og:image" or meta.get("name") == "twitter:image":
+            raw = meta.get("content")
+            if raw:
+                full = urljoin(page_url, raw.strip())
+                score = snapshot_score(full, "camera snapshot")
+                if score >= 15:
+                    candidates.append((score, full))
+
+    for video in soup.find_all("video"):
+        raw = video.get("poster")
+        if raw:
+            full = urljoin(page_url, raw.strip())
+            score = snapshot_score(full, "camera poster")
+            if score >= 10:
+                candidates.append((score, full))
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1]
+
+
+def build_catalog(session: requests.Session) -> list[dict]:
+    catalog: list[dict] = []
+
+    for site_slug, site_name, zone, lat, lon in SITES:
+        site_url = urljoin(BASE_URL, site_slug + "/")
+        try:
+            page_html, final_page_url = get_page(session, site_url)
+            site_soup = BeautifulSoup(page_html, "html.parser")
+            variants = extract_camera_variants(session, final_page_url, site_soup)
+        except Exception as exc:
+            logging.warning("No se pudo consultar %s: %s", site_name, exc)
+            catalog.append({
+                "id": site_slug + "-unavailable",
+                "site_slug": site_slug,
+                "site_name": site_name,
+                "zone": zone,
+                "lat": lat,
+                "lon": lon,
+                "camera_name": "Ficha no disponible",
+                "page_url": site_url,
+                "snapshot_url": None,
+                "weather_relevant": False,
+                "reason": "No se pudo leer la ficha pública en esta revisión.",
+                "initial_status": "not_available",
+            })
+            continue
+
+        for cam_slug, link_label, camera_page_url in variants:
+            try:
+                if camera_page_url == final_page_url:
+                    camera_html, resolved_url, camera_soup = page_html, final_page_url, site_soup
+                else:
+                    camera_html, resolved_url = get_page(session, camera_page_url)
+                    camera_soup = BeautifulSoup(camera_html, "html.parser")
+
+                h2 = camera_soup.find("h2")
+                camera_name = h2.get_text(" ", strip=True) if h2 else link_label
+                if not camera_name or camera_name.lower() in {"qué se ve", "qué se ve"}:
+                    camera_name = link_label or site_name
+
+                offline = page_is_offline(camera_soup)
+                snapshot_url = extract_snapshot_url(camera_soup, resolved_url)
+                weather_relevant, reason = is_weather_view(site_slug, camera_name)
+
+                if offline:
+                    initial_status = "offline"
+                    snapshot_url = None
+                elif not weather_relevant:
+                    initial_status = "not_monitored"
+                elif not snapshot_url:
+                    initial_status = "not_available"
+                    reason = "La ficha no expone una captura pública que pueda analizarse automáticamente."
+                else:
+                    initial_status = "pending"
+
+                catalog.append({
+                    "id": f"{site_slug}-{cam_slug}",
+                    "site_slug": site_slug,
+                    "site_name": site_name,
+                    "zone": zone,
+                    "lat": lat,
+                    "lon": lon,
+                    "camera_name": camera_name,
+                    "page_url": resolved_url,
+                    "snapshot_url": snapshot_url,
+                    "weather_relevant": weather_relevant,
+                    "reason": reason,
+                    "initial_status": initial_status,
+                })
+                time.sleep(0.15)
+            except Exception as exc:
+                logging.warning("No se pudo leer cámara %s / %s: %s", site_name, link_label, exc)
+                catalog.append({
+                    "id": f"{site_slug}-{cam_slug}",
+                    "site_slug": site_slug,
+                    "site_name": site_name,
+                    "zone": zone,
+                    "lat": lat,
+                    "lon": lon,
+                    "camera_name": link_label or site_name,
+                    "page_url": camera_page_url,
+                    "snapshot_url": None,
+                    "weather_relevant": False,
+                    "reason": "No se pudo consultar la cámara en esta revisión.",
+                    "initial_status": "not_available",
+                })
+
+    return catalog
+
+
+def load_catalog(session: requests.Session) -> list[dict]:
+    if CATALOG_PATH.exists():
+        try:
+            saved = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+            generated_text = saved.get("generated_at") if isinstance(saved, dict) else None
+            saved_cameras = saved.get("cameras", []) if isinstance(saved, dict) else saved
+            if generated_text and saved_cameras:
+                generated = datetime.fromisoformat(generated_text.replace("Z", "+00:00"))
+                age = datetime.now(timezone.utc) - generated
+                if age < CATALOG_MAX_AGE:
+                    return saved_cameras
+        except Exception:
+            pass
+
+    logging.info("Actualizando catálogo de cámaras desde Webcams Costa Rica…")
+    catalog = build_catalog(session)
+    if catalog:
+        CATALOG_PATH.write_text(
+            json.dumps(
+                {"generated_at": iso_now(), "cameras": catalog},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        return catalog
+
+    if CATALOG_PATH.exists():
+        saved = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        if isinstance(saved, dict):
+            return saved.get("cameras", [])
+        return saved
+    raise RuntimeError("No fue posible construir el catálogo de cámaras.")
+
+
+def cache_busted(url: str) -> str:
+    parts = urlparse(url)
+    query = parse_qs(parts.query)
+    query["raintrack_ts"] = [str(int(time.time()))]
+    return urlunparse(parts._replace(query=urlencode(query, doseq=True)))
+
+
+def fetch_snapshot(session: requests.Session, url: str) -> tuple[Image.Image, dict]:
+    response = session.get(cache_busted(url), timeout=HTTP_TIMEOUT, headers={
+        "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    })
+    response.raise_for_status()
+
+    content_type = response.headers.get("Content-Type", "").lower()
+    if not content_type.startswith("image/"):
+        raise ValueError(f"La fuente no devolvió una imagen ({content_type or 'tipo desconocido'}).")
+    if len(response.content) > MAX_IMAGE_BYTES:
+        raise ValueError("La captura supera el tamaño permitido.")
+
+    image = Image.open(io.BytesIO(response.content))
+    image = ImageOps.exif_transpose(image).convert("RGB")
+    if image.width < 120 or image.height < 80:
+        raise ValueError("La imagen recibida es demasiado pequeña para analizarla.")
+
+    metadata = {
+        "content_type": content_type,
+        "last_modified": response.headers.get("Last-Modified"),
+        "etag": response.headers.get("ETag"),
+    }
+    return image, metadata
+
+
+def load_weather_model():
+    import torch
+    from transformers import AutoProcessor, AutoModelForImageClassification
+
+    torch.set_num_threads(2)
+    processor = AutoProcessor.from_pretrained(MODEL_ID)
+    model = AutoModelForImageClassification.from_pretrained(MODEL_ID)
+    model.eval()
+    return torch, processor, model
+
+
+def classify_image(image: Image.Image, model_bundle) -> tuple[float, str, float]:
+    torch, processor, model = model_bundle
+    inputs = processor(images=image, return_tensors="pt")
+    with torch.no_grad():
+        logits = model(**inputs).logits
+        probabilities = torch.softmax(logits, dim=-1)[0].cpu().tolist()
+
+    labels = model.config.id2label
+    if not isinstance(labels, dict):
+        labels = {str(i): label for i, label in enumerate(labels)}
+
+    label_pairs = []
+    for index, probability in enumerate(probabilities):
+        label = str(labels.get(str(index), labels.get(index, index))).lower()
+        label_pairs.append((label, float(probability)))
+
+    predicted_label, predicted_confidence = max(label_pairs, key=lambda item: item[1])
+    rain_probability = max(
+        (probability for label, probability in label_pairs if "rain" in label or "storm" in label),
+        default=0.0,
+    )
+    return rain_probability, predicted_label, predicted_confidence
+
+
+def read_previous_payload() -> dict:
+    if not ALERTS_PATH.exists():
+        return {}
+    try:
+        data = json.loads(ALERTS_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def status_signature(payload: dict) -> tuple:
+    rows = payload.get("cameras", []) if isinstance(payload, dict) else []
+    return tuple(sorted(
+        (item.get("id"), item.get("status"))
+        for item in rows
+        if item.get("id")
+    ))
+
+
+def previous_publish_time(payload: dict) -> datetime | None:
+    value = payload.get("generated_at") if isinstance(payload, dict) else None
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    session = session_with_headers()
+    catalog = load_catalog(session)
+    previous = read_previous_alerts()
+
+    results: list[dict] = []
+    images_to_classify: list[tuple[dict, Image.Image, dict]] = []
+
+    for camera in catalog:
+        result = {
+            "id": camera["id"],
+            "site_slug": camera["site_slug"],
+            "site_name": camera["site_name"],
+            "zone": camera["zone"],
+            "lat": camera["lat"],
+            "lon": camera["lon"],
+            "camera_name": camera["camera_name"],
+            "page_url": camera["page_url"],
+            "status": camera.get("initial_status", "not_available"),
+            "rain_probability": None,
+            "predicted_label": None,
+            "confidence": None,
+            "message": camera.get("reason", ""),
+            "checked_at": iso_now(),
+            "image_last_modified": None,
+        }
+
+        if not camera.get("weather_relevant"):
+            result["status"] = "not_monitored"
+            result["message"] = camera.get("reason") or "El encuadre no es adecuado para detectar lluvia."
+            results.append(result)
+            continue
+
+        snapshot_url = camera.get("snapshot_url")
+        if not snapshot_url:
+            results.append(result)
+            continue
+
+        try:
+            image, metadata = fetch_snapshot(session, snapshot_url)
+            result["image_last_modified"] = metadata.get("last_modified")
+            images_to_classify.append((result, image, metadata))
+        except Exception as exc:
+            result["status"] = "not_available"
+            result["message"] = f"No se pudo obtener una captura reciente: {exc}"
+            results.append(result)
+
+    model_bundle = None
+    if images_to_classify:
+        try:
+            logging.info("Cargando modelo visual %s…", MODEL_ID)
+            model_bundle = load_weather_model()
+        except Exception as exc:
+            logging.exception("No se pudo cargar el modelo de visión.")
+            for result, _, _ in images_to_classify:
+                result["status"] = "error"
+                result["message"] = f"Modelo visual no disponible: {exc}"
+                results.append(result)
+            images_to_classify = []
+
+    for result, image, metadata in images_to_classify:
+        try:
+            rain_probability, predicted_label, predicted_confidence = classify_image(image, model_bundle)
+            result["rain_probability"] = round(rain_probability, 4)
+            result["predicted_label"] = predicted_label
+            result["confidence"] = round(predicted_confidence, 4)
+
+            if rain_probability >= 0.82:
+                result["status"] = "rain"
+                result["message"] = "Indicios visuales fuertes de lluvia. Confirmar abriendo la cámara."
+            elif rain_probability >= 0.62:
+                result["status"] = "possible"
+                result["message"] = "La IA observa posibles indicios de lluvia; requiere comprobación visual."
+            else:
+                result["status"] = "clear"
+                result["message"] = "El análisis no encontró indicios visuales suficientes de lluvia."
+        except Exception as exc:
+            result["status"] = "error"
+            result["message"] = f"No se pudo analizar la captura: {exc}"
+        results.append(result)
+
+    # Mantener orden estable por zona y sitio.
+    results.sort(key=lambda item: (item.get("zone", ""), item.get("site_name", ""), item.get("camera_name", "")))
+
+    alerts = [
+        item for item in results
+        if item.get("status") in {"rain", "possible"}
+    ]
+    payload = {
+        "status": "ok",
+        "generated_at": iso_now(),
+        "interval_minutes": 15,
+        "source_url": BASE_URL,
+        "model": MODEL_ID,
+        "model_note": (
+            "Clasificación experimental de escenas meteorológicas. "
+            "Los resultados son indicios visuales y pueden confundirse con nubes, niebla, "
+            "vapor, poca luz o imágenes desactualizadas. No son una medición oficial de lluvia."
+        ),
+        "directory_sites": len(SITES),
+        "camera_count": len(results),
+        "evaluated_count": sum(1 for item in results if item.get("status") in {"rain", "possible", "clear"}),
+        "alerts": alerts,
+        "cameras": results,
+    }
+
+    old_time = previous_publish_time(previous_payload)
+    heartbeat_due = old_time is None or (utc_now() - old_time) >= timedelta(hours=1)
+    state_changed = status_signature(payload) != status_signature(previous_payload)
+
+    if state_changed or heartbeat_due:
+        ALERTS_PATH.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        logging.info("Resultados publicados (cambio de estado o actualización horaria).")
+    else:
+        logging.info("Sin cambios de estado; se conserva el último JSON publicado para evitar commits repetidos.")
+
+    logging.info(
+        "Monitor terminado: %s cámaras catalogadas, %s evaluables, %s alertas.",
+        len(results),
+        payload["evaluated_count"],
+        len(alerts),
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        logging.exception("Falló el monitor de cámaras: %s", exc)
+        fallback = {
+            "status": "error",
+            "generated_at": iso_now(),
+            "interval_minutes": 15,
+            "source_url": BASE_URL,
+            "model": MODEL_ID,
+            "camera_count": 0,
+            "evaluated_count": 0,
+            "alerts": [],
+            "cameras": [],
+            "error": str(exc),
+        }
+        ALERTS_PATH.write_text(json.dumps(fallback, ensure_ascii=False, indent=2), encoding="utf-8")
+        raise
+
+
+========================================================================================
+ARCHIVO: .github/workflows/camera-monitor.yml
+========================================================================================
+name: RainTrack CR - monitoreo de cámaras
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raintrack-camera-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor-cameras:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements-camera-monitor.txt
+
+      - name: Restaurar modelo de IA en caché
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: raintrack-weather-model-siglip-v1
+
+      - name: Instalar PyTorch CPU
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+
+      - name: Instalar dependencias del monitor
+        run: pip install -r requirements-camera-monitor.txt
+
+      - name: Consultar cámaras y analizar imágenes
+        run: python scripts/monitor_cameras.py
+
+      - name: Publicar resultados para GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add camera-alerts.json camera-catalog.json
+          if git diff --cached --quiet; then
+            echo "No hay cambios que publicar."
+          else
+            git commit -m "Actualizar monitoreo meteorológico de cámaras"
+            git push
+          fi
