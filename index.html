@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.6</title>
+  <title>RainTrack CR v1.7</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -1031,8 +1031,18 @@
     ];
 
     const PUBLIC_STATIONS = [
-      { id: "imn-aranjuez", name: "Estación IMN · Aranjuez", zone: "Valle Central", lat: 9.937944, lon: -84.069722, url: "https://www.imn.ac.cr/especial/estacion.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/imn.html" },
-      { id: "imn-volcan-turrialba", name: "Estación IMN · Volcán Turrialba", zone: "Valle Central", lat: 10.019167, lon: -83.756389, url: "https://www.imn.ac.cr/especial/estacionVturri.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/turrialba.html" },
+      { id: "imn-aranjuez", name: "Estación IMN · Aranjuez", zone: "Valle Central", lat: 9.937944, lon: -84.069722, url: "https://www.imn.ac.cr/especial/estacion.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/imn.html", coordinateNote: "Coordenadas de referencia del producto público del IMN." },
+      { id: "imn-volcan-turrialba", name: "Estación IMN · Volcán Turrialba", zone: "Valle Central", lat: 10.019167, lon: -83.756389, url: "https://www.imn.ac.cr/especial/estacionVturri.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/turrialba.html", coordinateNote: "Coordenada de referencia del volcán; no necesariamente la posición exacta del sensor." },
+      { id: "imn-quepos", name: "Estación IMN · Quepos", zone: "Pacífico Central", lat: 9.4310, lon: -84.1610, url: "https://www.imn.ac.cr/especial/redquepos.png", tableUrl: "https://www.imn.ac.cr/especial/tablas/quepos.html", coordinateNote: "Ubicación de referencia de Quepos; no representa necesariamente el sensor exacto." },
+      { id: "imn-la-ligia", name: "Estación IMN · La Ligia (Parrita)", zone: "Pacífico Central", lat: 9.5200, lon: -84.3250, url: "https://www.imn.ac.cr/especial/estacionligia.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/laligia.html", coordinateNote: "Ubicación de referencia de Parrita/La Ligia; no representa necesariamente el sensor exacto." },
+      { id: "imn-horquetas", name: "Estación IMN · Horquetas", zone: "Zona Norte", lat: 10.3270, lon: -83.9370, url: "https://www.imn.ac.cr/especial/tablas/horquetas.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/horquetas.html", coordinateNote: "Ubicación de referencia de Horquetas, Sarapiquí; no representa necesariamente el sensor exacto." },
+      { id: "imn-universidad-para-la-paz", name: "Estación IMN · Universidad para la Paz", zone: "Valle Central", lat: 9.9160, lon: -84.2420, url: "https://www.imn.ac.cr/especial/tablas/upaz.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/upaz.html", coordinateNote: "Ubicación de referencia de Universidad para la Paz, Mora; no representa necesariamente el sensor exacto." },
+      { id: "imn-santa-clara", name: "Estación IMN · ITCR Santa Clara", zone: "Zona Norte", lat: 10.3650, lon: -84.5120, url: "https://www.imn.ac.cr/especial/tablas/staclara.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/staclara.html", coordinateNote: "Ubicación de referencia de Santa Clara de San Carlos; no representa necesariamente el sensor exacto." },
+      { id: "imn-montana-sagrada", name: "Estación IMN · Montaña Sagrada", zone: "Zona Norte", lat: 10.3810, lon: -84.3450, url: "https://www.imn.ac.cr/especial/tablas/msagrada.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/msagrada.html", coordinateNote: "Ubicación de referencia de Aguas Zarcas; no representa necesariamente el sensor exacto." },
+      { id: "imn-sitio-mata", name: "Estación IMN · Sitio Mata", zone: "Caribe Sur", lat: 9.9900, lon: -83.6390, url: "https://www.imn.ac.cr/especial/tablas/sitiomata.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/sitiomata.html", coordinateNote: "Ubicación de referencia de Sitio Mata, Turrialba; no representa necesariamente el sensor exacto." },
+      { id: "imn-la-pastora", name: "Estación IMN · Escuela La Pastora", zone: "Caribe Sur", lat: 9.9400, lon: -83.7800, url: "https://www.imn.ac.cr/especial/tablas/lapastora.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/lapastora.html", coordinateNote: "Ubicación de referencia de La Pastora, Turrialba; no representa necesariamente el sensor exacto." },
+      { id: "imn-aeropuerto-sjo-07", name: "Estación IMN · Aeropuerto Juan Santamaría 07", zone: "Valle Central", lat: 9.9939, lon: -84.2088, url: "https://www.imn.ac.cr/especial/tablas/aijs07.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/aijs07.html", coordinateNote: "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto." },
+      { id: "imn-aeropuerto-liberia-07", name: "Estación IMN · Aeropuerto Daniel Oduber 07", zone: "Pacífico Norte", lat: 10.5933, lon: -85.5444, url: "https://www.imn.ac.cr/especial/tablas/lib07.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/lib07.html", coordinateNote: "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto." },
       { id: "ppv-neojaco", name: "Estación NEOJACO · WeatherLink", zone: "Pacífico Central", lat: 9.6140, lon: -84.6290, url: "https://www.weatherlink.com/embeddablePage/show/893d2aa1a69d47928c05b4c1c8e1b6c0/slim", externalWidget: true }
     ];
 
@@ -1634,6 +1644,15 @@
         const wind = observation && observation.wind_speed_kmh != null && Number.isFinite(Number(observation.wind_speed_kmh))
           ? Number(observation.wind_speed_kmh).toFixed(1) + " km/h"
           : "Sin lectura";
+        const windDirection = observation && observation.wind_direction_deg != null && Number.isFinite(Number(observation.wind_direction_deg))
+          ? Number(observation.wind_direction_deg).toFixed(0) + "°"
+          : "Sin lectura";
+        const windGust = observation && observation.wind_gust_kmh != null && Number.isFinite(Number(observation.wind_gust_kmh))
+          ? Number(observation.wind_gust_kmh).toFixed(1) + " km/h"
+          : "Sin lectura";
+        const dewPoint = observation && observation.dew_point_c != null && Number.isFinite(Number(observation.dew_point_c))
+          ? Number(observation.dew_point_c).toFixed(1) + " °C"
+          : "Sin lectura";
         const humidity = observation && observation.humidity_percent != null && Number.isFinite(Number(observation.humidity_percent))
           ? Math.round(Number(observation.humidity_percent)) + "%"
           : "Sin lectura";
@@ -1650,18 +1669,21 @@
               : "Lectura del IMN pendiente de verificación.";
         const popupHtml = `<div class="camera-popup">
           <strong>${escapeHtml(station.name)}</strong>
-          <div>${escapeHtml(station.zone)} · Fuente oficial IMN</div>
+          <div>${escapeHtml(station.zone)} · Fuente oficial IMN${station.coordinateNote ? " · " + escapeHtml(station.coordinateNote) : ""}</div>
           <div class="camera-popup-status">${escapeHtml(stationMessage)}</div>
           <div class="camera-popup-list">
             <div class="camera-popup-row"><span>Lluvia última hora</span><span>${escapeHtml(rainHour)}</span></div>
             <div class="camera-popup-row"><span>Acumulada desde 7 a. m.</span><span>${escapeHtml(rainDay)}</span></div>
             <div class="camera-popup-row"><span>Temperatura</span><span>${escapeHtml(temperature)}</span></div>
             <div class="camera-popup-row"><span>Viento</span><span>${escapeHtml(wind)}</span></div>
+            <div class="camera-popup-row"><span>Dirección del viento</span><span>${escapeHtml(windDirection)}</span></div>
+            <div class="camera-popup-row"><span>Ráfaga máxima</span><span>${escapeHtml(windGust)}</span></div>
+            <div class="camera-popup-row"><span>Punto de rocío</span><span>${escapeHtml(dewPoint)}</span></div>
             <div class="camera-popup-row"><span>Humedad</span><span>${escapeHtml(humidity)}</span></div>
           </div>
           <small>Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)}</small>
           <a href="${escapeHtml(station.tableUrl || station.url)}" target="_blank" rel="noopener">Consultar datos oficiales del IMN ↗</a>
-          <a href="${escapeHtml(station.url)}" target="_blank" rel="noopener">Ver panel gráfico del IMN ↗</a>
+          ${station.url && station.url !== station.tableUrl ? '<a href="' + escapeHtml(station.url) + '" target="_blank" rel="noopener">Ver panel gráfico del IMN ↗</a>' : ""}
         </div>`;
         const marker = new maplibregl.Marker({ element, anchor: "center" })
           .setLngLat([station.lon, station.lat])

@@ -67,8 +67,9 @@ SITES = [
     ("sarapiqui", "Lapas verdes de Sarapiquí", "Zona Norte", 10.4560, -84.0190),
 ]
 
-# Fuentes IMN con paneles públicos de observación en imagen. Las coordenadas
-# de estos dos paneles se leen de la cabecera de sus propios productos.
+# Estaciones IMN con tablas HTML públicas de observaciones.
+# Las coordenadas de las estaciones nuevas son referencias de localidad para el mapa;
+# no deben interpretarse como la posición topográfica exacta de cada sensor.
 IMN_STATIONS = [
     {
         "id": "imn-aranjuez",
@@ -79,6 +80,7 @@ IMN_STATIONS = [
         "page_url": "https://www.imn.ac.cr/especial/estacion.html",
         "snapshot_url": "https://www.imn.ac.cr/especial/redimn.png",
         "table_url": "https://www.imn.ac.cr/especial/tablas/imn.html",
+        "coordinate_note": "Coordenadas de referencia del producto público del IMN.",
         "source_type": "imn_station",
     },
     {
@@ -90,6 +92,127 @@ IMN_STATIONS = [
         "page_url": "https://www.imn.ac.cr/especial/estacionVturri.html",
         "snapshot_url": "https://www.imn.ac.cr/especial/redvturri.png",
         "table_url": "https://www.imn.ac.cr/especial/tablas/turrialba.html",
+        "coordinate_note": "Coordenada de referencia del Volcán Turrialba.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-quepos",
+        "station_name": "Estación IMN · Quepos",
+        "zone": "Pacífico Central",
+        "lat": 9.4310,
+        "lon": -84.1610,
+        "page_url": "https://www.imn.ac.cr/especial/redquepos.png",
+        "snapshot_url": "https://www.imn.ac.cr/especial/redquepos.png",
+        "table_url": "https://www.imn.ac.cr/especial/tablas/quepos.html",
+        "coordinate_note": "Ubicación de referencia de Quepos; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-la-ligia",
+        "station_name": "Estación IMN · La Ligia (Parrita)",
+        "zone": "Pacífico Central",
+        "lat": 9.5200,
+        "lon": -84.3250,
+        "page_url": "https://www.imn.ac.cr/especial/estacionligia.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/laligia.html",
+        "coordinate_note": "Ubicación de referencia de Parrita/La Ligia; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-horquetas",
+        "station_name": "Estación IMN · Horquetas",
+        "zone": "Zona Norte",
+        "lat": 10.3270,
+        "lon": -83.9370,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/horquetas.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/horquetas.html",
+        "coordinate_note": "Ubicación de referencia de Horquetas, Sarapiquí; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-universidad-para-la-paz",
+        "station_name": "Estación IMN · Universidad para la Paz",
+        "zone": "Valle Central",
+        "lat": 9.9160,
+        "lon": -84.2420,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/upaz.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/upaz.html",
+        "coordinate_note": "Ubicación de referencia de Universidad para la Paz, Mora; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-santa-clara",
+        "station_name": "Estación IMN · ITCR Santa Clara",
+        "zone": "Zona Norte",
+        "lat": 10.3650,
+        "lon": -84.5120,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/staclara.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/staclara.html",
+        "coordinate_note": "Ubicación de referencia de Santa Clara de San Carlos; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-montana-sagrada",
+        "station_name": "Estación IMN · Montaña Sagrada",
+        "zone": "Zona Norte",
+        "lat": 10.3810,
+        "lon": -84.3450,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/msagrada.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/msagrada.html",
+        "coordinate_note": "Ubicación de referencia de Aguas Zarcas; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-sitio-mata",
+        "station_name": "Estación IMN · Sitio Mata",
+        "zone": "Caribe Sur",
+        "lat": 9.9900,
+        "lon": -83.6390,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/sitiomata.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/sitiomata.html",
+        "coordinate_note": "Ubicación de referencia de Sitio Mata, Turrialba; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-la-pastora",
+        "station_name": "Estación IMN · Escuela La Pastora",
+        "zone": "Caribe Sur",
+        "lat": 9.9400,
+        "lon": -83.7800,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/lapastora.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/lapastora.html",
+        "coordinate_note": "Ubicación de referencia de La Pastora, Turrialba; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-aeropuerto-sjo-07",
+        "station_name": "Estación IMN · Aeropuerto Juan Santamaría 07",
+        "zone": "Valle Central",
+        "lat": 9.9939,
+        "lon": -84.2088,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/aijs07.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/aijs07.html",
+        "coordinate_note": "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-aeropuerto-liberia-07",
+        "station_name": "Estación IMN · Aeropuerto Daniel Oduber 07",
+        "zone": "Pacífico Norte",
+        "lat": 10.5933,
+        "lon": -85.5444,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/lib07.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/lib07.html",
+        "coordinate_note": "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto.",
         "source_type": "imn_station",
     },
 ]
@@ -900,18 +1023,24 @@ def extract_imn_table_values(html: str) -> dict:
                 parsed_tables.append(data_row)
             break
 
+    hourly_candidates = [row for row in parsed_tables if "lluvia" in row]
     hourly = next(
-        (row for row in parsed_tables if "lluvia" in row and ("temp" in row or "temperatura" in row)),
-        {},
+        (row for row in hourly_candidates if "temp" in row or "temperatura" in row),
+        hourly_candidates[0] if hourly_candidates else {},
     )
     accumulated = next(
         (row for row in parsed_tables if "sum_lluv" in row or "lluv_ayer" in row),
         {},
     )
     current = next(
-        (row for row in parsed_tables if "hr" in row and "velocidad" in row),
+        (row for row in parsed_tables if any(key in row for key in ("hr", "velocidad", "direccion", "td"))),
         {},
     )
+    if not current:
+        current = next(
+            (row for row in parsed_tables if "vmax" in row or "vpmax" in row),
+            {},
+        )
 
     timestamps = [
         parsed
@@ -932,7 +1061,10 @@ def extract_imn_table_values(html: str) -> dict:
         "temperature_c": parse_localized_number(current.get("temp")) or parse_localized_number(hourly.get("temp")),
         "humidity_percent": parse_localized_number(current.get("hr")),
         "wind_speed_kmh": parse_localized_number(current.get("velocidad")),
-        "pressure_hpa": parse_localized_number(hourly.get("p_atm") or hourly.get("pres_mb")),
+        "wind_direction_deg": parse_localized_number(current.get("direccion") or current.get("direction")),
+        "wind_gust_kmh": parse_localized_number(current.get("vmax") or current.get("vpmax") or accumulated.get("vmax") or accumulated.get("vpmax")),
+        "dew_point_c": parse_localized_number(current.get("td")),
+        "pressure_hpa": parse_localized_number(hourly.get("p_atm") or hourly.get("pres_mb") or current.get("p_atm") or current.get("pres_mb")),
         "table_row_count": len(parsed_tables),
         "table_debug": table_debug,
         "data_source": "imn_html_table",
@@ -1032,7 +1164,8 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             "zone": station["zone"],
             "lat": station["lat"],
             "lon": station["lon"],
-            "page_url": station["page_url"],
+            "coordinate_note": station.get("coordinate_note"),
+            "page_url": station.get("page_url") or station["table_url"],
             "source_url": station.get("table_url") or station["snapshot_url"],
             "table_url": station.get("table_url"),
             "snapshot_url": station["snapshot_url"],
@@ -1048,6 +1181,9 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             "rain_since_7am_mm": None,
             "rain_previous_24h_mm": None,
             "wind_speed_kmh": None,
+            "wind_direction_deg": None,
+            "wind_gust_kmh": None,
+            "dew_point_c": None,
             "temperature_c": None,
             "humidity_percent": None,
             "pressure_hpa": None,
@@ -1119,6 +1255,9 @@ def status_signature(payload: dict) -> tuple:
             item.get("rain_since_7am_mm"),
             item.get("temperature_c"),
             item.get("wind_speed_kmh"),
+            item.get("wind_direction_deg"),
+            item.get("wind_gust_kmh"),
+            item.get("dew_point_c"),
             item.get("humidity_percent"),
             item.get("pressure_hpa"),
         )
@@ -1376,13 +1515,13 @@ def main() -> int:
                 "name": "IMN · estaciones automáticas",
                 "url": "https://www.imn.ac.cr/es/web/imn/estaciones-automaticas",
                 "type": "official_station_observations",
-                "note": "Se leen los paneles públicos de Aranjuez y Volcán Turrialba; el IMN advierte que sus datos son preliminares y pueden retrasarse."
+                "note": "Se consultan 12 tablas HTML públicas: Aranjuez, Volcán Turrialba, Quepos, La Ligia, Horquetas, Universidad para la Paz, ITCR Santa Clara, Montaña Sagrada, Sitio Mata, La Pastora y los aeropuertos Juan Santamaría y Daniel Oduber. El IMN advierte que sus datos son preliminares y pueden retrasarse."
             },
             {
                 "name": "Parapente Pura Vida",
                 "url": "https://parapentepuravida.com/eltiempo/",
                 "type": "methodology_reference",
-                "note": "Se adopta su metodología de contrastar estaciones, satélite, pronóstico y cámaras. Sus embeds de terceros se mantienen como referencia hasta disponer de un endpoint público estable para cada estación."
+                "note": "Se toma como referencia su triangulación por zona: estaciones, viento, satélite, pronóstico y cámaras. RainTrack consulta directamente las tablas del IMN cuando están disponibles y no depende de los embeds de terceros."
             },
             {
                 "name": "NEOJACO · WeatherLink",

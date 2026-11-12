@@ -1,4 +1,4 @@
-name: RainTrack CR v1.6 - monitoreo de cámaras
+name: RainTrack CR v1.7 - monitoreo meteorológico
 
 on:
   push:
