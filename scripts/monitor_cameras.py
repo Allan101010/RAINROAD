@@ -66,6 +66,31 @@ SITES = [
     ("sarapiqui", "Lapas verdes de Sarapiquí", "Zona Norte", 10.4560, -84.0190),
 ]
 
+# Fuentes IMN con paneles públicos de observación en imagen. Las coordenadas
+# de estos dos paneles se leen de la cabecera de sus propios productos.
+IMN_STATIONS = [
+    {
+        "id": "imn-aranjuez",
+        "station_name": "Estación IMN · Aranjuez",
+        "zone": "Valle Central",
+        "lat": 9.937944,
+        "lon": -84.069722,
+        "page_url": "https://www.imn.ac.cr/especial/estacion.html",
+        "snapshot_url": "https://www.imn.ac.cr/especial/redimn.png",
+        "source_type": "imn_station",
+    },
+    {
+        "id": "imn-volcan-turrialba",
+        "station_name": "Estación IMN · Volcán Turrialba",
+        "zone": "Valle Central",
+        "lat": 10.019167,
+        "lon": -83.756389,
+        "page_url": "https://www.imn.ac.cr/especial/estacionVturri.html",
+        "snapshot_url": "https://www.imn.ac.cr/especial/redvturri.png",
+        "source_type": "imn_station",
+    },
+]
+
 OFFLINE_PHRASES = (
     "ahora no está emitiendo",
     "no está emitiendo ahora mismo",
@@ -557,6 +582,29 @@ def extract_embedded_timestamp(image: Image.Image) -> datetime | None:
         except ValueError:
             pass
 
+    spanish_match = re.search(
+        r"\b(?:a las\s+)?(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?).{0,100}?(?:del\s+d[ií]a\s+)?(\d{1,2})/(\d{1,2})/(20\d{2})\b",
+        text,
+        re.IGNORECASE,
+    )
+    if spanish_match:
+        try:
+            hour, minute, meridiem, day, month, year = spanish_match.groups()
+            hour = int(hour)
+            minute = int(minute)
+            if meridiem.lower().startswith("p") and hour != 12:
+                hour += 12
+            elif meridiem.lower().startswith("a") and hour == 12:
+                hour = 0
+            local_time = datetime(
+                int(year), int(month), int(day), hour, minute,
+                tzinfo=timezone(timedelta(hours=-6)),
+            )
+            if local_time <= utc_now() + timedelta(minutes=10):
+                return local_time.astimezone(timezone.utc)
+        except ValueError:
+            pass
+
     english_match = re.search(
         r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})\s+(20\d{2})\b",
         text,
@@ -589,7 +637,7 @@ def parse_http_timestamp(value: str | None) -> datetime | None:
 
 
 def assess_image_freshness(camera: dict, image: Image.Image, metadata: dict) -> dict:
-    embedded = extract_embedded_timestamp(image) if camera.get("source_type") == "ovsicori" else None
+    embedded = extract_embedded_timestamp(image) if camera.get("source_type") in {"ovsicori", "imn_station"} else None
     http_timestamp = parse_http_timestamp(metadata.get("last_modified"))
     timestamp = embedded or http_timestamp
     timestamp_source = "embedded_ocr" if embedded else ("http_last_modified" if http_timestamp else "not_provided")
@@ -604,7 +652,8 @@ def assess_image_freshness(camera: dict, image: Image.Image, metadata: dict) -> 
 
     age_seconds = max(0.0, (utc_now() - timestamp).total_seconds())
     age_minutes = round(age_seconds / 60.0, 1)
-    if age_seconds <= CAMERA_ONLINE_MAX_AGE.total_seconds():
+    online_limit = timedelta(minutes=20) if camera.get("source_type") == "imn_station" else CAMERA_ONLINE_MAX_AGE
+    if age_seconds <= online_limit.total_seconds():
         availability = "online"
     elif age_seconds <= CAMERA_DELAYED_MAX_AGE.total_seconds():
         availability = "delayed"
@@ -713,9 +762,104 @@ def read_previous_payload() -> dict:
         return {}
 
 
+
+
+def parse_localized_number(value: str | None) -> float | None:
+    if not value:
+        return None
+    try:
+        return float(value.strip().replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def extract_imn_station_values(image: Image.Image) -> dict:
+    """Extract the numerical readings printed in official IMN station panels."""
+    try:
+        import pytesseract
+        text = pytesseract.image_to_string(image, config="--psm 6")
+    except Exception as exc:
+        return {"ocr_error": str(exc)}
+
+    compact = re.sub(r"\s+", " ", text)
+    patterns = {
+        "rain_last_hour_mm": r"Precip\.?\s*[uú]ltima\s+hora\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm",
+        "rain_since_7am_mm": r"Lluvia\s+acumulada\s+Desde\s+las\s+7\s*a\.?m\.?\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm",
+        "rain_previous_24h_mm": r"De\s+7\s*a\.?m\.?\s+de\s+ayer\s+a\s+7\s*a\.?m\.?\s+de\s+hoy\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm",
+        "wind_speed_kmh": r"Velocidad\s+Actual\s+del\s+Viento\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*km/?h",
+        "temperature_c": r"Temperatura\s+Actual\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*°?\s*C",
+        "humidity_percent": r"Humedad\s+Relativa\s+Actual\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*%",
+        "pressure_hpa": r"Presi[oó]n\s+Atmosf[eé]rica\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*hPa",
+    }
+    values = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, compact, re.IGNORECASE)
+        values[key] = parse_localized_number(match.group(1)) if match else None
+    values["ocr_excerpt"] = compact[:500]
+    return values
+
+
+def collect_imn_stations(session: requests.Session) -> list[dict]:
+    stations = []
+    for station in IMN_STATIONS:
+        result = {
+            "id": station["id"],
+            "station_name": station["station_name"],
+            "zone": station["zone"],
+            "lat": station["lat"],
+            "lon": station["lon"],
+            "page_url": station["page_url"],
+            "source_url": station["snapshot_url"],
+            "source_type": "imn_station",
+            "status": "not_available",
+            "availability_status": "not_available",
+            "checked_at": iso_now(),
+            "image_timestamp": None,
+            "image_age_minutes": None,
+            "image_timestamp_source": "not_provided",
+            "rain_last_hour_mm": None,
+            "rain_since_7am_mm": None,
+            "rain_previous_24h_mm": None,
+            "wind_speed_kmh": None,
+            "temperature_c": None,
+            "humidity_percent": None,
+            "pressure_hpa": None,
+            "rain_observed": False,
+        }
+        try:
+            image, metadata = fetch_snapshot(session, station["snapshot_url"])
+            freshness = assess_image_freshness(station, image, metadata)
+            result.update(freshness)
+            values = extract_imn_station_values(image)
+            result.update({key: value for key, value in values.items() if key != "ocr_excerpt"})
+            result["status"] = freshness["availability_status"]
+            result["last_modified"] = metadata.get("last_modified")
+            rain_amount = result.get("rain_last_hour_mm")
+            result["rain_observed"] = (
+                rain_amount is not None
+                and rain_amount > 0
+                and result["availability_status"] in {"online", "unknown"}
+            )
+            if result["availability_status"] == "stale":
+                result["message"] = "El panel está accesible, pero la observación impresa tiene más de una hora."
+            elif result["availability_status"] == "delayed":
+                result["message"] = "El panel contiene datos demorados; no se usa para alertas actuales."
+            elif result["availability_status"] == "unknown":
+                result["message"] = "Panel accesible; no se pudo leer una hora de observación verificable."
+            else:
+                result["message"] = "Lectura de estación IMN disponible."
+        except Exception as exc:
+            result["status"] = "offline"
+            result["availability_status"] = "offline"
+            result["message"] = f"No se pudo obtener el panel de la estación: {exc}"
+        stations.append(result)
+    return stations
+
+
 def status_signature(payload: dict) -> tuple:
     rows = payload.get("cameras", []) if isinstance(payload, dict) else []
-    return tuple(sorted(
+    station_rows = payload.get("stations", []) if isinstance(payload, dict) else []
+    camera_signature = tuple(sorted(
         (
             item.get("id"),
             item.get("status"),
@@ -725,6 +869,16 @@ def status_signature(payload: dict) -> tuple:
         for item in rows
         if item.get("id")
     ))
+    station_signature = tuple(sorted(
+        (
+            item.get("id"),
+            item.get("availability_status"),
+            item.get("rain_last_hour_mm"),
+        )
+        for item in station_rows
+        if item.get("id")
+    ))
+    return camera_signature + station_signature
 
 
 def previous_publish_time(payload: dict) -> datetime | None:
