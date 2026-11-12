@@ -35,7 +35,7 @@ CATALOG_SCHEMA_VERSION = 2
 CATALOG_PATH = Path("camera-catalog.json")
 ALERTS_PATH = Path("camera-alerts.json")
 CATALOG_MAX_AGE = timedelta(hours=6)
-CAMERA_ONLINE_MAX_AGE = timedelta(minutes=2)
+CAMERA_ONLINE_MAX_AGE = timedelta(minutes=20)
 CAMERA_DELAYED_MAX_AGE = timedelta(hours=1)
 HTTP_TIMEOUT = 25
 USER_AGENT = "RainTrackCR/1.5 (public weather-camera monitor; contact via project repository)"
