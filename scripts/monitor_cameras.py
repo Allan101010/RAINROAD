@@ -514,9 +514,154 @@ def fetch_snapshot(session: requests.Session, url: str) -> tuple[Image.Image, di
     metadata = {
         "content_type": content_type,
         "last_modified": response.headers.get("Last-Modified"),
+        "date_header": response.headers.get("Date"),
         "etag": response.headers.get("ETag"),
     }
     return image, metadata
+
+
+def extract_embedded_timestamp(image: Image.Image) -> datetime | None:
+    """Read camera-burned timestamps (especially OVSICORI) from image edges."""
+    try:
+        import pytesseract
+    except Exception:
+        return None
+
+    width, height = image.size
+    band = max(35, int(height * 0.14))
+    regions = [
+        image.crop((0, 0, width, min(height, band))),
+        image.crop((0, max(0, height - band), width, height)),
+    ]
+    ocr_text = []
+    for region in regions:
+        gray = ImageOps.autocontrast(region.convert("L"))
+        if gray.width < 1200:
+            gray = gray.resize((gray.width * 2, gray.height * 2))
+        try:
+            ocr_text.append(pytesseract.image_to_string(gray, config="--psm 6"))
+        except Exception:
+            continue
+
+    text = " ".join(ocr_text)
+    iso_match = re.search(
+        r"\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})[ T](\d{1,2}):(\d{2}):(\d{2})\b",
+        text,
+    )
+    if iso_match:
+        try:
+            values = [int(value) for value in iso_match.groups()]
+            local_time = datetime(*values, tzinfo=timezone(timedelta(hours=-6)))
+            if local_time <= utc_now() + timedelta(minutes=10):
+                return local_time.astimezone(timezone.utc)
+        except ValueError:
+            pass
+
+    english_match = re.search(
+        r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})\s+(20\d{2})\b",
+        text,
+        re.IGNORECASE,
+    )
+    if english_match:
+        try:
+            month, day, hour, minute, second, year = english_match.groups()
+            local_time = datetime.strptime(
+                f"{month} {day} {hour}:{minute}:{second} {year}",
+                "%b %d %H:%M:%S %Y",
+            ).replace(tzinfo=timezone(timedelta(hours=-6)))
+            if local_time <= utc_now() + timedelta(minutes=10):
+                return local_time.astimezone(timezone.utc)
+        except ValueError:
+            pass
+    return None
+
+
+def parse_http_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = parsedate_to_datetime(value)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def assess_image_freshness(camera: dict, image: Image.Image, metadata: dict) -> dict:
+    embedded = extract_embedded_timestamp(image) if camera.get("source_type") == "ovsicori" else None
+    http_timestamp = parse_http_timestamp(metadata.get("last_modified"))
+    timestamp = embedded or http_timestamp
+    timestamp_source = "embedded_ocr" if embedded else ("http_last_modified" if http_timestamp else "not_provided")
+
+    if timestamp is None:
+        return {
+            "availability_status": "unknown",
+            "image_age_minutes": None,
+            "image_timestamp": None,
+            "image_timestamp_source": timestamp_source,
+        }
+
+    age_seconds = max(0.0, (utc_now() - timestamp).total_seconds())
+    age_minutes = round(age_seconds / 60.0, 1)
+    if age_seconds <= CAMERA_ONLINE_MAX_AGE.total_seconds():
+        availability = "online"
+    elif age_seconds <= CAMERA_DELAYED_MAX_AGE.total_seconds():
+        availability = "delayed"
+    else:
+        availability = "stale"
+
+    return {
+        "availability_status": availability,
+        "image_age_minutes": age_minutes,
+        "image_timestamp": timestamp.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "image_timestamp_source": timestamp_source,
+    }
+
+
+def load_scene_model():
+    import torch
+    from transformers import CLIPModel, CLIPProcessor
+
+    torch.set_num_threads(2)
+    processor = CLIPProcessor.from_pretrained(SCENE_MODEL_ID)
+    model = CLIPModel.from_pretrained(SCENE_MODEL_ID)
+    model.eval()
+    return torch, processor, model
+
+
+OUTDOOR_PROMPTS = [
+    "An outdoor live weather webcam showing a wide landscape with visible sky, clouds and weather.",
+    "An outdoor webcam showing a beach, coastline, ocean or open landscape under the sky.",
+    "An outdoor webcam showing a forest canopy, treetops, mountains and the open air.",
+    "An outdoor wildlife webcam showing an animal in its natural habitat with visible trees, sky or weather-exposed surroundings.",
+]
+INDOOR_PROMPTS = [
+    "A close-up wildlife webcam showing only an animal with no visible outdoor surroundings or sky.",
+    "An indoor animal enclosure, nest box, cage, terrarium, aquarium or room.",
+    "A close-up of an animal filling nearly the whole image, with no visible landscape or weather-exposed environment.",
+    "An indoor security camera view of a room or building.",
+]
+
+
+def assess_weather_view(image: Image.Image, model_bundle) -> tuple[str, float, float]:
+    """Use CLIP to decide whether the image shows a useful outdoor environment."""
+    torch, processor, model = model_bundle
+    prompts = OUTDOOR_PROMPTS + INDOOR_PROMPTS
+    inputs = processor(text=prompts, images=image, return_tensors="pt", padding=True)
+    with torch.no_grad():
+        scores = model(**inputs).logits_per_image[0]
+        probabilities = torch.softmax(scores, dim=0).cpu().tolist()
+
+    outdoor_score = float(sum(probabilities[:len(OUTDOOR_PROMPTS)]))
+    indoor_score = float(sum(probabilities[len(OUTDOOR_PROMPTS):]))
+    if outdoor_score >= 0.55 and outdoor_score - indoor_score >= 0.12:
+        assessment = "outdoor"
+    elif indoor_score >= 0.55 and indoor_score - outdoor_score >= 0.12:
+        assessment = "not_weather_view"
+    else:
+        assessment = "scene_uncertain"
+    return assessment, round(outdoor_score, 4), round(indoor_score, 4)
 
 
 def load_weather_model():
@@ -571,7 +716,12 @@ def read_previous_payload() -> dict:
 def status_signature(payload: dict) -> tuple:
     rows = payload.get("cameras", []) if isinstance(payload, dict) else []
     return tuple(sorted(
-        (item.get("id"), item.get("status"))
+        (
+            item.get("id"),
+            item.get("status"),
+            item.get("availability_status"),
+            item.get("scene_assessment"),
+        )
         for item in rows
         if item.get("id")
     ))
@@ -587,11 +737,37 @@ def previous_publish_time(payload: dict) -> datetime | None:
         return None
 
 
+def resolve_snapshot_url(session: requests.Session, camera: dict) -> tuple[str | None, str | None]:
+    snapshot_url = camera.get("snapshot_url")
+    if snapshot_url:
+        return snapshot_url, None
+
+    page_url = camera.get("page_url")
+    if not page_url:
+        return None, "not_available"
+
+    try:
+        page_html, resolved_url = get_page(session, page_url)
+        soup = BeautifulSoup(page_html, "html.parser")
+        if page_is_offline(soup):
+            return None, "offline"
+        snapshot_url = extract_snapshot_url(soup, resolved_url)
+        return (snapshot_url, None) if snapshot_url else (None, "not_available")
+    except Exception as exc:
+        logging.info("No se pudo recuperar la ficha %s: %s", camera.get("id"), exc)
+        return None, "offline"
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     session = session_with_headers()
     catalog = load_catalog(session)
     previous_payload = read_previous_payload()
+    previous_rows = {
+        item.get("id"): item
+        for item in previous_payload.get("cameras", [])
+        if isinstance(item, dict) and item.get("id")
+    }
 
     results: list[dict] = []
     images_to_classify: list[tuple[dict, Image.Image, dict]] = []
@@ -606,51 +782,118 @@ def main() -> int:
             "lon": camera["lon"],
             "camera_name": camera["camera_name"],
             "page_url": camera["page_url"],
-            "status": camera.get("initial_status", "not_available"),
+            "source_type": camera.get("source_type", "webcamscostarica"),
+            "coordinate_note": camera.get("coordinate_note"),
+            "status": "pending",
+            "availability_status": "unknown",
+            "scene_assessment": "pending",
+            "scene_outdoor_score": None,
+            "scene_indoor_score": None,
             "rain_probability": None,
             "predicted_label": None,
             "confidence": None,
             "message": camera.get("reason", ""),
             "checked_at": iso_now(),
             "image_last_modified": None,
+            "image_age_minutes": None,
+            "image_timestamp": None,
+            "image_timestamp_source": "not_provided",
+            "recovered": False,
         }
 
-        if not camera.get("weather_relevant"):
-            result["status"] = "not_monitored"
-            result["message"] = camera.get("reason") or "El encuadre no es adecuado para detectar lluvia."
-            results.append(result)
-            continue
-
-        snapshot_url = camera.get("snapshot_url")
+        snapshot_url, resolution_status = resolve_snapshot_url(session, camera)
         if not snapshot_url:
+            result["availability_status"] = "offline" if resolution_status == "offline" else "not_available"
+            result["status"] = "offline" if resolution_status == "offline" else "not_available"
+            result["message"] = (
+                "La cámara no está transmitiendo o su ficha indica que no emite."
+                if resolution_status == "offline"
+                else "No se encontró una imagen pública utilizable. Se volverá a comprobar en el siguiente ciclo."
+            )
             results.append(result)
             continue
 
         try:
             image, metadata = fetch_snapshot(session, snapshot_url)
             result["image_last_modified"] = metadata.get("last_modified")
+            result.update(assess_image_freshness(camera, image, metadata))
+
+            if result["availability_status"] == "stale":
+                result["status"] = "stale"
+                result["message"] = (
+                    "La imagen se puede descargar, pero su marca de tiempo indica que lleva más de una hora sin actualizarse. "
+                    "No se usa para generar alertas actuales."
+                )
+                results.append(result)
+                continue
+
             images_to_classify.append((result, image, metadata))
         except Exception as exc:
-            result["status"] = "not_available"
-            result["message"] = f"No se pudo obtener una captura reciente: {exc}"
+            result["availability_status"] = "offline"
+            result["status"] = "offline"
+            result["message"] = f"No se pudo obtener una imagen válida: {exc}"
             results.append(result)
 
-    model_bundle = None
+    scene_model_bundle = None
     if images_to_classify:
         try:
-            logging.info("Cargando modelo visual %s…", MODEL_ID)
-            model_bundle = load_weather_model()
+            logging.info("Cargando modelo de evaluación de encuadre %s…", SCENE_MODEL_ID)
+            scene_model_bundle = load_scene_model()
         except Exception as exc:
-            logging.exception("No se pudo cargar el modelo de visión.")
+            logging.exception("No se pudo cargar el modelo de evaluación de encuadre.")
             for result, _, _ in images_to_classify:
                 result["status"] = "error"
-                result["message"] = f"Modelo visual no disponible: {exc}"
+                result["scene_assessment"] = "error"
+                result["message"] = f"No se pudo evaluar si el encuadre es exterior: {exc}"
                 results.append(result)
             images_to_classify = []
 
+    outdoor_images: list[tuple[dict, Image.Image, dict]] = []
     for result, image, metadata in images_to_classify:
         try:
-            rain_probability, predicted_label, predicted_confidence = classify_image(image, model_bundle)
+            assessment, outdoor_score, indoor_score = assess_weather_view(image, scene_model_bundle)
+            result["scene_assessment"] = assessment
+            result["scene_outdoor_score"] = outdoor_score
+            result["scene_indoor_score"] = indoor_score
+
+            if assessment == "not_weather_view":
+                result["status"] = "not_weather_view"
+                result["message"] = (
+                    "La IA considera que el encuadre muestra principalmente un espacio interior o un primer plano "
+                    "sin suficiente entorno exterior para evaluar el tiempo."
+                )
+                results.append(result)
+            elif assessment == "scene_uncertain":
+                result["status"] = "scene_uncertain"
+                result["message"] = (
+                    "La IA no pudo confirmar que el encuadre muestre suficiente entorno exterior. "
+                    "No se genera una alerta meteorológica con esta imagen."
+                )
+                results.append(result)
+            else:
+                outdoor_images.append((result, image, metadata))
+        except Exception as exc:
+            result["status"] = "error"
+            result["scene_assessment"] = "error"
+            result["message"] = f"No se pudo evaluar el encuadre: {exc}"
+            results.append(result)
+
+    weather_model_bundle = None
+    if outdoor_images:
+        try:
+            logging.info("Cargando modelo meteorológico %s…", MODEL_ID)
+            weather_model_bundle = load_weather_model()
+        except Exception as exc:
+            logging.exception("No se pudo cargar el modelo meteorológico.")
+            for result, _, _ in outdoor_images:
+                result["status"] = "error"
+                result["message"] = f"Modelo meteorológico no disponible: {exc}"
+                results.append(result)
+            outdoor_images = []
+
+    for result, image, metadata in outdoor_images:
+        try:
+            rain_probability, predicted_label, predicted_confidence = classify_image(image, weather_model_bundle)
             result["rain_probability"] = round(rain_probability, 4)
             result["predicted_label"] = predicted_label
             result["confidence"] = round(predicted_confidence, 4)
@@ -664,33 +907,74 @@ def main() -> int:
             else:
                 result["status"] = "clear"
                 result["message"] = "El análisis no encontró indicios visuales suficientes de lluvia."
+
+            if result.get("availability_status") == "delayed":
+                result["message"] += " La imagen está demorada; no se usa como alerta de lluvia actual."
+            elif result.get("availability_status") == "unknown":
+                result["message"] += " La fuente no publica una marca de tiempo verificable."
         except Exception as exc:
             result["status"] = "error"
             result["message"] = f"No se pudo analizar la captura: {exc}"
         results.append(result)
 
-    # Mantener orden estable por zona y sitio.
+    # Marcar explícitamente cámaras que regresaron después de estar caídas o desactualizadas.
+    for result in results:
+        previous = previous_rows.get(result.get("id"), {})
+        previous_availability = previous.get("availability_status")
+        current_availability = result.get("availability_status")
+        if previous_availability in {"offline", "stale", "not_available"} and current_availability in {"online", "delayed", "unknown"}:
+            result["recovered"] = True
+            result["message"] = "La cámara volvió a proporcionar una imagen. " + result.get("message", "")
+
     results.sort(key=lambda item: (item.get("zone", ""), item.get("site_name", ""), item.get("camera_name", "")))
 
     alerts = [
         item for item in results
         if item.get("status") in {"rain", "possible"}
+        and item.get("scene_assessment") == "outdoor"
+        and item.get("availability_status") in {"online", "unknown"}
     ]
+    recovered_cameras = [item for item in results if item.get("recovered")]
+    availability_counts = {
+        state: sum(1 for item in results if item.get("availability_status") == state)
+        for state in ("online", "delayed", "stale", "offline", "not_available", "unknown")
+    }
+    scene_counts = {
+        state: sum(1 for item in results if item.get("scene_assessment") == state)
+        for state in ("outdoor", "not_weather_view", "scene_uncertain", "error", "pending")
+    }
     payload = {
         "status": "ok",
         "generated_at": iso_now(),
         "interval_minutes": 15,
         "source_url": BASE_URL,
+        "sources": [
+            {"name": "Webcams Costa Rica", "url": BASE_URL, "type": "public_webcams"},
+            {"name": "OVSICORI-UNA", "url": "https://www.ovsicori.una.ac.cr/index.php/camaras", "type": "official_volcano_cameras"},
+            {
+                "name": "Parapente Pura Vida",
+                "url": "https://parapentepuravida.com/eltiempo/",
+                "type": "methodology_reference",
+                "note": "Se usa como referencia metodológica de lectura combinada; sus estaciones y embeds no se ingieren como mediciones hasta disponer de un endpoint público estable y verificable."
+            },
+        ],
         "model": MODEL_ID,
+        "scene_model": SCENE_MODEL_ID,
         "model_note": (
-            "Clasificación experimental de escenas meteorológicas. "
-            "Los resultados son indicios visuales y pueden confundirse con nubes, niebla, "
-            "vapor, poca luz o imágenes desactualizadas. No son una medición oficial de lluvia."
+            "La evaluación de encuadre y la clasificación meteorológica son experimentales. "
+            "Los indicios visuales pueden confundirse con nubes, niebla, vapor, oscuridad o imágenes desactualizadas. "
+            "No son una medición oficial de lluvia."
         ),
         "directory_sites": len(SITES),
         "camera_count": len(results),
-        "evaluated_count": sum(1 for item in results if item.get("status") in {"rain", "possible", "clear"}),
+        "evaluated_count": sum(
+            1 for item in results
+            if item.get("scene_assessment") == "outdoor" and item.get("status") in {"rain", "possible", "clear"}
+        ),
+        "availability_counts": availability_counts,
+        "scene_counts": scene_counts,
         "alerts": alerts,
+        "recovered_cameras": recovered_cameras,
         "cameras": results,
     }
 
@@ -708,13 +992,14 @@ def main() -> int:
         logging.info("Sin cambios de estado; se conserva el último JSON publicado para evitar commits repetidos.")
 
     logging.info(
-        "Monitor terminado: %s cámaras catalogadas, %s evaluables, %s alertas.",
+        "Monitor terminado: %s cámaras catalogadas, %s evaluables, %s alertas; disponibilidad=%s; encuadres=%s.",
         len(results),
         payload["evaluated_count"],
         len(alerts),
+        availability_counts,
+        scene_counts,
     )
     return 0
-
 
 if __name__ == "__main__":
     try:
@@ -727,6 +1012,7 @@ if __name__ == "__main__":
             "interval_minutes": 15,
             "source_url": BASE_URL,
             "model": MODEL_ID,
+            "scene_model": SCENE_MODEL_ID,
             "camera_count": 0,
             "evaluated_count": 0,
             "alerts": [],
