@@ -1076,7 +1076,7 @@ def extract_imn_table_values(html: str) -> dict:
         "wind_direction_deg": parse_localized_number(current.get("direccion") or current.get("direction")),
         "wind_gust_kmh": parse_localized_number(current.get("vmax") or current.get("vpmax") or accumulated.get("vmax") or accumulated.get("vpmax")),
         "dew_point_c": parse_localized_number(current.get("td")),
-        "pressure_hpa": parse_localized_number(hourly.get("p_atm") or hourly.get("pres_mb") or current.get("p_atm") or current.get("pres_mb")),
+        "pressure_hpa": parse_localized_number(hourly.get("p_atm") or hourly.get("pres_mb") or hourly.get("pres_atm") or current.get("p_atm") or current.get("pres_mb") or current.get("pres_atm")),
         "table_row_count": len(parsed_tables),
         "table_debug": table_debug,
         "data_source": "imn_html_table",
