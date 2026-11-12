@@ -872,6 +872,22 @@ def extract_imn_table_values(html: str) -> dict:
             data_row = None
             for candidate in rows[index + 1:]:
                 values = [cell.get_text(" ", strip=True) for cell in candidate.find_all(["th", "td"])]
+                if len(values) == 1 and len(headers) > 1:
+                    # Algunas tablas del IMN envuelven toda la fila en una sola celda:
+                    # "12/11/2026 11:14:36 a.m. 35,4 0,00 0,00 28,44 19,44".
+                    raw = values[0]
+                    match = re.match(
+                        r"^(\\d{1,2}/\\d{1,2}/\\d{4}(?:\\s+\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:a\\.?\\s*m\\.?|p\\.?\\s*m\\.?)?)?)\\s+(.+)$",
+                        raw,
+                        re.IGNORECASE,
+                    )
+                    if match:
+                        date_text, remainder = match.groups()
+                        numeric_values = re.findall(
+                            r"[-+]?(?:\\d{1,3}(?:[.\\s]\\d{3})+|\\d+)(?:[.,]\\d+)?",
+                            remainder,
+                        )
+                        values = [date_text] + numeric_values
                 if len(values) >= len(headers) and values[0]:
                     data_row = dict(zip(headers, values))
                     break
