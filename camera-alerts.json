@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generated_at": "2026-11-12T15:44:30Z",
+  "generated_at": "2026-11-12T15:48:36Z",
   "interval_minutes": 15,
   "source_url": "https://webcamscostarica.com/",
   "model": "prithivMLmods/Weather-Image-Classification",
@@ -23,8 +23,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:20Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:23Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:59 GMT"
     },
     {
@@ -40,8 +40,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:59 GMT"
     },
     {
@@ -57,8 +57,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:57 GMT"
     },
     {
@@ -74,8 +74,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:01 GMT"
     },
     {
@@ -91,8 +91,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:12 GMT"
     },
     {
@@ -109,7 +109,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Vista exterior; análisis visual orientativo.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": null
     },
     {
@@ -126,7 +126,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Vista exterior; análisis visual orientativo.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": null
     },
     {
@@ -143,7 +143,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Vista exterior; análisis visual orientativo.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": null
     },
     {
@@ -160,7 +160,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Vista exterior; análisis visual orientativo.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": null
     },
     {
@@ -177,7 +177,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Vista exterior; análisis visual orientativo.",
-      "checked_at": "2026-11-12T15:44:21Z",
+      "checked_at": "2026-11-12T15:48:24Z",
       "image_last_modified": null
     },
     {
@@ -189,13 +189,13 @@
       "lon": -85.324,
       "camera_name": "Las 3 cámaras del Rincón de la Vieja y 2 time-lapses",
       "page_url": "https://webcamscostarica.com/volcan-rincon-de-la-vieja/",
-      "status": "not_available",
+      "status": "error",
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "No se pudo obtener una captura reciente: cannot identify image file <_io.BytesIO object at 0x75b964f0ba60>",
-      "checked_at": "2026-11-12T15:44:21Z",
-      "image_last_modified": null
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:24Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:47:58 GMT"
     },
     {
       "id": "volcan-rincon-de-la-vieja-rincon-sensoria",
@@ -206,13 +206,13 @@
       "lon": -85.324,
       "camera_name": "Las 3 cámaras del Rincón de la Vieja y 2 time-lapses",
       "page_url": "https://webcamscostarica.com/volcan-rincon-de-la-vieja/?cam=rincon-sensoria",
-      "status": "not_available",
+      "status": "error",
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "No se pudo obtener una captura reciente: cannot identify image file <_io.BytesIO object at 0x75b964f0bdd0>",
-      "checked_at": "2026-11-12T15:44:21Z",
-      "image_last_modified": null
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:25Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:47:58 GMT"
     },
     {
       "id": "volcan-rincon-de-la-vieja-rincon-curubande",
@@ -223,13 +223,13 @@
       "lon": -85.324,
       "camera_name": "Las 3 cámaras del Rincón de la Vieja y 2 time-lapses",
       "page_url": "https://webcamscostarica.com/volcan-rincon-de-la-vieja/?cam=rincon-curubande",
-      "status": "not_available",
+      "status": "error",
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "No se pudo obtener una captura reciente: image file is truncated (31 bytes not processed)",
-      "checked_at": "2026-11-12T15:44:21Z",
-      "image_last_modified": null
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:25Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:24 GMT"
     },
     {
       "id": "volcan-rincon-de-la-vieja-rincon-gavilan",
@@ -244,9 +244,9 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
-      "image_last_modified": "Thu, 12 Nov 2026 15:44:19 GMT"
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:25Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:19 GMT"
     },
     {
       "id": "volcan-rincon-de-la-vieja-rincon-canas-dulces",
@@ -261,9 +261,9 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
-      "image_last_modified": "Thu, 12 Nov 2026 15:00:04 GMT"
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:25Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:26 GMT"
     },
     {
       "id": "volcan-rincon-de-la-vieja-rincon-aguas-claras",
@@ -278,9 +278,9 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
-      "image_last_modified": "Thu, 12 Nov 2026 15:00:04 GMT"
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:26 GMT"
     },
     {
       "id": "jaco-default",
@@ -295,8 +295,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:10 GMT"
     },
     {
@@ -312,8 +312,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:10 GMT"
     },
     {
@@ -329,8 +329,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:04 GMT"
     },
     {
@@ -346,8 +346,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:44:22 GMT"
     },
     {
@@ -363,8 +363,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:10 GMT"
     },
     {
@@ -380,8 +380,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:22Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:06 GMT"
     },
     {
@@ -397,8 +397,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:26Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:06 GMT"
     },
     {
@@ -414,8 +414,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:06 GMT"
     },
     {
@@ -431,8 +431,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:09 GMT"
     },
     {
@@ -448,8 +448,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:09 GMT"
     },
     {
@@ -465,8 +465,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:09 GMT"
     },
     {
@@ -482,8 +482,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:31:07 GMT"
     },
     {
@@ -500,7 +500,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": null
     },
     {
@@ -517,7 +517,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": null
     },
     {
@@ -534,7 +534,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": null
     },
     {
@@ -550,8 +550,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:19 GMT"
     },
     {
@@ -567,9 +567,9 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:23Z",
-      "image_last_modified": "Thu, 12 Nov 2026 15:44:11 GMT"
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:27Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:10 GMT"
     },
     {
       "id": "santa-teresa-default",
@@ -584,8 +584,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:29Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:18 GMT"
     },
     {
@@ -601,8 +601,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:29Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:14 GMT"
     },
     {
@@ -618,8 +618,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:29Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:14 GMT"
     },
     {
@@ -635,8 +635,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:29Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:14 GMT"
     },
     {
@@ -652,8 +652,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:29Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:14 GMT"
     },
     {
@@ -669,8 +669,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:29Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:21:54 GMT"
     },
     {
@@ -686,8 +686,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:25Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:15 GMT"
     },
     {
@@ -704,7 +704,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": null
     },
     {
@@ -721,7 +721,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": null
     },
     {
@@ -738,7 +738,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": null
     },
     {
@@ -755,7 +755,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": null
     },
     {
@@ -771,9 +771,9 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
-      "image_last_modified": "Thu, 12 Nov 2026 15:44:22 GMT"
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:30Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:27 GMT"
     },
     {
       "id": "volcan-irazu-irazu-ovsicori",
@@ -788,9 +788,9 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
-      "image_last_modified": "Thu, 12 Nov 2026 15:44:22 GMT"
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:30Z",
+      "image_last_modified": "Thu, 12 Nov 2026 15:48:27 GMT"
     },
     {
       "id": "volcan-irazu-windy-santa-rosa",
@@ -805,8 +805,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:05 GMT"
     },
     {
@@ -822,8 +822,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:06 GMT"
     },
     {
@@ -839,8 +839,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:30Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:06 GMT"
     },
     {
@@ -856,8 +856,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:06 GMT"
     },
     {
@@ -873,8 +873,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:06 GMT"
     },
     {
@@ -890,8 +890,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:06 GMT"
     },
     {
@@ -907,8 +907,8 @@
       "rain_probability": null,
       "predicted_label": null,
       "confidence": null,
-      "message": "Modelo visual no disponible: This tokenizer cannot be instantiated. Please make sure you have `sentencepiece` installed in order to use this tokenizer.",
-      "checked_at": "2026-11-12T15:44:26Z",
+      "message": "Modelo visual no disponible: Can't load tokenizer for 'prithivMLmods/Weather-Image-Classification'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'prithivMLmods/Weather-Image-Classification' is the correct path to a directory containing all relevant files for a SiglipTokenizer tokenizer.",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": "Thu, 12 Nov 2026 15:30:06 GMT"
     },
     {
@@ -925,7 +925,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de nido/fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:27Z",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": null
     },
     {
@@ -942,7 +942,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de nido/fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:27Z",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": null
     },
     {
@@ -959,7 +959,7 @@
       "predicted_label": null,
       "confidence": null,
       "message": "Cámara de nido/fauna; no se usa para detección meteorológica.",
-      "checked_at": "2026-11-12T15:44:27Z",
+      "checked_at": "2026-11-12T15:48:31Z",
       "image_last_modified": null
     }
   ]
