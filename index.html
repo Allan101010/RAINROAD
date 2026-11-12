@@ -1032,7 +1032,8 @@
 
     const PUBLIC_STATIONS = [
       { id: "imn-aranjuez", name: "Estación IMN · Aranjuez", zone: "Valle Central", lat: 9.937944, lon: -84.069722, url: "https://www.imn.ac.cr/especial/estacion.html" },
-      { id: "imn-volcan-turrialba", name: "Estación IMN · Volcán Turrialba", zone: "Valle Central", lat: 10.019167, lon: -83.756389, url: "https://www.imn.ac.cr/especial/estacionVturri.html" }
+      { id: "imn-volcan-turrialba", name: "Estación IMN · Volcán Turrialba", zone: "Valle Central", lat: 10.019167, lon: -83.756389, url: "https://www.imn.ac.cr/especial/estacionVturri.html" },
+      { id: "ppv-neojaco", name: "Estación NEOJACO · WeatherLink", zone: "Pacífico Central", lat: 9.6140, lon: -84.6290, url: "https://www.weatherlink.com/embeddablePage/show/893d2aa1a69d47928c05b4c1c8e1b6c0/slim", externalWidget: true }
     ];
 
     let homeLocation = null;
@@ -1587,6 +1588,27 @@
         ? cameraMonitorData.stations
         : [];
       PUBLIC_STATIONS.forEach(station => {
+        if (station.externalWidget) {
+          const element = document.createElement("button");
+          element.type = "button";
+          element.className = "camera-marker station-marker pending";
+          element.textContent = "🌡️";
+          element.setAttribute("aria-label", "Abrir panel meteorológico: " + station.name);
+          const popupHtml = `<div class="camera-popup">
+            <strong>${escapeHtml(station.name)}</strong>
+            <div>${escapeHtml(station.zone)} · Ubicación de referencia de Jacó</div>
+            <div class="camera-popup-status">Panel público enlazado desde Parapente Pura Vida. Se muestra como referencia externa; RainTrack todavía no ingiere sus valores para generar alertas.</div>
+            <iframe src="${escapeHtml(station.url)}" title="Condiciones actuales NEOJACO WeatherLink" loading="lazy" style="width:100%;height:210px;border:0;margin-top:8px" referrerpolicy="no-referrer"></iframe>
+            <a href="${escapeHtml(station.url)}" target="_blank" rel="noopener">Abrir panel WeatherLink ↗</a>
+          </div>`;
+          const marker = new maplibregl.Marker({ element, anchor: "center" })
+            .setLngLat([station.lon, station.lat])
+            .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "330px" }).setHTML(popupHtml))
+            .addTo(map);
+          cameraMarkers.push(marker);
+          return;
+        }
+
         const observation = stationRows.find(item => item.id === station.id);
         const availability = observation ? observation.availability_status : "not_available";
         const rainObserved = !!(observation && observation.rain_observed &&
