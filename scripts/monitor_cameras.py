@@ -1143,6 +1143,12 @@ def main() -> int:
                 "type": "methodology_reference",
                 "note": "Se adopta su metodología de contrastar estaciones, satélite, pronóstico y cámaras. Sus embeds de terceros se mantienen como referencia hasta disponer de un endpoint público estable para cada estación."
             },
+            {
+                "name": "NEOJACO · WeatherLink",
+                "url": "https://www.weatherlink.com/embeddablePage/show/893d2aa1a69d47928c05b4c1c8e1b6c0/slim",
+                "type": "external_station_widget",
+                "note": "Panel público visible desde el marcador de Jacó; no se ingieren sus valores para alertas automáticas porque la API de condiciones actuales requiere token de cuenta."
+            },
         ],
         "model": MODEL_ID,
         "scene_model": SCENE_MODEL_ID,
