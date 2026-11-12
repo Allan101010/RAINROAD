@@ -1457,7 +1457,7 @@
       if (!rows.length) return "pending";
 
       const currentRows = rows.filter(item =>
-        !["offline", "stale", "not_available"].includes(item.availability_status || "")
+        ["online", "unknown"].includes(item.availability_status || "unknown")
       );
       if (currentRows.some(item => item.status === "rain" && item.scene_assessment === "outdoor")) return "rain";
       if (currentRows.some(item => item.status === "possible" && item.scene_assessment === "outdoor")) return "possible";
