@@ -570,7 +570,10 @@ def extract_embedded_timestamp(image: Image.Image, source_type: str | None = Non
     if source_type == "imn_station":
         # Los paneles IMN imprimen la fecha dentro del encabezado y el texto
         # de actualización puede ocupar más de la franja superior.
-        regions = [image]
+        regions = [
+            image,
+            image.crop((0, 0, width, min(height, max(band, int(height * 0.28)))),
+        ]
     else:
         regions = [
             image.crop((0, 0, width, min(height, band))),
@@ -579,12 +582,14 @@ def extract_embedded_timestamp(image: Image.Image, source_type: str | None = Non
     ocr_text = []
     for region in regions:
         gray = ImageOps.autocontrast(region.convert("L"))
-        if gray.width < 1200:
+        if gray.width < 1600:
             gray = gray.resize((gray.width * 2, gray.height * 2))
-        try:
-            ocr_text.append(pytesseract.image_to_string(gray, config="--psm 6"))
-        except Exception:
-            continue
+        configs = ("--psm 6", "--psm 11") if source_type == "imn_station" else ("--psm 6",)
+        for config in configs:
+            try:
+                ocr_text.append(pytesseract.image_to_string(gray, config=config))
+            except Exception:
+                continue
 
     text = " ".join(ocr_text)
     iso_match = re.search(
@@ -823,19 +828,35 @@ def extract_imn_station_values(image: Image.Image) -> dict:
 
     compact = re.sub(r"\s+", " ", text)
     patterns = {
-        "rain_last_hour_mm": r"Precip\.?\s*[uú]ltima\s+hora\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm",
-        "rain_since_7am_mm": r"Lluvia\s+acumulada\s+Desde\s+las\s+7\s*a\.?m\.?\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm",
-        "rain_previous_24h_mm": r"De\s+7\s*a\.?m\.?\s+de\s+ayer\s+a\s+7\s*a\.?m\.?\s+de\s+hoy\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm",
-        "wind_speed_kmh": r"Velocidad\s+Actual\s+del\s+Viento\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*km/?h",
-        "temperature_c": r"Temperatura\s+Actual\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*°?\s*C",
-        "humidity_percent": r"Humedad\s+Relativa\s+Actual\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*%",
-        "pressure_hpa": r"Presi[oó]n\s+Atmosf[eé]rica\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*hPa",
+        "rain_last_hour_mm": r"(?:pre)?cip\w*.*?ultim\w*\s+hor\w*.*?([0-9]+(?:[.,][0-9]+)?)",
+        "rain_since_7am_mm": r"lluvia.*?acumulad\w*.*?7\s*a\.?m\.?\s*.*?([0-9]+(?:[.,][0-9]+)?)",
+        "rain_previous_24h_mm": r"de\s+7\s*a\.?m\.?\s+de\s+ayer.*?7\s*a\.?m\.?\s+de\s+hoy.*?([0-9]+(?:[.,][0-9]+)?)",
+        "wind_speed_kmh": r"velocid\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*km/?h",
+        "temperature_c": r"temper\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*°?\s*c",
+        "humidity_percent": r"hum\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*%",
+        "pressure_hpa": r"pres\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*hpa",
     }
     values = {}
     for key, pattern in patterns.items():
         match = re.search(pattern, compact, re.IGNORECASE)
         values[key] = parse_localized_number(match.group(1)) if match else None
-    values["ocr_excerpt"] = compact[:500]
+
+    # Fallbacks conservadores cuando el OCR confunde las etiquetas, pero
+    # conserva la unidad junto al número.
+    if values["wind_speed_kmh"] is None:
+        match = re.search(r"([0-9]+(?:[.,][0-9]+)?)\s*km/?h", compact, re.IGNORECASE)
+        values["wind_speed_kmh"] = parse_localized_number(match.group(1)) if match else None
+    if values["temperature_c"] is None:
+        matches = re.findall(r"([0-9]{1,2}(?:[.,][0-9]+)?)\s*°?\s*c\b", compact, re.IGNORECASE)
+        plausible = [parse_localized_number(value) for value in matches]
+        plausible = [value for value in plausible if value is not None and -5 <= value <= 50]
+        values["temperature_c"] = plausible[0] if plausible else None
+    if values["humidity_percent"] is None:
+        matches = re.findall(r"([0-9]{1,3})\s*%", compact)
+        plausible = [int(value) for value in matches if 0 <= int(value) <= 100]
+        values["humidity_percent"] = plausible[0] if plausible else None
+
+    values["ocr_excerpt"] = compact[:1500]
     return values
 
 
@@ -874,7 +895,7 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             logging.info(
                 "IMN %s OCR: %s",
                 station["id"],
-                (values.get("ocr_excerpt") or values.get("ocr_error") or "sin texto OCR")[:500],
+                (values.get("ocr_excerpt") or values.get("ocr_error") or "sin texto OCR")[:1500],
             )
             logging.info(
                 "IMN %s lecturas: lluvia_hora=%s lluvia_7am=%s temperatura=%s viento=%s humedad=%s",
