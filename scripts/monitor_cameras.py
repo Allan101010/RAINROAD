@@ -839,6 +839,7 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
                 rain_amount is not None
                 and rain_amount > 0
                 and result["availability_status"] == "online"
+                and result.get("image_timestamp_source") == "embedded_ocr"
             )
             if result["availability_status"] == "stale":
                 result["message"] = "El panel está accesible, pero la observación impresa tiene más de una hora."
