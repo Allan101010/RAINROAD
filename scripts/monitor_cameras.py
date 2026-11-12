@@ -873,7 +873,13 @@ def status_signature(payload: dict) -> tuple:
         (
             item.get("id"),
             item.get("availability_status"),
+            item.get("image_timestamp"),
             item.get("rain_last_hour_mm"),
+            item.get("rain_since_7am_mm"),
+            item.get("temperature_c"),
+            item.get("wind_speed_kmh"),
+            item.get("humidity_percent"),
+            item.get("pressure_hpa"),
         )
         for item in station_rows
         if item.get("id")
