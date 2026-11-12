@@ -816,7 +816,7 @@ def parse_localized_number(value: str | None) -> float | None:
     if value is None:
         return None
     try:
-        text = re.sub(r"\\s+", "", str(value)).replace("\\u00a0", "")
+        text = re.sub(r"\s+", "", str(value)).replace("\u00a0", "")
         if not text:
             return None
         if "," in text and "." in text:
@@ -842,7 +842,7 @@ def normalize_imn_header(value: str) -> str:
 def parse_imn_local_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
-    text = re.sub(r"\\s+", " ", value.strip().lower())
+    text = re.sub(r"\s+", " ", value.strip().lower())
     text = text.replace("a. m.", "am").replace("p. m.", "pm")
     text = text.replace("a.m.", "am").replace("p.m.", "pm")
     text = text.replace("a. m", "am").replace("p. m", "pm")
