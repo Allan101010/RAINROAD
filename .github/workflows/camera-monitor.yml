@@ -8,7 +8,6 @@ on:
       - "scripts/monitor_cameras.py"
       - "requirements-camera-monitor.txt"
       - ".github/workflows/camera-monitor.yml"
-      - "index.html"
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
