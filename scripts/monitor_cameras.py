@@ -19,6 +19,7 @@ import logging
 import re
 import sys
 import time
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -77,6 +78,7 @@ IMN_STATIONS = [
         "lon": -84.069722,
         "page_url": "https://www.imn.ac.cr/especial/estacion.html",
         "snapshot_url": "https://www.imn.ac.cr/especial/redimn.png",
+        "table_url": "https://www.imn.ac.cr/especial/tablas/imn.html",
         "source_type": "imn_station",
     },
     {
@@ -87,6 +89,7 @@ IMN_STATIONS = [
         "lon": -83.756389,
         "page_url": "https://www.imn.ac.cr/especial/estacionVturri.html",
         "snapshot_url": "https://www.imn.ac.cr/especial/redvturri.png",
+        "table_url": "https://www.imn.ac.cr/especial/tablas/turrialba.html",
         "source_type": "imn_station",
     },
 ]
@@ -810,12 +813,144 @@ def read_previous_payload() -> dict:
 
 
 def parse_localized_number(value: str | None) -> float | None:
-    if not value:
+    if value is None:
         return None
     try:
-        return float(value.strip().replace(",", "."))
+        text = re.sub(r"\\s+", "", str(value)).replace("\\u00a0", "")
+        if not text:
+            return None
+        if "," in text and "." in text:
+            if text.rfind(",") > text.rfind("."):
+                text = text.replace(".", "").replace(",", ".")
+            else:
+                text = text.replace(",", "")
+        elif "," in text:
+            text = text.replace(",", ".")
+        return float(text)
     except (TypeError, ValueError):
         return None
+
+
+
+
+
+def normalize_imn_header(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "_", normalized.lower()).strip("_")
+
+
+def parse_imn_local_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    text = re.sub(r"\\s+", " ", value.strip().lower())
+    text = text.replace("a. m.", "am").replace("p. m.", "pm")
+    text = text.replace("a.m.", "am").replace("p.m.", "pm")
+    text = text.replace("a. m", "am").replace("p. m", "pm")
+    text = re.sub(r"\\s+", " ", text)
+    for fmt in ("%d/%m/%Y %I:%M:%S %p", "%d/%m/%Y %I:%M %p"):
+        try:
+            local = datetime.strptime(text, fmt).replace(tzinfo=timezone(timedelta(hours=-6)))
+            return local.astimezone(timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
+def extract_imn_table_values(html: str) -> dict:
+    """Read the IMN's accessible HTML observation tables instead of OCRing its PNG."""
+    soup = BeautifulSoup(html, "html.parser")
+    parsed_tables = []
+
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        for index, row in enumerate(rows):
+            cells = [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
+            if not cells or normalize_imn_header(cells[0]) != "fecha":
+                continue
+
+            headers = [normalize_imn_header(cell) for cell in cells]
+            data_row = None
+            for candidate in rows[index + 1:]:
+                values = [cell.get_text(" ", strip=True) for cell in candidate.find_all(["th", "td"])]
+                if len(values) >= len(headers) and values[0]:
+                    data_row = dict(zip(headers, values))
+                    break
+            if data_row:
+                parsed_tables.append(data_row)
+            break
+
+    hourly = next(
+        (row for row in parsed_tables if "lluvia" in row and ("temp" in row or "temperatura" in row)),
+        {},
+    )
+    accumulated = next(
+        (row for row in parsed_tables if "sum_lluv" in row or "lluv_ayer" in row),
+        {},
+    )
+    current = next(
+        (row for row in parsed_tables if "hr" in row and "velocidad" in row),
+        {},
+    )
+
+    timestamp = (
+        parse_imn_local_datetime(accumulated.get("fecha"))
+        or parse_imn_local_datetime(hourly.get("fecha"))
+    )
+    return {
+        "image_timestamp": timestamp.replace(microsecond=0).isoformat().replace("+00:00", "Z") if timestamp else None,
+        "image_timestamp_source": "imn_html_table" if timestamp else "not_provided",
+        "rain_last_hour_mm": parse_localized_number(hourly.get("lluvia")),
+        "rain_since_7am_mm": parse_localized_number(accumulated.get("sum_lluv")),
+        "rain_previous_24h_mm": parse_localized_number(accumulated.get("lluv_ayer")),
+        "temperature_c": parse_localized_number(current.get("temp")) or parse_localized_number(hourly.get("temp")),
+        "humidity_percent": parse_localized_number(current.get("hr")),
+        "wind_speed_kmh": parse_localized_number(current.get("velocidad")),
+        "pressure_hpa": parse_localized_number(hourly.get("p_atm") or hourly.get("pres_mb")),
+        "table_row_count": len(parsed_tables),
+        "data_source": "imn_html_table",
+    }
+
+
+def assess_station_freshness(timestamp_value: str | None) -> dict:
+    if not timestamp_value:
+        return {
+            "availability_status": "unknown",
+            "image_age_minutes": None,
+        }
+    try:
+        timestamp = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+        age_seconds = (utc_now() - timestamp.astimezone(timezone.utc)).total_seconds()
+        if age_seconds < -600:
+            return {"availability_status": "unknown", "image_age_minutes": None}
+        age_minutes = round(max(0.0, age_seconds) / 60.0, 1)
+        if age_seconds <= timedelta(minutes=20).total_seconds():
+            status = "online"
+        elif age_seconds <= timedelta(hours=1).total_seconds():
+            status = "delayed"
+        else:
+            status = "stale"
+        return {"availability_status": status, "image_age_minutes": age_minutes}
+    except (TypeError, ValueError):
+        return {"availability_status": "unknown", "image_age_minutes": None}
+
+
+def fetch_imn_table(session: requests.Session, url: str) -> dict:
+    response = session.get(
+        url,
+        timeout=HTTP_TIMEOUT,
+        headers={
+            "Accept": "text/html,application/xhtml+xml",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        },
+    )
+    response.raise_for_status()
+    if len(response.content) > 3 * 1024 * 1024:
+        raise ValueError("La tabla meteorológica supera el tamaño permitido.")
+    values = extract_imn_table_values(response.text)
+    if not values.get("table_row_count"):
+        raise ValueError("La página del IMN no contiene tablas de observaciones reconocibles.")
+    return values
 
 
 def extract_imn_station_values(image: Image.Image) -> dict:
@@ -870,8 +1005,11 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             "lat": station["lat"],
             "lon": station["lon"],
             "page_url": station["page_url"],
-            "source_url": station["snapshot_url"],
+            "source_url": station.get("table_url") or station["snapshot_url"],
+            "table_url": station.get("table_url"),
+            "snapshot_url": station["snapshot_url"],
             "source_type": "imn_station",
+            "data_source": "imn_html_table",
             "status": "not_available",
             "availability_status": "not_available",
             "checked_at": iso_now(),
@@ -888,46 +1026,42 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             "rain_observed": False,
         }
         try:
-            image, metadata = fetch_snapshot(session, station["snapshot_url"])
-            freshness = assess_image_freshness(station, image, metadata)
-            result.update(freshness)
-            values = extract_imn_station_values(image)
-            logging.info(
-                "IMN %s OCR: %s",
-                station["id"],
-                (values.get("ocr_excerpt") or values.get("ocr_error") or "sin texto OCR")[:1500],
-            )
-            logging.info(
-                "IMN %s lecturas: lluvia_hora=%s lluvia_7am=%s temperatura=%s viento=%s humedad=%s",
-                station["id"],
-                values.get("rain_last_hour_mm"),
-                values.get("rain_since_7am_mm"),
-                values.get("temperature_c"),
-                values.get("wind_speed_kmh"),
-                values.get("humidity_percent"),
-            )
-            result.update({key: value for key, value in values.items() if key != "ocr_excerpt"})
-            result["status"] = freshness["availability_status"]
-            result["last_modified"] = metadata.get("last_modified")
+            table_values = fetch_imn_table(session, station["table_url"])
+            result.update(table_values)
+            result.update(assess_station_freshness(result.get("image_timestamp")))
+            result["status"] = result["availability_status"]
             rain_amount = result.get("rain_last_hour_mm")
             result["rain_observed"] = (
                 rain_amount is not None
                 and rain_amount > 0
                 and result["availability_status"] == "online"
-                and result.get("image_timestamp_source") == "embedded_ocr"
+                and result.get("image_timestamp_source") == "imn_html_table"
             )
             if result["availability_status"] == "stale":
-                result["message"] = "El panel está accesible, pero la observación impresa tiene más de una hora."
+                result["message"] = "La tabla del IMN está accesible, pero su última observación tiene más de una hora."
             elif result["availability_status"] == "delayed":
-                result["message"] = "El panel contiene datos demorados; no se usa para alertas actuales."
+                result["message"] = "La observación del IMN tiene entre 20 y 60 minutos; no se usa para alertas inmediatas."
             elif result["availability_status"] == "unknown":
-                result["message"] = "Panel accesible; no se pudo leer una hora de observación verificable."
+                result["message"] = "La tabla está accesible, pero no se pudo verificar la hora de observación."
             else:
-                result["message"] = "Lectura de estación IMN disponible."
+                result["message"] = "Lectura instrumental reciente obtenida directamente de la tabla HTML del IMN."
+            logging.info(
+                "IMN %s tabla: hora=%s lluvia_hora=%s lluvia_7am=%s temperatura=%s viento=%s humedad=%s estado=%s",
+                station["id"],
+                result.get("image_timestamp"),
+                result.get("rain_last_hour_mm"),
+                result.get("rain_since_7am_mm"),
+                result.get("temperature_c"),
+                result.get("wind_speed_kmh"),
+                result.get("humidity_percent"),
+                result.get("availability_status"),
+            )
         except Exception as exc:
             result["status"] = "offline"
             result["availability_status"] = "offline"
-            result["message"] = f"No se pudo obtener el panel de la estación: {exc}"
+            result["data_source"] = "imn_html_table_unavailable"
+            result["message"] = f"No se pudo obtener la tabla de observaciones del IMN: {exc}"
+            logging.warning("IMN %s: %s", station["id"], result["message"])
         stations.append(result)
     return stations
 
