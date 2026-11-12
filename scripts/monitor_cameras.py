@@ -518,34 +518,47 @@ def cache_busted(url: str) -> str:
 
 
 def fetch_snapshot(session: requests.Session, url: str) -> tuple[Image.Image, dict]:
-    response = session.get(cache_busted(url), timeout=HTTP_TIMEOUT, headers={
+    headers = {
         "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
         "Cache-Control": "no-cache",
         "Pragma": "no-cache",
-    })
-    response.raise_for_status()
-
-    content_type = response.headers.get("Content-Type", "").lower()
-    if not content_type.startswith("image/"):
-        raise ValueError(f"La fuente no devolvió una imagen ({content_type or 'tipo desconocido'}).")
-    if len(response.content) > MAX_IMAGE_BYTES:
-        raise ValueError("La captura supera el tamaño permitido.")
-
-    image = Image.open(io.BytesIO(response.content))
-    image = ImageOps.exif_transpose(image).convert("RGB")
-    if image.width < 120 or image.height < 80:
-        raise ValueError("La imagen recibida es demasiado pequeña para analizarla.")
-
-    metadata = {
-        "content_type": content_type,
-        "last_modified": response.headers.get("Last-Modified"),
-        "date_header": response.headers.get("Date"),
-        "etag": response.headers.get("ETag"),
     }
-    return image, metadata
+    candidates = [cache_busted(url)]
+    if candidates[0] != url:
+        candidates.append(url)
+
+    last_error = None
+    for candidate_url in candidates:
+        try:
+            response = session.get(candidate_url, timeout=HTTP_TIMEOUT, headers=headers)
+            response.raise_for_status()
+
+            content_type = response.headers.get("Content-Type", "").lower()
+            if not content_type.startswith("image/"):
+                raise ValueError(f"La fuente no devolvió una imagen ({content_type or 'tipo desconocido'}).")
+            if len(response.content) > MAX_IMAGE_BYTES:
+                raise ValueError("La captura supera el tamaño permitido.")
+
+            image = Image.open(io.BytesIO(response.content))
+            image = ImageOps.exif_transpose(image).convert("RGB")
+            if image.width < 120 or image.height < 80:
+                raise ValueError("La imagen recibida es demasiado pequeña para analizarla.")
+
+            metadata = {
+                "content_type": content_type,
+                "last_modified": response.headers.get("Last-Modified"),
+                "date_header": response.headers.get("Date"),
+                "etag": response.headers.get("ETag"),
+                "retrieved_url": candidate_url,
+            }
+            return image, metadata
+        except Exception as exc:
+            last_error = exc
+
+    raise ValueError(f"No se pudo leer la imagen con ni sin parámetro anticaché: {last_error}")
 
 
-def extract_embedded_timestamp(image: Image.Image) -> datetime | None:
+def extract_embedded_timestamp(image: Image.Image, source_type: str | None = None) -> datetime | None:
     """Read camera-burned timestamps (especially OVSICORI) from image edges."""
     try:
         import pytesseract
@@ -554,7 +567,7 @@ def extract_embedded_timestamp(image: Image.Image) -> datetime | None:
 
     width, height = image.size
     band = max(35, int(height * 0.14))
-    if camera.get("source_type") == "imn_station":
+    if source_type == "imn_station":
         # Los paneles IMN imprimen la fecha dentro del encabezado y el texto
         # de actualización puede ocupar más de la franja superior.
         regions = [image]
@@ -664,7 +677,7 @@ def parse_http_timestamp(value: str | None) -> datetime | None:
 
 
 def assess_image_freshness(camera: dict, image: Image.Image, metadata: dict) -> dict:
-    embedded = extract_embedded_timestamp(image) if camera.get("source_type") in {"ovsicori", "imn_station"} else None
+    embedded = extract_embedded_timestamp(image, camera.get("source_type")) if camera.get("source_type") in {"ovsicori", "imn_station"} else None
     http_timestamp = parse_http_timestamp(metadata.get("last_modified"))
     timestamp = embedded or http_timestamp
     timestamp_source = "embedded_ocr" if embedded else ("http_last_modified" if http_timestamp else "not_provided")
