@@ -970,7 +970,7 @@ def parse_imn_local_datetime(value: str | None) -> datetime | None:
     text = text.replace("a.m.", "am").replace("p.m.", "pm")
     text = text.replace("a. m", "am").replace("p. m", "pm")
     text = re.sub(r"\s+", " ", text)
-    for fmt in ("%d/%m/%Y %I:%M:%S %p", "%d/%m/%Y %I:%M %p"):
+    for fmt in ("%d/%m/%Y %I:%M:%S %p", "%d/%m/%Y %I:%M %p", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"):
         try:
             local = datetime.strptime(text, fmt).replace(tzinfo=timezone(timedelta(hours=-6)))
             return local.astimezone(timezone.utc)
@@ -1107,7 +1107,11 @@ def fetch_imn_table(session: requests.Session, url: str) -> dict:
     response.raise_for_status()
     if len(response.content) > 3 * 1024 * 1024:
         raise ValueError("La tabla meteorológica supera el tamaño permitido.")
-    values = extract_imn_table_values(response.text)
+    try:
+        html = response.content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        html = response.text
+    values = extract_imn_table_values(html)
     if not values.get("table_row_count"):
         raise ValueError("La página del IMN no contiene tablas de observaciones reconocibles.")
     return values

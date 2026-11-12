@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7</title>
+  <title>RainTrack CR v1.7.1</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -1681,7 +1681,7 @@
             <div class="camera-popup-row"><span>Punto de rocío</span><span>${escapeHtml(dewPoint)}</span></div>
             <div class="camera-popup-row"><span>Humedad</span><span>${escapeHtml(humidity)}</span></div>
           </div>
-          <small>Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)}</small>
+          <small>Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)} · Datos preliminares del IMN</small>
           <a href="${escapeHtml(station.tableUrl || station.url)}" target="_blank" rel="noopener">Consultar datos oficiales del IMN ↗</a>
           ${station.url && station.url !== station.tableUrl ? '<a href="' + escapeHtml(station.url) + '" target="_blank" rel="noopener">Ver panel gráfico del IMN ↗</a>' : ""}
         </div>`;
