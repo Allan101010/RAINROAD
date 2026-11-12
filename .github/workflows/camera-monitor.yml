@@ -1,6 +1,14 @@
 name: RainTrack CR v1.5 - monitoreo de cámaras
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/monitor_cameras.py"
+      - "requirements-camera-monitor.txt"
+      - ".github/workflows/camera-monitor.yml"
+      - "index.html"
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
