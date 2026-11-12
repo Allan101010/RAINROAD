@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.3</title>
+  <title>RainTrack CR v1.4</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -674,7 +674,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.3</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.4</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -686,7 +686,7 @@
 
     <div class="notice" id="homeSetupNotice" role="status" aria-live="polite">
       <strong id="locationNoticeTitle">Detectando tu ubicación actual…</strong>
-      <p id="locationNoticeMessage">Permite el acceso a la ubicación para centrar el mapa y consultar el tiempo donde estás.</p>
+      <p id="locationNoticeMessage">RainTrack reutiliza tu última ubicación durante 30 minutos. Puedes actualizarla manualmente cuando quieras.</p>
       <button class="btn secondary small-btn" id="retryLocation" type="button" style="margin-top:10px">Intentar nuevamente</button>
     </div>
 
@@ -897,9 +897,9 @@
       <div class="section-head">
         <div>
           <h2>📍 Mi ubicación actual</h2>
-          <p class="subtitle" id="homeLocationDescription">RainTrack solicitará una ubicación GPS nueva cada vez que ingreses.</p>
+          <p class="subtitle" id="homeLocationDescription">Se reutilizará la última ubicación durante 30 minutos. Puedes actualizarla manualmente cuando quieras.</p>
         </div>
-        <button class="btn secondary small-btn" id="refreshCurrentLocation" type="button">Actualizar ubicación</button>
+        <button class="btn secondary small-btn" id="refreshCurrentLocation" type="button">Actualizar mi ubicación</button>
       </div>
     </section>
 
@@ -916,11 +916,12 @@
 
     // ------------------------------------------------------------
     // CONFIGURACIÓN GENERAL
-    // La ubicación se obtiene por GPS al ingresar y no se guarda.
+    // La última ubicación GPS se conserva localmente durante 30 minutos.
     // ------------------------------------------------------------
     const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v1";
-    // Elimina la ubicación fija de versiones anteriores: ahora se usa GPS en cada ingreso.
-    localStorage.removeItem("raintrackcr_home_location_v2");
+    const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
+    const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
+    const LOCATION_CACHE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
     const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
     // El mapa se limita a Costa Rica: permite acercar y alejar, pero no
@@ -2551,13 +2552,124 @@
     }
 
     // ------------------------------------------------------------
-    // UBICACIÓN GPS ACTUAL
-    // Se solicita una lectura nueva cada vez que se abre RainTrack.
-    // Las coordenadas no se guardan en localStorage.
+    // UBICACIÓN GPS ACTUAL Y CACHÉ LOCAL
+    // Se reutiliza la última lectura durante 30 minutos.
+    // El botón "Actualizar mi ubicación" siempre solicita una lectura GPS nueva.
     // ------------------------------------------------------------
-    function showLocationError(error) {
+    let automaticLocationRefreshAttempted = false;
+
+    function formatLocationAge(savedAt) {
+      const minutes = Math.max(0, Math.floor((Date.now() - savedAt) / 60000));
+      if (minutes < 1) return "hace unos segundos";
+      if (minutes === 1) return "hace 1 minuto";
+      if (minutes < 60) return `hace ${minutes} minutos`;
+      const hours = Math.floor(minutes / 60);
+      return hours === 1 ? "hace 1 hora" : `hace ${hours} horas`;
+    }
+
+    function readSavedCurrentLocation() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LOCATION_CACHE_KEY) || "null");
+        if (!saved || !Number.isFinite(saved.lat) || !Number.isFinite(saved.lon) ||
+            !Number.isFinite(saved.savedAt) ||
+            saved.lat < -90 || saved.lat > 90 || saved.lon < -180 || saved.lon > 180) {
+          return null;
+        }
+        if (Date.now() - saved.savedAt > LOCATION_CACHE_MAX_STALE_MS) {
+          localStorage.removeItem(LOCATION_CACHE_KEY);
+          return null;
+        }
+        return saved;
+      } catch (error) {
+        console.warn("No se pudo leer la ubicación guardada:", error);
+        return null;
+      }
+    }
+
+    function saveCurrentLocation(latitude, longitude, accuracy) {
+      try {
+        localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({
+          lat: latitude,
+          lon: longitude,
+          accuracy: accuracy || 0,
+          savedAt: Date.now()
+        }));
+      } catch (error) {
+        console.warn("No se pudo guardar la ubicación localmente:", error);
+      }
+    }
+
+    function focusMapOnCurrentLocation() {
+      if (!homeLocation || !mapReady) return;
+      const [west, south] = CR_NAVIGATION_BOUNDS[0];
+      const [east, north] = CR_NAVIGATION_BOUNDS[1];
+      const insideCostaRica = homeLocation.lon >= west && homeLocation.lon <= east &&
+        homeLocation.lat >= south && homeLocation.lat <= north;
+
+      if (insideCostaRica) {
+        const accuracy = Number(homeLocation.accuracy || 0);
+        map.flyTo({
+          center: [homeLocation.lon, homeLocation.lat],
+          zoom: accuracy > 700 ? 10.5 : 12,
+          speed: 1.1
+        });
+        $("mapLocationChip").textContent = "📍 Mi ubicación actual";
+      } else {
+        showCostaRicaOverview(true);
+        $("mapLocationChip").textContent = "🇨🇷 Mapa enfocado en Costa Rica";
+      }
+      updateMapMarkers();
+    }
+
+    function restoreSavedCurrentLocation() {
+      const saved = readSavedCurrentLocation();
+      if (!saved) return null;
+
+      const age = Date.now() - saved.savedAt;
+      const fresh = age < LOCATION_CACHE_TTL_MS;
+      homeLocation = {
+        name: "Mi ubicación actual",
+        lat: saved.lat,
+        lon: saved.lon,
+        accuracy: saved.accuracy || 0,
+        detail: saved.accuracy
+          ? `Ubicación guardada · precisión aproximada ±${Math.round(saved.accuracy)} m`
+          : "Ubicación guardada en este dispositivo"
+      };
+      homeWeatherData = null;
+
+      $("homeLocationDescription").textContent = fresh
+        ? `Usando ubicación guardada ${formatLocationAge(saved.savedAt)}. Se actualizará automáticamente después de 30 minutos.`
+        : `Última ubicación guardada ${formatLocationAge(saved.savedAt)}. Actualizando GPS…`;
+      $("homeSetupNotice").hidden = true;
+      $("mapLocationChip").textContent = fresh
+        ? "📍 Mi ubicación · guardada"
+        : "📍 Actualizando ubicación…";
+
+      focusMapOnCurrentLocation();
+      loadWeatherForLocation(homeLocation, "home");
+      setSystemStatus(fresh ? "Usando ubicación guardada" : "Actualizando ubicación…", fresh ? "ok" : "loading");
+      return { fresh, savedAt: saved.savedAt };
+    }
+
+    function showLocationError(error, keepExistingLocation = false) {
       console.warn("No se pudo obtener la ubicación GPS:", error);
       locationRequestInProgress = false;
+
+      if (keepExistingLocation && homeLocation) {
+        const saved = readSavedCurrentLocation();
+        const ageText = saved ? formatLocationAge(saved.savedAt) : "anterior";
+        $("homeLocationDescription").textContent =
+          `No se pudo actualizar el GPS. Seguimos usando la última ubicación guardada (${ageText}).`;
+        $("locationNoticeTitle").textContent = "No se pudo actualizar la ubicación";
+        $("locationNoticeMessage").textContent =
+          "RainTrack seguirá usando la última ubicación disponible. Puedes volver a intentarlo con «Actualizar mi ubicación».";
+        $("homeSetupNotice").hidden = false;
+        $("retryLocation").hidden = false;
+        setSystemStatus("Usando ubicación guardada", "error");
+        return;
+      }
+
       homeLocation = null;
       homeWeatherData = null;
       updateMapMarkers();
@@ -2585,19 +2697,24 @@
       setSystemStatus("Ubicación pendiente", "error");
     }
 
-    function requestCurrentLocation(preserveDestination = false) {
+    function requestCurrentLocation(preserveDestination = false, automatic = false) {
       if (locationRequestInProgress) return;
       locationRequestInProgress = true;
+      const hadExistingLocation = !!homeLocation;
 
       if (!navigator.geolocation) {
-        showLocationError({ code: 0, message: "Geolocalización no disponible" });
+        showLocationError({ code: 0, message: "Geolocalización no disponible" }, hadExistingLocation);
         $("locationNoticeMessage").textContent = "Este navegador no permite obtener GPS. Puedes buscar una localidad manualmente.";
         return;
       }
 
       $("homeSetupNotice").hidden = false;
-      $("locationNoticeTitle").textContent = "Detectando tu ubicación actual…";
-      $("locationNoticeMessage").textContent = "Solicitando una lectura GPS nueva para centrar el mapa y consultar las condiciones meteorológicas.";
+      $("locationNoticeTitle").textContent = automatic
+        ? "Actualizando tu ubicación automáticamente…"
+        : "Detectando tu ubicación actual…";
+      $("locationNoticeMessage").textContent = automatic
+        ? "La ubicación guardada cumplió 30 minutos. RainTrack está solicitando una lectura GPS nueva."
+        : "Solicitando una lectura GPS nueva. Esta acción reemplazará la ubicación guardada.";
       $("retryLocation").hidden = true;
       $("homeLocationDescription").textContent = "Solicitando ubicación GPS actual…";
       $("mapLocationChip").textContent = "📍 Detectando ubicación actual…";
@@ -2609,66 +2726,63 @@
           const longitude = position.coords.longitude;
           const accuracy = Math.round(position.coords.accuracy || 0);
 
+          saveCurrentLocation(latitude, longitude, accuracy);
+          automaticLocationRefreshAttempted = false;
           homeLocation = {
             name: "Mi ubicación actual",
             lat: latitude,
             lon: longitude,
-            detail: accuracy ? `GPS actual · precisión aproximada ±${accuracy} m` : "Ubicación GPS actual"
+            accuracy,
+            detail: accuracy
+              ? `GPS actualizado · precisión aproximada ±${accuracy} m`
+              : "Ubicación GPS actualizada"
           };
           locationRequestInProgress = false;
           homeWeatherData = null;
+
           if (!preserveDestination) {
             destinationLocation = null;
             destinationWeatherData = null;
             $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
             $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
           }
+
           $("homeLocationDescription").textContent = accuracy
-            ? `Ubicación detectada por GPS · precisión aproximada ±${accuracy} m. Se volverá a consultar al ingresar.`
-            : "Ubicación GPS detectada. Se volverá a consultar al ingresar.";
-          $("locationNoticeTitle").textContent = "Ubicación detectada correctamente";
+            ? `Ubicación actualizada · precisión aproximada ±${accuracy} m. Se guardará durante 30 minutos en este dispositivo.`
+            : "Ubicación actualizada y guardada durante 30 minutos en este dispositivo.";
+          $("locationNoticeTitle").textContent = "Ubicación actualizada correctamente";
           $("locationNoticeMessage").textContent = "El mapa y los datos meteorológicos se están actualizando para el lugar donde estás.";
           $("homeSetupNotice").hidden = true;
           $("mapLocationChip").textContent = "📍 Mi ubicación actual";
 
-          if (mapReady) {
-            const [west, south] = CR_NAVIGATION_BOUNDS[0];
-            const [east, north] = CR_NAVIGATION_BOUNDS[1];
-            const gpsInsideCostaRica = longitude >= west && longitude <= east &&
-              latitude >= south && latitude <= north;
-            if (gpsInsideCostaRica) {
-              map.flyTo({ center: [longitude, latitude], zoom: accuracy && accuracy > 700 ? 10.5 : 12, speed: 1.1 });
-            } else {
-              showCostaRicaOverview(true);
-              $("mapLocationChip").textContent = "🇨🇷 Mapa enfocado en Costa Rica";
-            }
-            updateMapMarkers();
-          }
-
+          focusMapOnCurrentLocation();
           loadWeatherForLocation(homeLocation, "home");
-          setSystemStatus("Ubicación actual detectada", "ok");
+          setSystemStatus("Ubicación actualizada", "ok");
         },
-        showLocationError,
+        error => showLocationError(error, hadExistingLocation),
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     }
 
-    $("retryLocation").addEventListener("click", requestCurrentLocation);
-    $("refreshCurrentLocation").addEventListener("click", requestCurrentLocation);
+    function refreshLocationIfExpired() {
+      if (locationRequestInProgress || automaticLocationRefreshAttempted) return;
+      const saved = readSavedCurrentLocation();
+      if (saved && Date.now() - saved.savedAt >= LOCATION_CACHE_TTL_MS) {
+        automaticLocationRefreshAttempted = true;
+        requestCurrentLocation(true, true);
+      }
+    }
 
+    $("retryLocation").addEventListener("click", () => requestCurrentLocation(true, false));
+    $("refreshCurrentLocation").addEventListener("click", () => requestCurrentLocation(true, false));
     $("goHomeMap").addEventListener("click", returnToHome);
 
-    // Si el usuario vuelve a RainTrack desde otra aplicación o pestaña,
-    // se solicita otra lectura GPS para actualizar su posición.
-    let pageWasHidden = false;
+    // Al volver a la pestaña solo se comprueba si vencieron los 30 minutos.
+    // No se consulta el GPS en cada cambio de pestaña.
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        pageWasHidden = true;
-      } else if (pageWasHidden) {
-        pageWasHidden = false;
-        requestCurrentLocation(true);
-      }
+      if (!document.hidden) refreshLocationIfExpired();
     });
+    setInterval(refreshLocationIfExpired, 60 * 1000);
 
     // ------------------------------------------------------------
     // CAPAS INTEGRADAS EN EL MISMO MAPA
@@ -2778,8 +2892,14 @@
     // INICIO
     // ------------------------------------------------------------
     initMap();
-    $("mapLocationChip").textContent = "📍 Detectando ubicación actual…";
-    requestCurrentLocation();
+    const restoredLocation = restoreSavedCurrentLocation();
+    if (!restoredLocation) {
+      automaticLocationRefreshAttempted = true;
+      requestCurrentLocation();
+    } else if (!restoredLocation.fresh) {
+      automaticLocationRefreshAttempted = true;
+      requestCurrentLocation(true, true);
+    }
     startAutomaticUpdates();
   </script>
 </body>
