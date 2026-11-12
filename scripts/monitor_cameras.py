@@ -1036,7 +1036,6 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             table_values = fetch_imn_table(session, station["table_url"])
             result.update(table_values)
             result.update(assess_station_freshness(result.get("image_timestamp")))
-            result.pop("table_debug", None)
             result["status"] = result["availability_status"]
             rain_amount = result.get("rain_last_hour_mm")
             result["rain_observed"] = (
@@ -1066,6 +1065,7 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
                 result.get("humidity_percent"),
                 result.get("availability_status"),
             )
+            result.pop("table_debug", None)
         except Exception as exc:
             result["status"] = "offline"
             result["availability_status"] = "offline"
