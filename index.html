@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR</title>
+  <title>RainTrack CR v1.1</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -47,6 +47,21 @@
     }
     .brand { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
     .brand span { color: var(--blue); }
+
+    .brand .version-tag {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 3px 6px;
+      border: 1px solid rgba(56, 189, 248, .35);
+      border-radius: 7px;
+      color: #bae6fd;
+      background: rgba(56, 189, 248, .10);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      vertical-align: middle;
+    }
+
     .system-status {
       display: inline-flex;
       align-items: center;
@@ -415,7 +430,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.1</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -916,7 +931,11 @@
         maxBoundsViscosity: 1,
         renderWorldCopies: false,
         attributionControl: true,
-        cooperativeGestures: true
+        // En móviles: permitir mover el mapa arrastrando con un solo dedo.
+        // El zoom con pellizco continúa funcionando con dos dedos.
+        dragPan: true,
+        touchZoomRotate: true,
+        cooperativeGestures: false
       });
 
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
