@@ -214,42 +214,6 @@
       background: linear-gradient(90deg, #36bae5, #00a3e0, #00b66a, #ffee00, #ff8b00, #e62800, #ff81ff);
     }
     .source-note { margin-top: 9px; color: var(--muted); font-size: 11px; line-height: 1.5; }
-
-    .imn-panel { padding: 14px; }
-    .imn-image-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 180px;
-      margin-top: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #05070b;
-    }
-    .imn-image-wrap img[hidden], .imn-error[hidden] { display: none !important; }
-    .imn-image-wrap img {
-      display: block;
-      width: 100%;
-      height: auto;
-      max-height: 560px;
-      object-fit: contain;
-    }
-    .imn-error {
-      padding: 22px;
-      color: #fca5a5;
-      font-size: 13px;
-      line-height: 1.5;
-      text-align: center;
-    }
-    .imn-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .imn-link { color: var(--blue); font-size: 12px; }
     .source-note a, footer a { color: var(--blue); }
 
     .search-box { padding: 16px; }
@@ -384,9 +348,10 @@
       <p class="subtitle">Seguimiento de precipitaciones en Costa Rica · Consulta tu zona o cualquier destino del país.</p>
     </section>
 
-    <div class="notice" id="homeSetupNotice" hidden>
-      <strong>Configura tu ubicación predeterminada</strong>
-      Para consultar tu casa con precisión, guarda una vez las coordenadas originales de Santa Rosa de Poás en la sección «Mi zona predeterminada». Se almacenarán solamente en este navegador y no quedarán escritas en el código público.
+    <div class="notice" id="homeSetupNotice" role="status" aria-live="polite">
+      <strong id="locationNoticeTitle">Detectando tu ubicación actual…</strong>
+      <p id="locationNoticeMessage">Permite el acceso a la ubicación para centrar el mapa y consultar el tiempo donde estás.</p>
+      <button class="btn secondary small-btn" id="retryLocation" type="button" style="margin-top:10px">Intentar nuevamente</button>
     </div>
 
     <section class="section">
@@ -416,7 +381,7 @@
             <div id="radarStatus" class="loading">Consultando radar…</div>
             <div id="radarTime" class="radar-time">Esperando imagen meteorológica</div>
           </div>
-          <button class="btn secondary small-btn" id="goHomeMap" type="button">⌖ Mi zona</button>
+          <button class="btn secondary small-btn" id="goHomeMap" type="button">⌖ Mi ubicación</button>
         </div>
         <div class="timeline-row">
           <button class="btn secondary small-btn" id="playRadar" type="button" disabled>▶ Reproducir</button>
@@ -433,33 +398,6 @@
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Intensa</span>
       </div>
       <p class="source-note" id="radarSourceNote">El radar puede mostrar zonas sin precipitación cuando no hay lluvia detectada en la imagen disponible.</p>
-    </section>
-
-
-
-    <section class="section">
-      <div class="section-head">
-        <div>
-          <h2>🌧️ Radar oficial del IMN</h2>
-          <p class="subtitle">Animación regional de precipitación publicada por el Instituto Meteorológico Nacional.</p>
-        </div>
-        <button class="btn secondary small-btn" id="imnRadarToggle" type="button" aria-expanded="false">Mostrar radar IMN ▼</button>
-      </div>
-      <div class="panel imn-panel" id="imnRadarPanel" hidden>
-        <div class="imn-actions">
-          <div>
-            <strong>Radar IMN · Animación 10 minutos</strong>
-            <p class="radar-time" id="imnRadarUpdated">La imagen se cargará al abrir esta sección.</p>
-          </div>
-          <button class="btn secondary small-btn" id="imnRadarRefresh" type="button">↻ Actualizar imagen</button>
-        </div>
-        <div class="imn-image-wrap">
-          <img id="imnRadarImage" alt="Animación oficial del radar meteorológico del IMN para Costa Rica" hidden>
-          <p class="imn-error" id="imnRadarError" hidden>No se pudo cargar la animación desde el servidor del IMN. Puedes abrir la imagen original mediante el enlace inferior.</p>
-        </div>
-        <p class="source-note">Esta es la imagen animada oficial del IMN. Se presenta como una vista regional independiente; todavía no está georreferenciada sobre las calles del mapa principal. La hora indicada corresponde a la carga en RainTrack, no necesariamente a la hora exacta de observación del radar.</p>
-        <a class="imn-link" href="https://www.imn.ac.cr/imagenes-sat/radar1m-animada.gif" target="_blank" rel="noopener">Abrir imagen original del IMN ↗</a>
-      </div>
     </section>
 
     <section class="section">
@@ -482,8 +420,8 @@
       </div>
       <div class="weather-grid">
         <article class="panel weather-card" id="homeWeatherCard">
-          <div class="place-name">Mi zona · Santa Rosa de Poás</div>
-          <p class="subtitle">Configura tu ubicación predeterminada para consultar las condiciones de tu casa.</p>
+          <div class="place-name">Mi ubicación actual</div>
+          <p class="subtitle">Esperando la ubicación GPS para consultar las condiciones del lugar donde estás.</p>
         </article>
         <article class="panel weather-card" id="destinationWeatherCard">
           <div class="place-name">Destino seleccionado</div>
@@ -494,13 +432,13 @@
 
     <section class="section">
       <div class="section-head">
-        <h2 id="forecastTitle">Pronóstico por hora · Mi zona</h2>
+        <h2 id="forecastTitle">Pronóstico por hora · Mi ubicación actual</h2>
         <button class="btn small-btn" id="forecastToggle" type="button" aria-expanded="true">Ocultar ▲</button>
       </div>
       <div id="forecastPanel">
         <div class="forecast-summary" id="rainSummary">
           <div class="summary-title">Resumen de lluvia</div>
-          <p class="summary-line muted">Configura tu zona o busca un destino para ver las horas con posibilidad de precipitación.</p>
+          <p class="summary-line muted">Esperando la ubicación GPS o la selección de un destino.</p>
         </div>
         <div class="hourly-grid" id="hourlyGrid"></div>
         <p class="disclaimer">La probabilidad indica la posibilidad de precipitación medible durante cada intervalo horario; no significa que lloverá durante ese porcentaje de la hora. Los milímetros son cantidades estimadas por el modelo. RainTrack muestra intervalos con probabilidad igual o superior al 30 % o con al menos 0.1 mm estimados.</p>
@@ -513,8 +451,8 @@
       </div>
       <div class="solar-grid">
         <article class="panel solar-card" id="homeSolarCard">
-          <div class="solar-place">Mi zona · Santa Rosa de Poás</div>
-          <p class="subtitle">Configura tu ubicación predeterminada para consultar los horarios del sol.</p>
+          <div class="solar-place">Mi ubicación actual</div>
+          <p class="subtitle">Los horarios de amanecer y atardecer aparecerán cuando se detecte tu ubicación.</p>
         </article>
         <article class="panel solar-card" id="destinationSolarCard">
           <div class="solar-place">Destino seleccionado</div>
@@ -526,34 +464,16 @@
     <section class="section">
       <div class="section-head">
         <div>
-          <h2>📍 Mi zona predeterminada</h2>
-          <p class="subtitle" id="homeLocationDescription">Santa Rosa de Poás, Alajuela, Costa Rica.</p>
+          <h2>📍 Mi ubicación actual</h2>
+          <p class="subtitle" id="homeLocationDescription">RainTrack solicitará una ubicación GPS nueva cada vez que ingreses.</p>
         </div>
-        <button class="btn secondary small-btn" id="homeSettingsToggle" type="button" aria-expanded="false">Configurar ubicación</button>
-      </div>
-      <div class="panel settings-panel" id="homeSettingsPanel" hidden>
-        <p class="small">Guarda la ubicación exacta que RainTrack debe consultar siempre como tu zona de casa.</p>
-        <div class="settings-grid">
-          <label>Latitud
-            <input class="field" id="homeLatitude" type="number" step="any" min="-90" max="90" placeholder="Ej. 10.123456">
-          </label>
-          <label>Longitud
-            <input class="field" id="homeLongitude" type="number" step="any" min="-180" max="180" placeholder="Ej. -84.123456">
-          </label>
-        </div>
-        <div class="settings-actions">
-          <button class="btn" id="saveHomeLocation" type="button">Guardar mi zona</button>
-          <button class="btn secondary" id="detectHomeLocation" type="button">Usar GPS actual</button>
-          <button class="btn ghost" id="clearHomeLocation" type="button">Borrar ubicación guardada</button>
-        </div>
-        <p class="privacy-note">Privacidad: las coordenadas se guardan en el almacenamiento local de este navegador. No se agregan al archivo index.html ni al repositorio público de GitHub. Si usas RainTrack en otro teléfono o navegador, debes guardarlas también allí. Para mantener la ubicación exacta, puedes escribir las coordenadas originales que ya habías proporcionado.</p>
-        <p class="tiny" id="homeSettingsMessage" aria-live="polite"></p>
+        <button class="btn secondary small-btn" id="refreshCurrentLocation" type="button">Actualizar ubicación</button>
       </div>
     </section>
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · <a href="https://www.imn.ac.cr/radar" target="_blank" rel="noopener">IMN Costa Rica</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
   </main>
@@ -564,14 +484,12 @@
 
     // ------------------------------------------------------------
     // CONFIGURACIÓN GENERAL
-    // La ubicación privada de casa NO está escrita aquí.
-    // Se guarda en localStorage desde el panel "Mi zona predeterminada".
+    // La ubicación se obtiene por GPS al ingresar y no se guarda.
     // ------------------------------------------------------------
-    const HOME_NAME = "Santa Rosa de Poás";
-    const HOME_STORAGE_KEY = "raintrackcr_home_location_v2";
     const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v1";
+    // Elimina la ubicación fija de versiones anteriores: ahora se usa GPS en cada ingreso.
+    localStorage.removeItem("raintrackcr_home_location_v2");
     const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
-    const IMN_RADAR_GIF = "https://www.imn.ac.cr/imagenes-sat/radar1m-animada.gif";
     const OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
     const OPEN_METEO_GEOCODING = "https://geocoding-api.open-meteo.com/v1/search";
 
@@ -596,7 +514,8 @@
       }
     };
 
-    let homeLocation = readSavedHome();
+    let homeLocation = null;
+    let locationRequestInProgress = false;
     let destinationLocation = null;
     let homeWeatherData = null;
     let destinationWeatherData = null;
@@ -619,21 +538,6 @@
       return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
       })[char]);
-    }
-
-    function readSavedHome() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(HOME_STORAGE_KEY) || "null");
-        if (!saved || !Number.isFinite(Number(saved.lat)) || !Number.isFinite(Number(saved.lon))) return null;
-        return {
-          name: HOME_NAME,
-          lat: Number(saved.lat),
-          lon: Number(saved.lon),
-          detail: "Ubicación predeterminada guardada en este navegador"
-        };
-      } catch (_) {
-        return null;
-      }
     }
 
     function setSystemStatus(message, kind = "ok") {
@@ -720,6 +624,9 @@
         mapReady = true;
         $("mapStatusChip").textContent = "Mapa listo · Cargando precipitación…";
         updateMapMarkers();
+        if (homeLocation) {
+          map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 12, speed: 1.1 });
+        }
         loadRadarSource();
       });
 
@@ -748,7 +655,7 @@
       if (destinationMarker) { destinationMarker.remove(); destinationMarker = null; }
 
       if (homeLocation) {
-        homeMarker = makeMarker("#16a34a", "Mi zona: " + HOME_NAME)
+        homeMarker = makeMarker("#16a34a", "Mi ubicación actual")
           .setLngLat([homeLocation.lon, homeLocation.lat]).addTo(map);
       }
       if (destinationLocation) {
@@ -1050,19 +957,18 @@
       const info = weatherInfo(current.weather_code);
       const updated = formatLocalHour(current.time);
       const rainNow = Number(current.precipitation || 0);
-      const details = location.detail || (isHome ? "Ubicación privada guardada en este navegador" : "Costa Rica");
+      const details = location.detail || (isHome ? "Ubicación GPS actual" : "Costa Rica");
 
       container.innerHTML = `
         <div class="weather-card-head">
           <div>
-            <div class="place-name">${escapeHtml(isHome ? "Mi zona · " + HOME_NAME : location.name)}</div>
+            <div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div>
             <div class="place-subtitle">${escapeHtml(details)}</div>
           </div>
           <span class="tiny">Actualizado ${escapeHtml(updated)}</span>
         </div>
         <div class="current-main">
-          <div class="weather-emoji">${info.icon}</div>
-          <div>
+          <div class="weather-emoji">${info.icon}</div><div>
             <div class="current-temp">${Math.round(Number(current.temperature_2m))}°</div>
             <div class="current-desc">${escapeHtml(info.text)}</div>
             <div class="tiny">Sensación térmica ${Math.round(Number(current.apparent_temperature))} °C</div>
@@ -1189,7 +1095,7 @@
       }
 
       container.innerHTML = `
-        <div class="solar-place">${escapeHtml(isHome ? "Mi zona · " + HOME_NAME : location.name)}</div>
+        <div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div>
         <p class="tiny">Horarios calculados para hoy en la zona horaria de la localidad.</p>
         <div class="solar-times">
           <div class="solar-time">
@@ -1212,8 +1118,8 @@
       const cardId = isHome ? "homeWeatherCard" : "destinationWeatherCard";
       const solarId = isHome ? "homeSolarCard" : "destinationSolarCard";
 
-      $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi zona · " + HOME_NAME : location.name)}</div><p class="subtitle loading">Consultando condiciones meteorológicas…</p>`;
-      $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi zona · " + HOME_NAME : location.name)}</div><p class="subtitle loading">Calculando amanecer y atardecer…</p>`;
+      $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle loading">Consultando condiciones meteorológicas…</p>`;
+      $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle loading">Calculando amanecer y atardecer…</p>`;
 
       try {
         const data = await getWeatherData(location);
@@ -1232,8 +1138,8 @@
         setSystemStatus("Datos meteorológicos actualizados", "ok");
       } catch (error) {
         console.error("Error meteorológico:", error);
-        $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi zona · " + HOME_NAME : location.name)}</div><p class="subtitle error-text">No se pudieron consultar los datos meteorológicos. Inténtalo de nuevo.</p>`;
-        $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi zona · " + HOME_NAME : location.name)}</div><p class="subtitle error-text">No se pudieron calcular los horarios solares.</p>`;
+        $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle error-text">No se pudieron consultar los datos meteorológicos. Inténtalo de nuevo.</p>`;
+        $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle error-text">No se pudieron calcular los horarios solares.</p>`;
         setSystemStatus("Error al consultar el pronóstico", "error");
       }
     }
@@ -1243,111 +1149,128 @@
       destinationWeatherData = null;
       $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
       $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
-      $("mapLocationChip").textContent = "🇨🇷 Costa Rica";
-      updateMapMarkers();
 
       if (homeLocation) {
-        if (mapReady) map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 10.5, speed: 1.1 });
+        $("mapLocationChip").textContent = "📍 Mi ubicación actual";
+        if (mapReady) map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 12, speed: 1.1 });
+        updateMapMarkers();
         if (homeWeatherData) renderForecast(homeWeatherData.location, homeWeatherData.data);
         else loadWeatherForLocation(homeLocation, "home");
       } else {
-        $("forecastTitle").textContent = "Pronóstico por hora · Mi zona";
-        $("rainSummary").innerHTML = '<div class="summary-title">Resumen de lluvia</div><p class="summary-line muted">Configura tu ubicación predeterminada o busca un destino.</p>';
-        $("hourlyGrid").innerHTML = "";
+        requestCurrentLocation();
       }
     }
 
     // ------------------------------------------------------------
-    // UBICACIÓN PRIVADA DE CASA
+    // UBICACIÓN GPS ACTUAL
+    // Se solicita una lectura nueva cada vez que se abre RainTrack.
+    // Las coordenadas no se guardan en localStorage.
     // ------------------------------------------------------------
-    function updateHomeSettingsUI() {
-      $("homeSetupNotice").hidden = Boolean(homeLocation);
-      $("homeLocationDescription").textContent = homeLocation
-        ? HOME_NAME + " · Coordenadas guardadas de forma privada en este navegador."
-        : HOME_NAME + ", Alajuela, Costa Rica · Falta guardar las coordenadas exactas.";
-      if (homeLocation) {
-        $("homeLatitude").value = homeLocation.lat;
-        $("homeLongitude").value = homeLocation.lon;
-        $("homeSettingsMessage").textContent = "Ubicación guardada. Se utiliza como tu zona predeterminada.";
-      } else {
-        $("homeLatitude").value = "";
-        $("homeLongitude").value = "";
-        $("homeSettingsMessage").textContent = "Escribe las coordenadas originales o usa el GPS cuando estés en casa.";
-      }
-    }
-
-    $("homeSettingsToggle").addEventListener("click", () => {
-      const panel = $("homeSettingsPanel");
-      panel.hidden = !panel.hidden;
-      $("homeSettingsToggle").setAttribute("aria-expanded", String(!panel.hidden));
-      $("homeSettingsToggle").textContent = panel.hidden ? "Configurar ubicación" : "Cerrar configuración";
-    });
-
-    $("saveHomeLocation").addEventListener("click", () => {
-      const lat = Number($("homeLatitude").value);
-      const lon = Number($("homeLongitude").value);
-
-      if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-        $("homeSettingsMessage").textContent = "Revisa la latitud y la longitud. Deben ser números válidos.";
-        $("homeSettingsMessage").className = "tiny error-text";
-        return;
-      }
-
-      homeLocation = { name: HOME_NAME, lat, lon, detail: "Ubicación predeterminada privada" };
-      localStorage.setItem(HOME_STORAGE_KEY, JSON.stringify({ lat, lon }));
-      $("homeSettingsMessage").textContent = "Ubicación guardada correctamente en este navegador.";
-      $("homeSettingsMessage").className = "tiny success";
-      updateHomeSettingsUI();
+    function showLocationError(error) {
+      console.warn("No se pudo obtener la ubicación GPS:", error);
+      locationRequestInProgress = false;
+      homeLocation = null;
+      homeWeatherData = null;
       updateMapMarkers();
+      $("homeLocationDescription").textContent = "No se pudo detectar tu ubicación actual.";
+      $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
+      $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';
+      $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Ubicación pendiente";
+      $("forecastTitle").textContent = "Pronóstico por hora · Mi ubicación actual";
+      $("rainSummary").innerHTML = '<div class="summary-title">Resumen de lluvia</div><p class="summary-line muted">Permite el acceso al GPS o busca un destino para consultar el pronóstico.</p>';
+      $("hourlyGrid").innerHTML = "";
 
-      if (mapReady) map.flyTo({ center: [lon, lat], zoom: 10.5, speed: 1.1 });
-      loadWeatherForLocation(homeLocation, "home");
-      $("mapLocationChip").textContent = "📍 " + HOME_NAME;
-    });
+      let message = "No se pudo obtener tu ubicación. Comprueba que el GPS esté activado e inténtalo de nuevo.";
+      if (error && error.code === 1) {
+        message = "El permiso de ubicación está bloqueado. En Chrome, abre la configuración del sitio, permite Ubicación para RainTrack CR y vuelve a intentarlo.";
+      } else if (error && error.code === 2) {
+        message = "El teléfono no pudo determinar tu ubicación. Activa la ubicación del dispositivo y comprueba que tengas señal.";
+      } else if (error && error.code === 3) {
+        message = "La solicitud GPS tardó demasiado. Comprueba la señal y toca «Intentar nuevamente».";
+      }
 
-    $("detectHomeLocation").addEventListener("click", () => {
+      $("locationNoticeTitle").textContent = "No se pudo detectar tu ubicación";
+      $("locationNoticeMessage").textContent = message;
+      $("homeSetupNotice").hidden = false;
+      $("retryLocation").hidden = false;
+      setSystemStatus("Ubicación pendiente", "error");
+    }
+
+    function requestCurrentLocation(preserveDestination = false) {
+      if (locationRequestInProgress) return;
+      locationRequestInProgress = true;
+
       if (!navigator.geolocation) {
-        $("homeSettingsMessage").textContent = "Este navegador no permite obtener la ubicación GPS.";
-        $("homeSettingsMessage").className = "tiny error-text";
+        showLocationError({ code: 0, message: "Geolocalización no disponible" });
+        $("locationNoticeMessage").textContent = "Este navegador no permite obtener GPS. Puedes buscar una localidad manualmente.";
         return;
       }
 
-      $("homeSettingsMessage").textContent = "Solicitando ubicación GPS…";
-      $("homeSettingsMessage").className = "tiny loading";
+      $("homeSetupNotice").hidden = false;
+      $("locationNoticeTitle").textContent = "Detectando tu ubicación actual…";
+      $("locationNoticeMessage").textContent = "Solicitando una lectura GPS nueva para centrar el mapa y consultar las condiciones meteorológicas.";
+      $("retryLocation").hidden = true;
+      $("homeLocationDescription").textContent = "Solicitando ubicación GPS actual…";
+      $("mapLocationChip").textContent = "📍 Detectando ubicación actual…";
+      setSystemStatus("Solicitando ubicación GPS…", "loading");
 
       navigator.geolocation.getCurrentPosition(
         position => {
-          $("homeLatitude").value = position.coords.latitude.toFixed(6);
-          $("homeLongitude").value = position.coords.longitude.toFixed(6);
-          $("homeSettingsMessage").textContent = "GPS detectado. Revisa que estés en casa y presiona «Guardar mi zona».";
-          $("homeSettingsMessage").className = "tiny success";
-        },
-        error => {
-          console.warn(error);
-          $("homeSettingsMessage").textContent = "No se pudo obtener el GPS. Permite la ubicación en el navegador o escribe las coordenadas manualmente.";
-          $("homeSettingsMessage").className = "tiny error-text";
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    });
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const accuracy = Math.round(position.coords.accuracy || 0);
 
-    $("clearHomeLocation").addEventListener("click", () => {
-      localStorage.removeItem(HOME_STORAGE_KEY);
-      homeLocation = null;
-      homeWeatherData = null;
-      updateHomeSettingsUI();
-      $("homeWeatherCard").innerHTML = '<div class="place-name">Mi zona · Santa Rosa de Poás</div><p class="subtitle">Guarda las coordenadas exactas para consultar tu ubicación predeterminada.</p>';
-      $("homeSolarCard").innerHTML = '<div class="solar-place">Mi zona · Santa Rosa de Poás</div><p class="subtitle">Configura tu ubicación predeterminada para consultar los horarios del sol.</p>';
-      if (!destinationLocation) {
-        $("forecastTitle").textContent = "Pronóstico por hora · Mi zona";
-        $("rainSummary").innerHTML = '<div class="summary-title">Resumen de lluvia</div><p class="summary-line muted">Configura tu zona o busca un destino.</p>';
-        $("hourlyGrid").innerHTML = "";
-      }
-      updateMapMarkers();
-      $("homeSettingsMessage").textContent = "La ubicación guardada se eliminó de este navegador.";
-    });
+          homeLocation = {
+            name: "Mi ubicación actual",
+            lat: latitude,
+            lon: longitude,
+            detail: accuracy ? `GPS actual · precisión aproximada ±${accuracy} m` : "Ubicación GPS actual"
+          };
+          locationRequestInProgress = false;
+          homeWeatherData = null;
+          if (!preserveDestination) {
+            destinationLocation = null;
+            destinationWeatherData = null;
+            $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
+            $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
+          }
+          $("homeLocationDescription").textContent = accuracy
+            ? `Ubicación detectada por GPS · precisión aproximada ±${accuracy} m. Se volverá a consultar al ingresar.`
+            : "Ubicación GPS detectada. Se volverá a consultar al ingresar.";
+          $("locationNoticeTitle").textContent = "Ubicación detectada correctamente";
+          $("locationNoticeMessage").textContent = "El mapa y los datos meteorológicos se están actualizando para el lugar donde estás.";
+          $("homeSetupNotice").hidden = true;
+          $("mapLocationChip").textContent = "📍 Mi ubicación actual";
+
+          if (mapReady) {
+            map.flyTo({ center: [longitude, latitude], zoom: accuracy && accuracy > 700 ? 10.5 : 12, speed: 1.1 });
+            updateMapMarkers();
+          }
+
+          loadWeatherForLocation(homeLocation, "home");
+          setSystemStatus("Ubicación actual detectada", "ok");
+        },
+        showLocationError,
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      );
+    }
+
+    $("retryLocation").addEventListener("click", requestCurrentLocation);
+    $("refreshCurrentLocation").addEventListener("click", requestCurrentLocation);
 
     $("goHomeMap").addEventListener("click", returnToHome);
+
+    // Si el usuario vuelve a RainTrack desde otra aplicación o pestaña,
+    // se solicita otra lectura GPS para actualizar su posición.
+    let pageWasHidden = false;
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        pageWasHidden = true;
+      } else if (pageWasHidden) {
+        pageWasHidden = false;
+        requestCurrentLocation(true);
+      }
+    });
 
     // ------------------------------------------------------------
     // CONTROLES DESPLEGABLES Y ACTUALIZACIÓN AUTOMÁTICA
@@ -1378,68 +1301,12 @@
     }
 
     // ------------------------------------------------------------
-    // RADAR OFICIAL IMN (GIF ANIMADO)
-    // ------------------------------------------------------------
-    function loadImnRadar(forceRefresh = false) {
-      const image = $("imnRadarImage");
-      const error = $("imnRadarError");
-      const updated = $("imnRadarUpdated");
-      if (!image || !error || !updated) return;
-
-      error.hidden = true;
-      image.hidden = false;
-      updated.textContent = "Cargando imagen oficial del IMN…";
-
-      image.onload = () => {
-        updated.textContent = "Cargada en RainTrack a las " + new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" }) + ".";
-      };
-      image.onerror = () => {
-        image.hidden = true;
-        error.hidden = false;
-        updated.textContent = "El servidor del IMN no permitió cargar la imagen dentro de RainTrack.";
-      };
-
-      image.src = forceRefresh
-        ? IMN_RADAR_GIF + "?actualizacion=" + Date.now()
-        : IMN_RADAR_GIF;
-    }
-
-    $("imnRadarToggle").addEventListener("click", () => {
-      const panel = $("imnRadarPanel");
-      const button = $("imnRadarToggle");
-      const willOpen = panel.hidden;
-      panel.hidden = !willOpen;
-      button.setAttribute("aria-expanded", String(willOpen));
-      button.textContent = willOpen ? "Ocultar radar IMN ▲" : "Mostrar radar IMN ▼";
-      if (willOpen && !$("imnRadarImage").getAttribute("src")) loadImnRadar(false);
-    });
-
-    $("imnRadarRefresh").addEventListener("click", () => loadImnRadar(true));
-
-    // El GIF se anima por sí mismo. Si el panel permanece abierto,
-    // RainTrack vuelve a solicitar una copia cada 10 minutos.
-    setInterval(() => {
-      const panel = $("imnRadarPanel");
-      if (panel && !panel.hidden) loadImnRadar(true);
-    }, 10 * 60 * 1000);
-
-    // ------------------------------------------------------------
     // INICIO
     // ------------------------------------------------------------
-    updateHomeSettingsUI();
     initMap();
-
-    if (homeLocation) {
-      loadWeatherForLocation(homeLocation, "home");
-    } else {
-      $("homeSettingsPanel").hidden = false;
-      $("homeSettingsToggle").textContent = "Cerrar configuración";
-      $("homeSettingsToggle").setAttribute("aria-expanded", "true");
-      $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Mi zona pendiente de configurar";
-    }
-
+    $("mapLocationChip").textContent = "📍 Detectando ubicación actual…";
+    requestCurrentLocation();
     startAutomaticUpdates();
-    setSystemStatus("Sistema iniciado", "ok");
   </script>
 </body>
 </html>
