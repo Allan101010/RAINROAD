@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7.4</title>
+  <title>RainTrack CR v1.7.5</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -683,7 +683,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.4</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.5</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -2509,12 +2509,22 @@
       return data;
     }
 
+    function formatCurrentPrecipitationPeriod(intervalSeconds) {
+      const seconds = Number(intervalSeconds);
+      if (!Number.isFinite(seconds) || seconds <= 0) return "el intervalo reciente";
+      const minutes = Math.max(1, Math.round(seconds / 60));
+      if (minutes === 60) return "la última hora";
+      if (minutes > 60 && minutes % 60 === 0) return `las últimas ${minutes / 60} horas`;
+      return `los últimos ${minutes} min`;
+    }
+
     function renderWeatherCard(containerId, location, data, isHome) {
       const container = $(containerId);
       const current = data.current;
       const info = weatherInfo(current.weather_code);
       const updated = formatLocalHour(current.time);
       const rainNow = Number(current.precipitation || 0);
+      const rainPeriod = formatCurrentPrecipitationPeriod(current.interval);
       const details = location.detail || (isHome ? "Ubicación GPS actual" : "Costa Rica");
 
       container.innerHTML = `
@@ -2528,17 +2538,19 @@
         <div class="current-main">
           <div class="weather-emoji">${info.icon}</div><div>
             <div class="current-temp">${Math.round(Number(current.temperature_2m))}°</div>
-            <div class="current-desc">${escapeHtml(info.text)}</div>
+            <div class="current-desc">${escapeHtml(info.text)} · estimación del modelo</div>
             <div class="tiny">Sensación térmica ${Math.round(Number(current.apparent_temperature))} °C</div>
           </div>
         </div>
         <div class="metrics">
-          <div class="metric"><strong>${formatMillimeters(rainNow)} mm</strong><span>Precipitación estimada</span></div>
+          <div class="metric"><strong>${formatMillimeters(rainNow)} mm</strong><span>Precipitación · ${escapeHtml(rainPeriod)}</span></div>
           <div class="metric"><strong>${Math.round(Number(current.relative_humidity_2m))}%</strong><span>Humedad</span></div>
           <div class="metric"><strong>${Math.round(Number(current.wind_speed_10m))} km/h</strong><span>Viento</span></div>
         </div>
         <div class="card-footer">
-          <span class="tiny">${rainNow >= 0.1 ? "El modelo estima precipitación en la hora actual." : "El modelo no estima precipitación medible en la hora actual."}</span>
+          <span class="tiny">${rainNow >= 0.1
+            ? `El modelo estima ${formatMillimeters(rainNow)} mm durante ${rainPeriod}; no es una medición en tu ubicación exacta.`
+            : `El modelo no estima precipitación medible durante ${rainPeriod}.`}</span>
           ${isHome ? "" : '<button class="btn secondary small-btn" id="returnHomeButton" type="button">Volver a mi zona</button>'}
         </div>
       `;
