@@ -1,0 +1,13 @@
+{
+  "status": "pending",
+  "generated_at": null,
+  "interval_minutes": 15,
+  "source_url": "https://webcamscostarica.com/",
+  "model": "prithivMLmods/Weather-Image-Classification",
+  "directory_sites": 20,
+  "camera_count": 34,
+  "evaluated_count": 0,
+  "alerts": [],
+  "cameras": [],
+  "message": "Esperando la primera ejecución de GitHub Actions."
+}
