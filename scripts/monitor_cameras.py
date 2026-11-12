@@ -204,6 +204,18 @@ IMN_STATIONS = [
         "source_type": "imn_station",
     },
     {
+        "id": "imn-sixaola",
+        "station_name": "Estación IMN · Sixaola",
+        "zone": "Caribe Sur",
+        "lat": 9.5300,
+        "lon": -82.6200,
+        "page_url": "https://www.imn.ac.cr/especial/tablas/sixaola.html",
+        "snapshot_url": None,
+        "table_url": "https://www.imn.ac.cr/especial/tablas/sixaola.html",
+        "coordinate_note": "Ubicación de referencia de Sixaola, Talamanca; no representa necesariamente el sensor exacto.",
+        "source_type": "imn_station",
+    },
+    {
         "id": "imn-aeropuerto-liberia-07",
         "station_name": "Estación IMN · Aeropuerto Daniel Oduber 07",
         "zone": "Pacífico Norte",
@@ -1519,7 +1531,7 @@ def main() -> int:
                 "name": "IMN · estaciones automáticas",
                 "url": "https://www.imn.ac.cr/es/web/imn/estaciones-automaticas",
                 "type": "official_station_observations",
-                "note": "Se consultan 12 tablas HTML públicas: Aranjuez, Volcán Turrialba, Quepos, La Ligia, Horquetas, Universidad para la Paz, ITCR Santa Clara, Montaña Sagrada, Sitio Mata, La Pastora y los aeropuertos Juan Santamaría y Daniel Oduber. El IMN advierte que sus datos son preliminares y pueden retrasarse."
+                "note": "Se consultan 13 tablas HTML públicas: Aranjuez, Volcán Turrialba, Quepos, La Ligia, Horquetas, Universidad para la Paz, ITCR Santa Clara, Montaña Sagrada, Sitio Mata, La Pastora, los aeropuertos Juan Santamaría y Daniel Oduber, y Sixaola. El IMN advierte que sus datos son preliminares y pueden retrasarse."
             },
             {
                 "name": "Parapente Pura Vida",

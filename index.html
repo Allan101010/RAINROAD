@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7.1</title>
+  <title>RainTrack CR v1.7.2</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -730,7 +730,7 @@
               <option value="convection">Convección profunda</option>
               <option value="radargif">Radar animado IMN</option>
             </select>
-            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (21 sitios de cámaras · 8 cámaras OVSICORI · 12 estaciones IMN · 1 panel WeatherLink)</span></label>
+            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (21 sitios de cámaras · 8 cámaras OVSICORI · 13 estaciones IMN · 1 panel WeatherLink)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
             <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos. Todas las cámaras públicas son candidatas: la IA evalúa si el encuadre muestra suficiente entorno exterior. Las imágenes demoradas o sin actualización no generan alertas actuales.</p>
@@ -1043,6 +1043,7 @@
       { id: "imn-la-pastora", name: "Estación IMN · Escuela La Pastora", zone: "Caribe Sur", lat: 9.9400, lon: -83.7800, url: "https://www.imn.ac.cr/especial/tablas/lapastora.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/lapastora.html", coordinateNote: "Ubicación de referencia de La Pastora, Turrialba; no representa necesariamente el sensor exacto." },
       { id: "imn-aeropuerto-sjo-07", name: "Estación IMN · Aeropuerto Juan Santamaría 07", zone: "Valle Central", lat: 9.9939, lon: -84.2088, url: "https://www.imn.ac.cr/especial/tablas/aijs07.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/aijs07.html", coordinateNote: "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto." },
       { id: "imn-aeropuerto-liberia-07", name: "Estación IMN · Aeropuerto Daniel Oduber 07", zone: "Pacífico Norte", lat: 10.5933, lon: -85.5444, url: "https://www.imn.ac.cr/especial/tablas/lib07.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/lib07.html", coordinateNote: "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto." },
+      { id: "imn-sixaola", name: "Estación IMN · Sixaola", zone: "Caribe Sur", lat: 9.5300, lon: -82.6200, url: "https://www.imn.ac.cr/especial/tablas/sixaola.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/sixaola.html", coordinateNote: "Ubicación de referencia de Sixaola, Talamanca; no representa necesariamente el sensor exacto." },
       { id: "ppv-neojaco", name: "Estación NEOJACO · WeatherLink", zone: "Pacífico Central", lat: 9.6140, lon: -84.6290, url: "https://www.weatherlink.com/embeddablePage/show/893d2aa1a69d47928c05b4c1c8e1b6c0/slim", externalWidget: true }
     ];
 
