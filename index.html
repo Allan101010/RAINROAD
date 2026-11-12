@@ -1487,7 +1487,7 @@
       const stationAlerts = fresh && cameraMonitorData && Array.isArray(cameraMonitorData.station_alerts)
         ? cameraMonitorData.station_alerts.filter(item =>
             item.rain_last_hour_mm > 0 &&
-            ["online", "unknown"].includes(item.availability_status || "unknown")
+            item.availability_status === "online"
           )
         : [];
       const active = [...stationAlerts, ...cameraAlerts];
@@ -1590,7 +1590,7 @@
         const observation = stationRows.find(item => item.id === station.id);
         const availability = observation ? observation.availability_status : "not_available";
         const rainObserved = !!(observation && observation.rain_observed &&
-          ["online", "unknown"].includes(availability));
+          availability === "online");
         const element = document.createElement("button");
         element.type = "button";
         element.className = "camera-marker station-marker " + (rainObserved ? "rain" : availability);
