@@ -1550,7 +1550,7 @@
           const state = cameraStatusText(item.status);
           const availability = cameraAvailabilityText(item.availability_status || "unknown");
           const icon = item.status === "rain" ? "🌧️" : item.status === "possible" ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" ? "×" : "·";
-          const age = Number.isFinite(Number(item.image_age_minutes))
+          const age = item.image_age_minutes != null && Number.isFinite(Number(item.image_age_minutes))
             ? " · " + Math.round(Number(item.image_age_minutes)) + " min"
             : "";
           const recovered = item.recovered ? " · RECUPERADA" : "";
@@ -1597,19 +1597,19 @@
         element.textContent = rainObserved ? "🌧️" : "🌡️";
         element.setAttribute("aria-label", "Abrir estación meteorológica: " + station.name);
 
-        const rainHour = observation && Number.isFinite(Number(observation.rain_last_hour_mm))
+        const rainHour = observation && observation.rain_last_hour_mm != null && Number.isFinite(Number(observation.rain_last_hour_mm))
           ? Number(observation.rain_last_hour_mm).toFixed(1) + " mm"
           : "Sin lectura";
-        const rainDay = observation && Number.isFinite(Number(observation.rain_since_7am_mm))
+        const rainDay = observation && observation.rain_since_7am_mm != null && Number.isFinite(Number(observation.rain_since_7am_mm))
           ? Number(observation.rain_since_7am_mm).toFixed(1) + " mm"
           : "Sin lectura";
-        const temperature = observation && Number.isFinite(Number(observation.temperature_c))
+        const temperature = observation && observation.temperature_c != null && Number.isFinite(Number(observation.temperature_c))
           ? Number(observation.temperature_c).toFixed(1) + " °C"
           : "Sin lectura";
-        const wind = observation && Number.isFinite(Number(observation.wind_speed_kmh))
+        const wind = observation && observation.wind_speed_kmh != null && Number.isFinite(Number(observation.wind_speed_kmh))
           ? Number(observation.wind_speed_kmh).toFixed(1) + " km/h"
           : "Sin lectura";
-        const humidity = observation && Number.isFinite(Number(observation.humidity_percent))
+        const humidity = observation && observation.humidity_percent != null && Number.isFinite(Number(observation.humidity_percent))
           ? Math.round(Number(observation.humidity_percent)) + "%"
           : "Sin lectura";
         const updated = observation && observation.image_timestamp
