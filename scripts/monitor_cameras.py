@@ -572,7 +572,7 @@ def extract_embedded_timestamp(image: Image.Image, source_type: str | None = Non
         # de actualización puede ocupar más de la franja superior.
         regions = [
             image,
-            image.crop((0, 0, width, min(height, max(band, int(height * 0.28)))),
+            image.crop((0, 0, width, min(height, max(band, int(height * 0.28))))),
         ]
     else:
         regions = [
