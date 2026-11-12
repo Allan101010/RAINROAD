@@ -71,9 +71,7 @@ jobs:
             if ! git rebase origin/main; then
               echo "::warning::Se detectó una actualización simultánea de los JSON meteorológicos; se conservarán los resultados de este ciclo."
               conflicts="$(git diff --name-only --diff-filter=U)"
-              unexpected="$(printf '%s\\n' "$conflicts" | grep -Ev '^(camera-alerts.json|camera-catalog.json)
-          fi
- || true)"
+              unexpected="$(echo "$conflicts" | grep -Ev '^(camera-alerts.json|camera-catalog.json)$' || true)"
               if [ -n "$unexpected" ]; then
                 git rebase --abort || true
                 echo "::error::Conflicto inesperado fuera de los JSON generados: $unexpected"
