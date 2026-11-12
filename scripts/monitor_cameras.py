@@ -554,10 +554,15 @@ def extract_embedded_timestamp(image: Image.Image) -> datetime | None:
 
     width, height = image.size
     band = max(35, int(height * 0.14))
-    regions = [
-        image.crop((0, 0, width, min(height, band))),
-        image.crop((0, max(0, height - band), width, height)),
-    ]
+    if camera.get("source_type") == "imn_station":
+        # Los paneles IMN imprimen la fecha dentro del encabezado y el texto
+        # de actualización puede ocupar más de la franja superior.
+        regions = [image]
+    else:
+        regions = [
+            image.crop((0, 0, width, min(height, band))),
+            image.crop((0, max(0, height - band), width, height)),
+        ]
     ocr_text = []
     for region in regions:
         gray = ImageOps.autocontrast(region.convert("L"))
@@ -598,6 +603,28 @@ def extract_embedded_timestamp(image: Image.Image) -> datetime | None:
                 hour = 0
             local_time = datetime(
                 int(year), int(month), int(day), hour, minute,
+                tzinfo=timezone(timedelta(hours=-6)),
+            )
+            if local_time <= utc_now() + timedelta(minutes=10):
+                return local_time.astimezone(timezone.utc)
+        except ValueError:
+            pass
+
+    date_first_match = re.search(
+        r"\b(\d{1,2})/(\d{1,2})/(20\d{2}).{0,100}?(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)",
+        text,
+        re.IGNORECASE,
+    )
+    if date_first_match:
+        try:
+            day, month, year, hour, minute, meridiem = date_first_match.groups()
+            hour = int(hour)
+            if meridiem.lower().startswith("p") and hour != 12:
+                hour += 12
+            elif meridiem.lower().startswith("a") and hour == 12:
+                hour = 0
+            local_time = datetime(
+                int(year), int(month), int(day), hour, int(minute),
                 tzinfo=timezone(timedelta(hours=-6)),
             )
             if local_time <= utc_now() + timedelta(minutes=10):
@@ -831,6 +858,20 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             freshness = assess_image_freshness(station, image, metadata)
             result.update(freshness)
             values = extract_imn_station_values(image)
+            logging.info(
+                "IMN %s OCR: %s",
+                station["id"],
+                (values.get("ocr_excerpt") or values.get("ocr_error") or "sin texto OCR")[:500],
+            )
+            logging.info(
+                "IMN %s lecturas: lluvia_hora=%s lluvia_7am=%s temperatura=%s viento=%s humedad=%s",
+                station["id"],
+                values.get("rain_last_hour_mm"),
+                values.get("rain_since_7am_mm"),
+                values.get("temperature_c"),
+                values.get("wind_speed_kmh"),
+                values.get("humidity_percent"),
+            )
             result.update({key: value for key, value in values.items() if key != "ocr_excerpt"})
             result["status"] = freshness["availability_status"]
             result["last_modified"] = metadata.get("last_modified")
