@@ -838,7 +838,7 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             result["rain_observed"] = (
                 rain_amount is not None
                 and rain_amount > 0
-                and result["availability_status"] in {"online", "unknown"}
+                and result["availability_status"] == "online"
             )
             if result["availability_status"] == "stale":
                 result["message"] = "El panel está accesible, pero la observación impresa tiene más de una hora."
