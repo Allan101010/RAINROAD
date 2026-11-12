@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.1</title>
+  <title>RainTrack CR v1.2</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -268,6 +268,177 @@
       pointer-events: none;
     }
     .map-toolbar { margin-top: 10px; padding: 12px 14px; }
+
+    .route-panel {
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid rgba(56,189,248,.25);
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(30,41,59,.98), rgba(16,24,39,.98));
+      box-shadow: var(--shadow);
+    }
+    .route-panel[hidden], .route-mode-section[hidden], .route-result[hidden],
+    .route-pick-hint[hidden] { display: none !important; }
+    .route-panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .route-panel-head strong { font-size: 14px; }
+    .route-mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 13px;
+    }
+    .route-mode-btn {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 8px;
+      color: #dbe7f5;
+      background: #263449;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .route-mode-btn.active {
+      border-color: rgba(56,189,248,.65);
+      color: #e0f2fe;
+      background: rgba(2,132,199,.28);
+    }
+    .route-direction-row, .route-search-row, .route-actions {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .route-direction-row label { flex: 1; min-width: 180px; }
+    .route-search-row { margin-top: 10px; }
+    .route-search-row .field { flex: 1; min-width: 160px; }
+    .route-search-results { display: grid; gap: 6px; margin-top: 8px; }
+    .route-search-results:empty { display: none; }
+    .route-search-result {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      background: #263449;
+      text-align: left;
+      font-size: 12px;
+    }
+    .route-search-result small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .route-destination-status {
+      margin-top: 9px;
+      padding: 10px 11px;
+      border-radius: 10px;
+      color: #dbeafe;
+      background: rgba(56,189,248,.08);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .route-destination-status strong { color: #f8fafc; }
+    .route-pick-hint {
+      margin-top: 9px;
+      padding: 10px;
+      border: 1px dashed rgba(56,189,248,.55);
+      border-radius: 10px;
+      color: #bae6fd;
+      background: rgba(2,132,199,.12);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .route-actions { margin-top: 12px; }
+    .route-actions .btn { flex: 1; min-width: 125px; }
+    .route-result {
+      margin-top: 13px;
+      padding-top: 13px;
+      border-top: 1px solid var(--border);
+    }
+    .route-result-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .route-result-title { font-size: 14px; font-weight: 800; }
+    .route-result-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .route-result-metric {
+      padding: 10px;
+      border-radius: 10px;
+      background: #263449;
+      text-align: center;
+    }
+    .route-result-metric strong { display: block; font-size: 17px; }
+    .route-result-metric span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .route-result-summary {
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 10px;
+      background: rgba(56,189,248,.08);
+      color: #dbeafe;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .route-samples { display: grid; gap: 7px; margin-top: 10px; }
+    .route-sample {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(15,23,42,.42);
+    }
+    .route-sample strong { display: block; font-size: 11px; }
+    .route-sample small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .route-status-pill {
+      display: inline-block;
+      max-width: 135px;
+      padding: 5px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .route-status-pill.rain { color: #fee2e2; background: rgba(185,28,28,.35); }
+    .route-status-pill.possible { color: #fef3c7; background: rgba(180,83,9,.32); }
+    .route-status-pill.clear { color: #bbf7d0; background: rgba(21,128,61,.25); }
+    .route-status-pill.unknown { color: #cbd5e1; background: rgba(71,85,105,.4); }
+    .route-map-marker {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border: 2px solid white;
+      border-radius: 50%;
+      color: white;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: 0 2px 8px rgba(0,0,0,.4);
+    }
+    .route-map-marker.start { background: #16a34a; }
+    .route-map-marker.end { background: #dc2626; }
+    @media (max-width: 650px) {
+      .route-panel { padding: 11px; }
+      .route-mode-btn { font-size: 11px; }
+      .route-result-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .route-sample { grid-template-columns: minmax(0,1fr); }
+      .route-status-pill { justify-self: start; max-width: none; }
+    }
+
     .radar-toolbar-top {
       display: flex;
       justify-content: space-between;
@@ -430,7 +601,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.1</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.2</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -501,12 +672,78 @@
             <div id="radarStatus" class="loading">Consultando radar…</div>
             <div id="radarTime" class="radar-time">Esperando imagen meteorológica</div>
           </div>
-          <button class="btn secondary small-btn" id="goHomeMap" type="button">⌖ Mi ubicación</button>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <button class="btn secondary small-btn" id="routeToggle" type="button" aria-expanded="false">🧭 Rutas</button>
+            <button class="btn secondary small-btn" id="goHomeMap" type="button">⌖ Mi ubicación</button>
+          </div>
         </div>
         <div class="timeline-row">
           <button class="btn secondary small-btn" id="playRadar" type="button" disabled>▶ Reproducir</button>
           <input id="frameSlider" type="range" min="0" max="0" value="0" disabled aria-label="Elegir imagen del radar">
           <div class="timeline-label" id="frameLabel">--</div>
+        </div>
+
+        <div class="route-panel" id="routePanel" hidden>
+          <div class="route-panel-head">
+            <div>
+              <strong>🧭 Análisis meteorológico de ruta</strong>
+              <p class="tiny" style="margin-top:4px">El recorrido solo se dibuja cuando solicitas el análisis.</p>
+            </div>
+            <button class="btn ghost small-btn" id="routePanelClose" type="button" aria-label="Cerrar rutas">×</button>
+          </div>
+
+          <div class="route-mode-switch">
+            <button class="route-mode-btn active" id="routeSavedMode" type="button">🏠 Casa ↔ trabajo</button>
+            <button class="route-mode-btn" id="routeTempMode" type="button">📍 Desde GPS actual</button>
+          </div>
+
+          <div class="route-mode-section" id="routeSavedSection">
+            <div class="route-direction-row">
+              <label for="routeDirection">Recorrido guardado
+                <select class="source-select" id="routeDirection" style="display:block;width:100%;margin-top:7px">
+                  <option value="outbound">Ida · Casa → trabajo</option>
+                  <option value="return">Regreso · Trabajo → casa</option>
+                </select>
+              </label>
+            </div>
+            <div class="route-destination-status" id="savedWorkStatus">
+              <strong>Destino laboral sin configurar.</strong><br>
+              Búscalo por localidad o marca el punto exacto en el mapa una sola vez. Para que la llegada sea precisa, recomendamos seleccionar el punto exacto del trabajo en el mapa.
+            </div>
+            <div class="route-search-row">
+              <input class="field" id="routeWorkSearchInput" type="search" placeholder="Buscar localidad del trabajo…" autocomplete="off">
+              <button class="btn secondary small-btn" id="routeWorkSearchBtn" type="button">Buscar</button>
+            </div>
+            <div class="route-search-results" id="routeWorkSearchResults"></div>
+            <div class="route-actions">
+              <button class="btn ghost small-btn" id="routePickWorkBtn" type="button">📍 Elegir punto exacto en el mapa</button>
+            </div>
+          </div>
+
+          <div class="route-mode-section" id="routeTempSection" hidden>
+            <div class="route-destination-status">
+              <strong>Origen:</strong> ubicación GPS actual. Se solicitará una lectura nueva al analizar.
+            </div>
+            <div class="route-search-row">
+              <input class="field" id="routeTempSearchInput" type="search" placeholder="¿Hacia dónde vas? Ej. Puntarenas…" autocomplete="off">
+              <button class="btn secondary small-btn" id="routeTempSearchBtn" type="button">Buscar</button>
+            </div>
+            <div class="route-search-results" id="routeTempSearchResults"></div>
+            <div class="route-actions">
+              <button class="btn ghost small-btn" id="routePickTempBtn" type="button">📍 Elegir destino en el mapa</button>
+            </div>
+          </div>
+
+          <div class="route-pick-hint" id="routePickHint" hidden>
+            Toca el punto exacto en el mapa de Costa Rica. Puedes acercar el mapa para seleccionar mejor.
+            <button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar selección</button>
+          </div>
+
+          <div class="route-actions">
+            <button class="btn" id="routeAnalyzeBtn" type="button">🌧️ Analizar ruta</button>
+            <button class="btn secondary" id="routeClearBtn" type="button">Cerrar ruta</button>
+          </div>
+          <div class="route-result" id="routeResult" hidden aria-live="polite"></div>
         </div>
       </div>
 
@@ -593,7 +830,7 @@
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
   </main>
@@ -619,6 +856,18 @@
     const CR_MASK_COLOR = "#dce4e7";
     const OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
     const OPEN_METEO_GEOCODING = "https://geocoding-api.open-meteo.com/v1/search";
+
+    // Ruta habitual: coordenadas de casa proporcionadas por el usuario.
+    // El destino laboral se configura una sola vez y se guarda localmente.
+    const ROUTE_HOME = {
+      name: "Casa · Santa Rosa de Poás",
+      lat: 10.102970,
+      lon: -84.264296,
+      detail: "Punto de origen guardado"
+    };
+    const ROUTE_WORK_STORAGE_KEY = "raintrackcr_saved_work_v1";
+    const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";
+    const ROUTE_WEATHER_SAMPLES_MAX = 8;
 
     const RADAR_SOURCES = {
       rainviewer: {
@@ -706,6 +955,28 @@
     let weatherRefreshTimer = null;
     let imnRefreshTimer = null;
     let cameraMarkers = [];
+
+    let routeMode = "saved";
+    let routeWorkLocation = null;
+    let routeTemporaryDestination = null;
+    let routePickMode = null;
+    let routeStartMarker = null;
+    let routeEndMarker = null;
+    let routeIsVisible = false;
+
+    try {
+      const savedWork = JSON.parse(localStorage.getItem(ROUTE_WORK_STORAGE_KEY) || "null");
+      if (savedWork && Number.isFinite(Number(savedWork.lat)) && Number.isFinite(Number(savedWork.lon))) {
+        routeWorkLocation = {
+          name: String(savedWork.name || "Trabajo"),
+          lat: Number(savedWork.lat),
+          lon: Number(savedWork.lon),
+          detail: String(savedWork.detail || "Destino laboral guardado")
+        };
+      }
+    } catch (error) {
+      console.warn("No se pudo leer el destino laboral guardado:", error);
+    }
 
     const $ = (id) => document.getElementById(id);
 
@@ -972,6 +1243,40 @@
         console.warn("MapLibre:", event && event.error ? event.error : event);
       });
 
+      map.on("click", (event) => {
+        if (!routePickMode) return;
+        const { lng, lat } = event.lngLat;
+        const [west, south] = CR_NAVIGATION_BOUNDS[0];
+        const [east, north] = CR_NAVIGATION_BOUNDS[1];
+        if (lng < west || lng > east || lat < south || lat > north) {
+          const hint = $("routePickHint");
+          hint.firstChild.textContent = "Selecciona un punto dentro de Costa Rica. ";
+          return;
+        }
+
+        const selected = {
+          name: routePickMode === "work" ? "Trabajo · punto seleccionado" : "Destino temporal",
+          lat,
+          lon: lng,
+          detail: "Coordenadas seleccionadas directamente en el mapa"
+        };
+
+        if (routeIsVisible) clearRouteLayers();
+        $("routeResult").hidden = true;
+        if (routePickMode === "work") {
+          saveWorkRouteDestination(selected);
+          $("routeWorkSearchInput").value = selected.name;
+        } else {
+          routeTemporaryDestination = selected;
+          $("routeTempSearchInput").value = selected.name;
+          $("routeTempSearchResults").innerHTML = '<p class="tiny success">Destino seleccionado en el mapa.</p>';
+        }
+
+        routePickMode = null;
+        map.getCanvas().style.cursor = "";
+        $("routePickHint").hidden = true;
+      });
+
       // Si se rota el teléfono o cambia el tamaño de la ventana, se vuelve
       // a encuadrar Costa Rica solo cuando el usuario aún no ha interactuado.
       let userMovedMap = false;
@@ -1187,6 +1492,17 @@
       if (firstSymbol) map.addLayer(layerDefinition, firstSymbol.id);
       else map.addLayer(layerDefinition);
 
+      // Si hay una ruta solicitada, mantenerla visible por encima de la capa de radar.
+      if (routeIsVisible) {
+        if (firstSymbol) {
+          if (map.getLayer("raintrack-route-casing")) map.moveLayer("raintrack-route-casing", firstSymbol.id);
+          if (map.getLayer("raintrack-route-line")) map.moveLayer("raintrack-route-line", firstSymbol.id);
+        } else {
+          if (map.getLayer("raintrack-route-casing")) map.moveLayer("raintrack-route-casing");
+          if (map.getLayer("raintrack-route-line")) map.moveLayer("raintrack-route-line");
+        }
+      }
+
       $("frameSlider").value = String(safeIndex);
       const latestObserved = radarFrames.filter(item => item.frameType === "observed").slice(-1)[0];
       if (frame.frameType === "forecast" && latestObserved) {
@@ -1307,6 +1623,489 @@
         $("searchButton").textContent = "Buscar";
       }
     });
+
+    // ------------------------------------------------------------
+    // RUTAS METEOROLÓGICAS
+    // ------------------------------------------------------------
+    function setRouteMode(mode) {
+      if (routeIsVisible) clearRouteLayers();
+      $("routeResult").hidden = true;
+      routeMode = mode === "temporary" ? "temporary" : "saved";
+      $("routeSavedMode").classList.toggle("active", routeMode === "saved");
+      $("routeTempMode").classList.toggle("active", routeMode === "temporary");
+      $("routeSavedSection").hidden = routeMode !== "saved";
+      $("routeTempSection").hidden = routeMode !== "temporary";
+      $("routeResult").hidden = true;
+      updateSavedWorkStatus();
+    }
+
+    function updateSavedWorkStatus() {
+      const status = $("savedWorkStatus");
+      if (!status) return;
+      if (routeWorkLocation) {
+        status.innerHTML = `<strong>Trabajo guardado:</strong> ${escapeHtml(routeWorkLocation.name)}<br><span class="tiny">Este destino queda guardado en este teléfono.</span>`;
+      } else {
+        status.innerHTML = '<strong>Destino laboral sin configurar.</strong><br>Búscalo por localidad o marca el punto exacto en el mapa una sola vez.';
+      }
+    }
+
+    function saveWorkRouteDestination(location) {
+      routeWorkLocation = {
+        name: String(location.name || "Trabajo"),
+        lat: Number(location.lat),
+        lon: Number(location.lon),
+        detail: String(location.detail || "Destino laboral guardado")
+      };
+      localStorage.setItem(ROUTE_WORK_STORAGE_KEY, JSON.stringify(routeWorkLocation));
+      if (routeIsVisible) clearRouteLayers();
+      $("routeResult").hidden = true;
+      updateSavedWorkStatus();
+      $("routeWorkSearchResults").innerHTML = '<p class="tiny success">Destino laboral guardado en este teléfono.</p>';
+      $("mapStatusChip").textContent = "Destino laboral guardado · " + routeWorkLocation.name;
+    }
+
+    function beginRouteMapPick(mode) {
+      routePickMode = mode;
+      $("routePickHint").hidden = false;
+      $("routePickHint").innerHTML = `Toca el punto exacto en el mapa de Costa Rica. Puedes acercar el mapa para seleccionar mejor.<br><button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar selección</button>`;
+      $("routePickCancel").addEventListener("click", cancelRouteMapPick);
+      if (mapReady) map.getCanvas().style.cursor = "crosshair";
+      $("mapStatusChip").textContent = mode === "work"
+        ? "Selecciona en el mapa la ubicación exacta del trabajo"
+        : "Selecciona en el mapa tu destino temporal";
+      $("routePanel").hidden = false;
+      $("routeToggle").setAttribute("aria-expanded", "true");
+    }
+
+    function cancelRouteMapPick() {
+      routePickMode = null;
+      $("routePickHint").hidden = true;
+      if (mapReady) map.getCanvas().style.cursor = "";
+    }
+
+    async function searchRoutePlaces(query, resultContainerId, mode) {
+      const container = $(resultContainerId);
+      if (!query || query.trim().length < 2) {
+        container.innerHTML = '<p class="tiny">Escribe al menos dos caracteres.</p>';
+        return;
+      }
+      container.innerHTML = '<p class="tiny loading">Buscando localidades de Costa Rica…</p>';
+      try {
+        const results = await searchLocations(query.trim());
+        container.innerHTML = "";
+        if (!results.length) {
+          container.innerHTML = '<p class="tiny">No encontré esa localidad. Para un punto exacto, utiliza «Elegir punto en el mapa».</p>';
+          return;
+        }
+        results.forEach(result => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "route-search-result";
+          const name = document.createElement("span");
+          name.innerHTML = `<strong>${escapeHtml(result.name || "Localidad")}</strong><small>${escapeHtml([result.admin2, result.admin1, result.country].filter(Boolean).join(" · "))}</small>`;
+          const choose = document.createElement("span");
+          choose.className = "accent";
+          choose.textContent = "Elegir →";
+          button.append(name, choose);
+          button.addEventListener("click", () => {
+            const location = {
+              name: result.name || "Destino",
+              lat: Number(result.latitude),
+              lon: Number(result.longitude),
+              detail: [result.admin2, result.admin1, result.country].filter(Boolean).join(", ")
+            };
+            if (mode === "work") {
+              saveWorkRouteDestination(location);
+              $("routeWorkSearchInput").value = location.name;
+            } else {
+              routeTemporaryDestination = location;
+              if (routeIsVisible) clearRouteLayers();
+              $("routeResult").hidden = true;
+              $("routeTempSearchInput").value = location.name;
+              container.innerHTML = '<p class="tiny success">Destino seleccionado: ' + escapeHtml(location.name) + '.</p>';
+            }
+          });
+          container.appendChild(button);
+        });
+      } catch (error) {
+        console.error("Error al buscar destino de ruta:", error);
+        container.innerHTML = '<p class="tiny error-text">No se pudo consultar el buscador. Inténtalo de nuevo.</p>';
+      }
+    }
+
+    function clearRouteLayers() {
+      if (!mapReady) return;
+      ["raintrack-route-line", "raintrack-route-casing"].forEach(id => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+      if (map.getSource("raintrack-route-source")) map.removeSource("raintrack-route-source");
+      if (routeStartMarker) { routeStartMarker.remove(); routeStartMarker = null; }
+      if (routeEndMarker) { routeEndMarker.remove(); routeEndMarker = null; }
+      routeIsVisible = false;
+    }
+
+    function closeRouteAnalysis() {
+      clearRouteLayers();
+      $("routeResult").hidden = true;
+      $("routeResult").innerHTML = "";
+      $("routePanel").hidden = true;
+      $("routeToggle").setAttribute("aria-expanded", "false");
+      $("routeToggle").textContent = "🧭 Rutas";
+      cancelRouteMapPick();
+      if (mapReady) showCostaRicaOverview(true);
+      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa normal";
+    }
+
+    function routeDistanceKm(a, b) {
+      const rad = value => value * Math.PI / 180;
+      const dLat = rad(b[1] - a[1]);
+      const dLon = rad(b[0] - a[0]);
+      const lat1 = rad(a[1]);
+      const lat2 = rad(b[1]);
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+      return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+
+    function sampleRouteLine(coordinates, distanceKm) {
+      const cumulative = [0];
+      for (let i = 1; i < coordinates.length; i++) {
+        cumulative.push(cumulative[i - 1] + routeDistanceKm(coordinates[i - 1], coordinates[i]));
+      }
+      const total = cumulative[cumulative.length - 1] || distanceKm;
+      const count = Math.min(ROUTE_WEATHER_SAMPLES_MAX, Math.max(3, Math.ceil(total / 12) + 1));
+      const samples = [];
+
+      for (let sampleIndex = 0; sampleIndex < count; sampleIndex++) {
+        const fraction = count === 1 ? 0 : sampleIndex / (count - 1);
+        const target = total * fraction;
+        let segment = 1;
+        while (segment < cumulative.length - 1 && cumulative[segment] < target) segment++;
+        const startDistance = cumulative[segment - 1] || 0;
+        const endDistance = cumulative[segment] || startDistance;
+        const segmentFraction = endDistance === startDistance ? 0 : (target - startDistance) / (endDistance - startDistance);
+        const start = coordinates[segment - 1] || coordinates[0];
+        const end = coordinates[segment] || coordinates[coordinates.length - 1];
+        samples.push({
+          fraction,
+          distanceAlongKm: total * fraction,
+          coordinate: [
+            start[0] + (end[0] - start[0]) * segmentFraction,
+            start[1] + (end[1] - start[1]) * segmentFraction
+          ]
+        });
+      }
+      return samples;
+    }
+
+    async function getFreshGpsForRoute() {
+      if (!navigator.geolocation) throw new Error("Este navegador no permite obtener ubicación GPS.");
+      return await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          position => resolve({
+            name: "Mi ubicación actual",
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+            detail: "GPS leído al solicitar la ruta"
+          }),
+          error => reject(new Error(error.code === 1
+            ? "Permite el acceso al GPS para analizar una ruta desde tu ubicación actual."
+            : "No se pudo obtener tu GPS. Comprueba la ubicación del teléfono e inténtalo de nuevo.")),
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+        );
+      });
+    }
+
+    async function getRouteWeather(location) {
+      const params = new URLSearchParams({
+        latitude: String(location.lat),
+        longitude: String(location.lon),
+        current: "precipitation,rain,showers,weather_code",
+        hourly: "precipitation_probability,precipitation,weather_code",
+        forecast_days: "2",
+        timezone: "America/Costa_Rica"
+      });
+      return await fetchJson(OPEN_METEO_FORECAST + "?" + params.toString());
+    }
+
+    function nearestHourlyForecast(data, eta) {
+      const times = data.hourly && data.hourly.time ? data.hourly.time : [];
+      if (!times.length) return null;
+      let bestIndex = 0;
+      let bestDifference = Infinity;
+      times.forEach((time, index) => {
+        // Open-Meteo devuelve hora local sin offset cuando se especifica zona horaria.
+        const date = new Date(time + "-06:00");
+        const difference = Math.abs(date.getTime() - eta.getTime());
+        if (difference < bestDifference) {
+          bestDifference = difference;
+          bestIndex = index;
+        }
+      });
+      return {
+        time: times[bestIndex],
+        probability: Number(data.hourly.precipitation_probability?.[bestIndex] ?? 0),
+        precipitation: Number(data.hourly.precipitation?.[bestIndex] ?? 0),
+        weatherCode: Number(data.hourly.weather_code?.[bestIndex] ?? 0)
+      };
+    }
+
+    function isRainWeatherCode(code) {
+      return [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(Number(code));
+    }
+
+    function formatRouteDuration(seconds) {
+      const totalMinutes = Math.max(1, Math.round(Number(seconds || 0) / 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours ? `${hours} h ${minutes} min` : `${minutes} min`;
+    }
+
+    function drawRouteOnMap(route, origin, destination) {
+      clearRouteLayers();
+      const feature = {
+        type: "Feature",
+        properties: {},
+        geometry: route.geometry
+      };
+      map.addSource("raintrack-route-source", {
+        type: "geojson",
+        data: feature,
+        lineMetrics: true
+      });
+      const firstSymbol = map.getStyle().layers.find(layer => layer.type === "symbol");
+      const casing = {
+        id: "raintrack-route-casing",
+        type: "line",
+        source: "raintrack-route-source",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#082f49", "line-width": 8, "line-opacity": 0.9 }
+      };
+      const line = {
+        id: "raintrack-route-line",
+        type: "line",
+        source: "raintrack-route-source",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#38bdf8", "line-width": 5, "line-opacity": 0.98 }
+      };
+      if (firstSymbol) {
+        map.addLayer(casing, firstSymbol.id);
+        map.addLayer(line, firstSymbol.id);
+      } else {
+        map.addLayer(casing);
+        map.addLayer(line);
+      }
+
+      const startElement = document.createElement("div");
+      startElement.className = "route-map-marker start";
+      startElement.textContent = "A";
+      routeStartMarker = new maplibregl.Marker({ element: startElement })
+        .setLngLat([origin.lon, origin.lat])
+        .setPopup(new maplibregl.Popup({ offset: 12 }).setText("Salida: " + origin.name))
+        .addTo(map);
+
+      const endElement = document.createElement("div");
+      endElement.className = "route-map-marker end";
+      endElement.textContent = "B";
+      routeEndMarker = new maplibregl.Marker({ element: endElement })
+        .setLngLat([destination.lon, destination.lat])
+        .setPopup(new maplibregl.Popup({ offset: 12 }).setText("Llegada: " + destination.name))
+        .addTo(map);
+
+      const bounds = new maplibregl.LngLatBounds();
+      route.geometry.coordinates.forEach(coordinate => bounds.extend(coordinate));
+      map.fitBounds(bounds, {
+        padding: { top: 70, bottom: 75, left: 45, right: 45 },
+        duration: 800,
+        maxZoom: 11.5
+      });
+      routeIsVisible = true;
+    }
+
+    function renderRouteAnalysis(route, samples, results, origin, destination, directionLabel) {
+      const totalRainNow = results.filter(item => item.currentRain).length;
+      const totalRainEta = results.filter(item => item.etaRain).length;
+      const sampleMarkup = results.map((item, index) => {
+        let label = "Sin señal importante";
+        let className = "clear";
+        if (!item.data) {
+          label = "Sin datos";
+          className = "unknown";
+        } else if (item.currentRain) {
+          label = "Lluvia estimada ahora";
+          className = "rain";
+        } else if (item.etaRain) {
+          label = "Posible lluvia al llegar";
+          className = "possible";
+        }
+        const etaText = item.eta.toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+        const forecastText = item.forecast
+          ? `${Math.round(item.forecast.probability)}% · ${formatMillimeters(item.forecast.precipitation)} mm previstos`
+          : "Pronóstico no disponible";
+        return `
+          <div class="route-sample">
+            <div>
+              <strong>Tramo ${index + 1} · ${escapeHtml(item.label)}</strong>
+              <small>Km ${item.distanceAlongKm.toFixed(1)} desde la salida · Llegada estimada ${etaText}<br>${item.data ? "A la llegada: " + forecastText : "No fue posible consultar el pronóstico de este punto."}</small>
+            </div>
+            <span class="route-status-pill ${className}">${label}</span>
+          </div>
+        `;
+      }).join("");
+
+      let summary;
+      const pointsWithoutData = results.filter(item => !item.data).length;
+      if (pointsWithoutData === results.length) {
+        summary = "No fue posible obtener datos meteorológicos de los puntos de esta ruta. No se puede concluir si lloverá.";
+      } else if (totalRainNow > 0) {
+        summary = `El modelo meteorológico estima precipitación actual en ${totalRainNow} de ${results.length} puntos de la ruta.`;
+      } else if (totalRainEta > 0) {
+        summary = `El modelo señala posible precipitación a la hora estimada de llegada en ${totalRainEta} de ${results.length} puntos.`;
+      } else if (pointsWithoutData > 0) {
+        summary = `En los puntos con datos, el modelo no señala una posibilidad importante de lluvia. No hubo datos en ${pointsWithoutData} puntos; no se puede descartar lluvia localizada.`;
+      } else {
+        summary = "El modelo no señala una posibilidad importante de lluvia en los puntos consultados durante este recorrido. Esto no descarta lluvia localizada.";
+      }
+
+      $("routeResult").innerHTML = `
+        <div class="route-result-head">
+          <div class="route-result-title">Análisis · ${escapeHtml(directionLabel)}</div>
+          <span class="tiny">${escapeHtml(origin.name)} → ${escapeHtml(destination.name)}</span>
+        </div>
+        <div class="route-result-metrics">
+          <div class="route-result-metric"><strong>${(route.distance / 1000).toFixed(1)} km</strong><span>Distancia estimada</span></div>
+          <div class="route-result-metric"><strong>${formatRouteDuration(route.duration)}</strong><span>Tiempo de conducción estimado</span></div>
+        </div>
+        <div class="route-result-summary">${escapeHtml(summary)}</div>
+        <div class="route-samples">${sampleMarkup}</div>
+        <p class="tiny" style="margin-top:10px">Fuente meteorológica: Open-Meteo. Se consultan ${results.length} puntos distribuidos a lo largo del recorrido. La condición actual y la de llegada son estimaciones del modelo, no observaciones directas de radar. El tiempo de viaje no incorpora tráfico en vivo.</p>
+      `;
+      $("routeResult").hidden = false;
+    }
+
+    async function analyzeRoute() {
+      if (!mapReady) {
+        $("routeResult").hidden = false;
+        $("routeResult").textContent = "El mapa todavía se está cargando. Inténtalo en unos segundos.";
+        return;
+      }
+
+      const button = $("routeAnalyzeBtn");
+      button.disabled = true;
+      button.textContent = "Analizando recorrido…";
+      $("routeResult").hidden = false;
+      $("routeResult").innerHTML = '<p class="tiny loading">Calculando carretera y consultando las condiciones meteorológicas de varios puntos del recorrido…</p>';
+
+      try {
+        let origin;
+        let destination;
+        let directionLabel;
+
+        if (routeMode === "saved") {
+          if (!routeWorkLocation) {
+            throw new Error("Primero configura el destino del trabajo: búscalo o selecciónalo directamente en el mapa.");
+          }
+          const direction = $("routeDirection").value;
+          if (direction === "outbound") {
+            origin = ROUTE_HOME;
+            destination = routeWorkLocation;
+            directionLabel = "Ida · Casa → trabajo";
+          } else {
+            origin = routeWorkLocation;
+            destination = ROUTE_HOME;
+            directionLabel = "Regreso · Trabajo → casa";
+          }
+        } else {
+          destination = routeTemporaryDestination;
+          if (!destination) {
+            throw new Error("Selecciona primero un destino temporal mediante el buscador o el mapa.");
+          }
+          origin = await getFreshGpsForRoute();
+          directionLabel = "Ruta temporal";
+        }
+
+        const [west, south] = CR_NAVIGATION_BOUNDS[0];
+        const [east, north] = CR_NAVIGATION_BOUNDS[1];
+        [origin, destination].forEach(point => {
+          if (point.lon < west || point.lon > east || point.lat < south || point.lat > north) {
+            throw new Error("Uno de los puntos está fuera de los límites de Costa Rica.");
+          }
+        });
+
+        $("routeResult").innerHTML = '<p class="tiny loading">Calculando ruta por carretera…</p>';
+        const routeUrl = `${OSRM_ROUTE_URL}/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&geometries=geojson&steps=false&alternatives=false`;
+        const routeResponse = await fetchJson(routeUrl);
+        if (routeResponse.code !== "Ok" || !routeResponse.routes || !routeResponse.routes.length) {
+          throw new Error("No se encontró una ruta por carretera entre esos puntos.");
+        }
+        const route = routeResponse.routes[0];
+        if (!route.geometry || !Array.isArray(route.geometry.coordinates) || route.geometry.coordinates.length < 2) {
+          throw new Error("El servicio de rutas no devolvió una geometría válida.");
+        }
+
+        drawRouteOnMap(route, origin, destination);
+        $("mapLocationChip").textContent = "🧭 " + directionLabel;
+
+        const samples = sampleRouteLine(route.geometry.coordinates, route.distance / 1000);
+        const departure = new Date();
+        const weatherPromises = samples.map(async (sample, index) => {
+          const eta = new Date(departure.getTime() + route.duration * sample.fraction * 1000);
+          const point = {
+            name: "Punto " + (index + 1),
+            lat: sample.coordinate[1],
+            lon: sample.coordinate[0]
+          };
+          try {
+            const data = await getRouteWeather(point);
+            const currentRain = Number(data.current?.precipitation || 0) >= 0.1 ||
+              Number(data.current?.rain || 0) >= 0.1 ||
+              Number(data.current?.showers || 0) >= 0.1 ||
+              isRainWeatherCode(data.current?.weather_code);
+            const forecast = nearestHourlyForecast(data, eta);
+            const etaRain = forecast
+              ? forecast.probability >= 30 || forecast.precipitation >= 0.1 || isRainWeatherCode(forecast.weatherCode)
+              : false;
+            return {
+              data,
+              currentRain,
+              etaRain,
+              forecast,
+              eta,
+              distanceAlongKm: sample.distanceAlongKm,
+              label: index === 0 ? "Salida" : index === samples.length - 1 ? "Llegada" : "Ruta intermedia"
+            };
+          } catch (error) {
+            console.warn("No se pudo consultar el punto de ruta", index, error);
+            return {
+              data: null,
+              currentRain: false,
+              etaRain: false,
+              forecast: null,
+              eta,
+              distanceAlongKm: sample.distanceAlongKm,
+              label: index === 0 ? "Salida" : index === samples.length - 1 ? "Llegada" : "Ruta intermedia"
+            };
+          }
+        });
+
+        const results = await Promise.all(weatherPromises);
+        renderRouteAnalysis(route, samples, results, origin, destination, directionLabel);
+        $("mapStatusChip").textContent = "Ruta analizada · " + (route.distance / 1000).toFixed(1) + " km";
+      } catch (error) {
+        console.error("Error al analizar ruta:", error);
+        $("routeResult").innerHTML = `<p class="tiny error-text">${escapeHtml(error.message || "No se pudo analizar el recorrido.")}</p>`;
+        $("routeResult").hidden = false;
+      } finally {
+        button.disabled = false;
+        button.textContent = "🌧️ Analizar ruta";
+      }
+    }
+
+    function closeRoutePanelOnly() {
+      $("routePanel").hidden = true;
+      $("routeToggle").setAttribute("aria-expanded", "false");
+      $("routeToggle").textContent = "🧭 Rutas";
+      cancelRouteMapPick();
+    }
 
     // ------------------------------------------------------------
     // PRONÓSTICO OPEN-METEO
@@ -1721,6 +2520,49 @@
       setImnVisibility(false);
     });
     $('camerasToggle').addEventListener('change', addCameraMarkers);
+
+    // ------------------------------------------------------------
+    // EVENTOS DEL PLANIFICADOR DE RUTAS
+    // ------------------------------------------------------------
+    updateSavedWorkStatus();
+
+    $("routeToggle").addEventListener("click", () => {
+      const panel = $("routePanel");
+      panel.hidden = !panel.hidden;
+      $("routeToggle").setAttribute("aria-expanded", String(!panel.hidden));
+      $("routeToggle").textContent = panel.hidden ? "🧭 Rutas" : "🧭 Rutas ▲";
+      if (!panel.hidden) updateSavedWorkStatus();
+    });
+
+    $("routePanelClose").addEventListener("click", closeRoutePanelOnly);
+    $("routeSavedMode").addEventListener("click", () => setRouteMode("saved"));
+    $("routeTempMode").addEventListener("click", () => setRouteMode("temporary"));
+
+    $("routeWorkSearchBtn").addEventListener("click", () => {
+      searchRoutePlaces($("routeWorkSearchInput").value, "routeWorkSearchResults", "work");
+    });
+    $("routeWorkSearchInput").addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchRoutePlaces($("routeWorkSearchInput").value, "routeWorkSearchResults", "work");
+      }
+    });
+
+    $("routeTempSearchBtn").addEventListener("click", () => {
+      searchRoutePlaces($("routeTempSearchInput").value, "routeTempSearchResults", "temporary");
+    });
+    $("routeTempSearchInput").addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchRoutePlaces($("routeTempSearchInput").value, "routeTempSearchResults", "temporary");
+      }
+    });
+
+    $("routePickWorkBtn").addEventListener("click", () => beginRouteMapPick("work"));
+    $("routePickTempBtn").addEventListener("click", () => beginRouteMapPick("temporary"));
+    $("routePickCancel").addEventListener("click", cancelRouteMapPick);
+    $("routeAnalyzeBtn").addEventListener("click", analyzeRoute);
+    $("routeClearBtn").addEventListener("click", closeRouteAnalysis);
 
     // ------------------------------------------------------------
     // CONTROLES DESPLEGABLES Y ACTUALIZACIÓN AUTOMÁTICA
