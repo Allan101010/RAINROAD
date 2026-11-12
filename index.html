@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.4</title>
+  <title>RainTrack CR v1.5</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -257,6 +257,12 @@
     .camera-marker.rain { background: #dc2626; }
     .camera-marker.possible { background: #d97706; }
     .camera-marker.clear { background: #7c3aed; }
+    .camera-marker.offline { background: #475569; }
+    .camera-marker.stale { background: #64748b; }
+    .camera-marker.delayed { background: #b45309; }
+    .camera-marker.scene_uncertain { background: #64748b; }
+    .camera-marker.not_weather_view { background: #475569; }
+    .camera-marker.pending { background: #0f766e; }
     .camera-popup { min-width: 190px; }
     .camera-popup .camera-popup-status {
       margin-top: 7px;
@@ -721,9 +727,9 @@
               <option value="convection">Convección profunda</option>
               <option value="radargif">Radar animado IMN</option>
             </select>
-            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras públicas (20 sitios)</span></label>
+            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras públicas (21 sitios · 8 OVSICORI)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
-            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>\n            <p class="layer-hint">Monitoreo visual de cámaras: revisión automática aproximada cada 15 minutos. Solo se analiza lluvia en imágenes públicas accesibles y encuadres exteriores; las cámaras de fauna también aparecen, pero no se usan para detectar lluvia.</p>
+            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>\n            <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos. Todas las cámaras públicas son candidatas: la IA evalúa si el encuadre muestra suficiente entorno exterior. Las imágenes demoradas o sin actualización no generan alertas actuales.</p>
           </div>
         </div>
 
@@ -993,10 +999,9 @@
       }
     };
 
-    // Directorio Webcams Costa Rica: 34 cámaras agrupadas en 20 sitios.
-    // Los puntos son coordenadas del sitio/localidad publicadas por el directorio,
-    // no necesariamente la ubicación física exacta de cada lente.
-    // Cada marcador abre la ficha del sitio, donde se muestran sus cámaras.
+    // Cámaras públicas de Costa Rica. Los puntos son coordenadas de referencia
+    // del sitio o volcán, no necesariamente la posición exacta de cada lente.
+    // Los ocho feeds OVSICORI se agrupan en los volcanes ya presentes en el mapa.
     const PUBLIC_CAMERAS = [
       { slug: "playa-flamingo", name: "Playa Flamingo", zone: "Guanacaste", lat: 10.4340, lon: -85.7860, url: "https://webcamscostarica.com/playa-flamingo/", detail: "Bahía y atardecer · 2 cámaras" },
       { slug: "playa-hermosa-guanacaste", name: "Playa Hermosa de Guanacaste", zone: "Guanacaste", lat: 10.5750, lon: -85.6770, url: "https://webcamscostarica.com/playa-hermosa-guanacaste/", detail: "Bahía de Papagayo · 1 cámara" },
@@ -1007,17 +1012,18 @@
       { slug: "manuel-antonio", name: "Manuel Antonio", zone: "Pacífico Central", lat: 9.3920, lon: -84.1400, url: "https://webcamscostarica.com/manuel-antonio/", detail: "Playa Espadilla · 1 cámara" },
       { slug: "playa-herradura", name: "Playa Herradura", zone: "Pacífico Central", lat: 9.6600, lon: -84.6350, url: "https://webcamscostarica.com/playa-herradura/", detail: "Bahía de Herradura · 1 cámara" },
       { slug: "quepos", name: "Quepos", zone: "Pacífico Central", lat: 9.4050, lon: -84.1570, url: "https://webcamscostarica.com/quepos/", detail: "Bahía de Quepos · 1 cámara" },
-      { slug: "punta-islita", name: "Lapas rojas de Punta Islita", zone: "Península de Nicoya", lat: 9.8530, lon: -85.3980, url: "https://webcamscostarica.com/punta-islita/", detail: "Comederos de lapas · 2 cámaras · no aptas para lluvia" },
+      { slug: "punta-islita", name: "Lapas rojas de Punta Islita", zone: "Península de Nicoya", lat: 9.8530, lon: -85.3980, url: "https://webcamscostarica.com/punta-islita/", detail: "Cámaras exteriores de fauna · encuadre evaluado por IA" },
       { slug: "nosara", name: "Nosara", zone: "Península de Nicoya", lat: 9.9400, lon: -85.6650, url: "https://webcamscostarica.com/nosara/", detail: "Costa y surf · 1 cámara" },
       { slug: "reserva-karen-mogensen", name: "Reserva Karen Mogensen", zone: "Península de Nicoya", lat: 9.8690, lon: -85.0580, url: "https://webcamscostarica.com/reserva-karen-mogensen/", detail: "Bosque de la reserva · 1 cámara" },
       { slug: "santa-teresa", name: "Santa Teresa", zone: "Península de Nicoya", lat: 9.6460, lon: -85.1690, url: "https://webcamscostarica.com/santa-teresa/", detail: "Playa y surf · puede estar fuera de emisión" },
       { slug: "cartago", name: "Cartago", zone: "Valle Central", lat: 9.8640, lon: -83.9190, url: "https://webcamscostarica.com/cartago/", detail: "Panorámica de Cartago e Irazú · 1 cámara" },
       { slug: "cerros-de-escazu", name: "Cerros de Escazú", zone: "Valle Central", lat: 9.9040, lon: -84.1580, url: "https://webcamscostarica.com/cerros-de-escazu/", detail: "Cerro Bebedero · 1 cámara" },
       { slug: "san-jose", name: "San José", zone: "Valle Central", lat: 9.9330, lon: -84.0800, url: "https://webcamscostarica.com/san-jose/", detail: "Panorámica 4K · 1 cámara" },
-      { slug: "toucan-rescue-ranch", name: "Toucan Rescue Ranch", zone: "Valle Central", lat: 10.0350, lon: -84.1000, url: "https://webcamscostarica.com/toucan-rescue-ranch/", detail: "Perezosos y tucanes · 3 cámaras · no aptas para lluvia" },
+      { slug: "toucan-rescue-ranch", name: "Toucan Rescue Ranch", zone: "Valle Central", lat: 10.0350, lon: -84.1000, url: "https://webcamscostarica.com/toucan-rescue-ranch/", detail: "Cámaras exteriores de fauna · encuadre evaluado por IA" },
       { slug: "volcan-irazu", name: "Volcán Irazú", zone: "Valle Central", lat: 9.9790, lon: -83.8520, url: "https://webcamscostarica.com/volcan-irazu/", detail: "Imagen del cráter · 1 cámara" },
       { slug: "volcan-poas", name: "Volcán Poás", zone: "Valle Central", lat: 10.1980, lon: -84.2310, url: "https://webcamscostarica.com/volcan-poas/", detail: "Cráter del Poás · imágenes del OVSICORI" },
-      { slug: "sarapiqui", name: "Lapas verdes de Sarapiquí", zone: "Zona Norte", lat: 10.4560, lon: -84.0190, url: "https://webcamscostarica.com/sarapiqui/", detail: "Nido y dosel del bosque · 2 cámaras; solo el dosel puede evaluarse" }
+      { slug: "sarapiqui", name: "Lapas verdes de Sarapiquí", zone: "Zona Norte", lat: 10.4560, lon: -84.0190, url: "https://webcamscostarica.com/sarapiqui/", detail: "Cámaras de fauna y dosel · encuadre evaluado por IA" },
+      { slug: "volcan-turrialba", name: "Volcán Turrialba", zone: "Valle Central", lat: 10.0250, lon: -83.7670, url: "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-turrialba", detail: "OVSICORI-UNA · cámara del cráter" }
     ];
 
     let homeLocation = null;
@@ -1411,21 +1417,47 @@
         rain: "Indicios fuertes de lluvia",
         possible: "Posible lluvia",
         clear: "Sin indicios visuales",
-        offline: "Sin emisión",
-        stale: "Imagen posiblemente desactualizada",
-        not_monitored: "No apta para análisis de lluvia",
+        offline: "Sin señal / cámara no disponible",
+        stale: "Imagen sin actualización por más de 1 hora",
+        delayed: "Imagen demorada (2 minutos a 1 hora)",
+        not_monitored: "Pendiente de evaluación del encuadre",
+        not_weather_view: "El encuadre no muestra entorno exterior suficiente",
+        scene_uncertain: "La IA no pudo confirmar el encuadre exterior",
         not_available: "Sin imagen analizable",
-        error: "Error de lectura"
+        error: "Error de lectura",
+        pending: "Esperando análisis"
       })[status] || "Esperando análisis";
+    }
+
+    function cameraAvailabilityText(status) {
+      return ({
+        online: "Imagen reciente",
+        delayed: "Imagen demorada",
+        stale: "Sin actualización",
+        offline: "Sin señal",
+        not_available: "Sin imagen",
+        unknown: "Antigüedad no verificable"
+      })[status] || "Disponibilidad pendiente";
     }
 
     function cameraStatusForSite(siteSlug) {
       const rows = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
         ? cameraMonitorData.cameras.filter(item => item.site_slug === siteSlug)
         : [];
-      if (rows.some(item => item.status === "rain")) return "rain";
-      if (rows.some(item => item.status === "possible")) return "possible";
-      return "clear";
+      if (!rows.length) return "pending";
+
+      const currentRows = rows.filter(item =>
+        !["offline", "stale", "not_available"].includes(item.availability_status || "")
+      );
+      if (currentRows.some(item => item.status === "rain" && item.scene_assessment === "outdoor")) return "rain";
+      if (currentRows.some(item => item.status === "possible" && item.scene_assessment === "outdoor")) return "possible";
+      if (currentRows.some(item => item.status === "clear" && item.scene_assessment === "outdoor")) return "clear";
+      if (rows.some(item => item.availability_status === "delayed")) return "delayed";
+      if (rows.some(item => item.availability_status === "stale" || item.status === "stale")) return "stale";
+      if (rows.some(item => item.availability_status === "offline" || item.status === "offline")) return "offline";
+      if (rows.some(item => item.status === "scene_uncertain")) return "scene_uncertain";
+      if (rows.some(item => item.status === "not_weather_view")) return "not_weather_view";
+      return "pending";
     }
 
     function renderCameraAlerts() {
@@ -1437,7 +1469,11 @@
       const fresh = generatedAt && !Number.isNaN(generatedAt.getTime())
         && (Date.now() - generatedAt.getTime()) <= 80 * 60 * 1000;
       const active = fresh && cameraMonitorData && Array.isArray(cameraMonitorData.alerts)
-        ? cameraMonitorData.alerts.filter(item => item.status === "rain" || item.status === "possible")
+        ? cameraMonitorData.alerts.filter(item =>
+            (item.status === "rain" || item.status === "possible") &&
+            item.scene_assessment === "outdoor" &&
+            ["online", "unknown"].includes(item.availability_status || "unknown")
+          )
         : [];
 
       if (!active.length) {
@@ -1485,22 +1521,35 @@
         const element = document.createElement("button");
         element.type = "button";
         element.className = "camera-marker " + status;
-        element.textContent = status === "rain" ? "🌧️" : status === "possible" ? "☔" : "📷";
+        element.textContent = status === "rain" ? "🌧️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : "📷";
         element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
 
         const siteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
           ? cameraMonitorData.cameras.filter(item => item.site_slug === camera.slug)
           : [];
-        const cameraRows = siteCameras.slice(0, 8).map(item => {
+        const cameraRows = siteCameras.slice(0, 10).map(item => {
           const state = cameraStatusText(item.status);
-          const icon = item.status === "rain" ? "🌧️" : item.status === "possible" ? "☔" : item.status === "clear" ? "✓" : "·";
-          return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}</span><span>${icon} ${escapeHtml(state)}</span></div>`;
+          const availability = cameraAvailabilityText(item.availability_status || "unknown");
+          const icon = item.status === "rain" ? "🌧️" : item.status === "possible" ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" ? "×" : "·";
+          const age = Number.isFinite(Number(item.image_age_minutes))
+            ? " · " + Math.round(Number(item.image_age_minutes)) + " min"
+            : "";
+          const recovered = item.recovered ? " · RECUPERADA" : "";
+          return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}</span><span>${icon} ${escapeHtml(state)}<br><small>${escapeHtml(availability + age + recovered)}</small></span></div>`;
         }).join("");
         const summary = status === "rain"
-          ? "Hay una cámara de este sitio con indicios fuertes de lluvia."
+          ? "Hay una cámara exterior reciente con indicios fuertes de lluvia."
           : status === "possible"
-            ? "Hay una cámara de este sitio con posible lluvia."
-            : "No hay una alerta visual activa para este sitio.";
+            ? "Hay una cámara exterior reciente con posible lluvia."
+            : status === "offline"
+              ? "Las cámaras de este sitio no están proporcionando imágenes."
+              : status === "stale"
+                ? "Las imágenes disponibles no se han actualizado recientemente."
+                : status === "delayed"
+                  ? "Hay imágenes demoradas; no se usan para alertas actuales."
+                  : status === "not_weather_view"
+                    ? "Los encuadres disponibles no muestran suficiente entorno exterior."
+                    : "No hay una alerta visual activa para este sitio.";
         const popupHtml = `<div class="camera-popup">
           <strong>${escapeHtml(camera.name)}</strong>
           <div>${escapeHtml(camera.zone)} · ${escapeHtml(camera.detail)}</div>
