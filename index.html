@@ -164,6 +164,80 @@
       box-shadow: 0 4px 14px rgba(0,0,0,.2);
       pointer-events: none;
     }
+    .map-layer-control {
+      position: absolute;
+      z-index: 20;
+      top: 12px;
+      right: 12px;
+      width: min(290px, calc(100% - 24px));
+      color: var(--text);
+      pointer-events: auto;
+    }
+    .map-layer-toggle {
+      display: block;
+      margin-left: auto;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 10px;
+      padding: 9px 12px;
+      color: white;
+      background: rgba(16,24,39,.94);
+      box-shadow: 0 4px 14px rgba(0,0,0,.22);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .map-layer-panel {
+      margin-top: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 12px;
+      background: rgba(16,24,39,.96);
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+      backdrop-filter: blur(8px);
+    }
+    .map-layer-panel[hidden] { display: none !important; }
+    .map-layer-panel label { display: block; margin-top: 10px; color: #dbe7f5; font-size: 11px; }
+    .map-layer-panel .source-select { width: 100%; min-width: 0; margin-top: 5px; }
+    .layer-check { display: flex !important; align-items: center; gap: 8px; }
+    .layer-check input { accent-color: var(--blue); width: 16px; height: 16px; }
+    .layer-hint { margin-top: 9px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .imn-map-card {
+      position: absolute;
+      z-index: 15;
+      left: 12px;
+      bottom: 42px;
+      width: min(310px, calc(100% - 24px));
+      padding: 9px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 12px;
+      color: white;
+      background: rgba(16,24,39,.96);
+      box-shadow: 0 8px 24px rgba(0,0,0,.32);
+      pointer-events: auto;
+    }
+    .imn-map-card[hidden] { display: none !important; }
+    .imn-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; font-size: 12px; }
+    .imn-card-close { border: 0; border-radius: 7px; padding: 3px 8px; color: white; background: #334155; font-size: 16px; }
+    .imn-map-card img { display: block; width: 100%; max-height: 190px; object-fit: contain; border-radius: 7px; background: #05070b; }
+    .imn-map-card img[hidden] { display: none !important; }
+    .imn-card-status { margin-top: 6px; color: #cbd5e1; font-size: 10px; line-height: 1.4; }
+    .imn-card-note { margin-top: 5px; color: #94a3b8; font-size: 9px; line-height: 1.4; }
+    .imn-card-link { display: inline-block; margin-top: 5px; color: var(--blue); font-size: 10px; }
+    .camera-marker {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border: 2px solid white;
+      border-radius: 50%;
+      color: #fff;
+      background: #7c3aed;
+      box-shadow: 0 2px 10px rgba(0,0,0,.4);
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .camera-popup { color: #172033; font: 12px/1.45 Arial, sans-serif; }
+    .camera-popup strong { display: block; margin-bottom: 4px; font-size: 13px; }
+    .camera-popup a { display: inline-block; margin-top: 7px; color: #0369a1; font-weight: 700; }
     .map-status-chip {
       position: absolute;
       z-index: 5;
@@ -320,6 +394,9 @@
       .topbar { padding: 14px 13px; }
       .brand { font-size: 19px; }
       .map-shell { height: 390px; border-radius: 14px; }
+      .map-layer-control { width: min(250px, calc(100% - 24px)); }
+      .imn-map-card { width: min(220px, calc(100% - 24px)); bottom: 42px; }
+      .imn-map-card img { max-height: 125px; }
       .weather-grid, .solar-grid { grid-template-columns: 1fr; }
       .hourly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .source-select-wrap { width: 100%; justify-content: space-between; }
@@ -360,19 +437,47 @@
           <h2>Mapa de precipitaciones</h2>
           <p class="subtitle">Mapa de localidades y carreteras con una capa meteorológica superpuesta.</p>
         </div>
-        <div class="source-select-wrap">
-          <label for="radarSource">Fuente de precipitación</label>
-          <select class="source-select" id="radarSource">
-            <option value="rainviewer">RainViewer</option>
-            <option value="librewxr">LibreWXR</option>
-          </select>
-        </div>
+        <p class="tiny">Activa las capas desde el botón «Capas» dentro del mapa.</p>
       </div>
 
       <div class="map-shell">
         <div id="map" aria-label="Mapa de precipitaciones de Costa Rica"></div>
         <div class="map-chip" id="mapLocationChip">🇨🇷 Costa Rica</div>
         <div class="map-status-chip" id="mapStatusChip">Preparando mapa y radar…</div>
+
+        <div class="map-layer-control">
+          <button class="map-layer-toggle" id="layersToggle" type="button" aria-expanded="false">☷ Capas del mapa ▼</button>
+          <div class="map-layer-panel" id="layersPanel" hidden>
+            <strong style="font-size:12px">Capas meteorológicas</strong>
+            <label for="radarSource">Precipitación sobre el mapa</label>
+            <select class="source-select" id="radarSource">
+              <option value="rainviewer">RainViewer</option>
+              <option value="librewxr">LibreWXR</option>
+            </select>
+            <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
+            <label for="imnProduct">Producto oficial IMN</label>
+            <select class="source-select" id="imnProduct">
+              <option value="irvis">Visible más infrarrojo</option>
+              <option value="lightning">Tormentas eléctricas</option>
+              <option value="convection">Convección profunda</option>
+              <option value="radargif">Radar animado IMN</option>
+            </select>
+            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras públicas</span></label>
+            <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
+            <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
+          </div>
+        </div>
+
+        <div class="imn-map-card" id="imnMapCard" hidden>
+          <div class="imn-card-head">
+            <strong id="imnCardTitle">IMN · Visible más infrarrojo</strong>
+            <button class="imn-card-close" id="imnCardClose" type="button" aria-label="Cerrar imagen IMN">×</button>
+          </div>
+          <img id="imnMapImage" alt="Imagen meteorológica oficial del Instituto Meteorológico Nacional" hidden>
+          <div class="imn-card-status" id="imnMapStatus">La imagen se cargará al activar esta capa.</div>
+          <div class="imn-card-note">«Consultada» indica cuándo RainTrack solicitó la imagen. La hora de observación es la que aparece impresa dentro del producto del IMN. Descargarla de nuevo no garantiza que el IMN haya publicado datos nuevos.</div>
+          <a class="imn-card-link" id="imnSourceLink" href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">Fuente oficial IMN ↗</a>
+        </div>
       </div>
 
       <div class="map-toolbar">
@@ -397,7 +502,7 @@
         <span class="legend-item"><span class="legend-dot" style="background:#facc15"></span> Fuerte</span>
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Intensa</span>
       </div>
-      <p class="source-note" id="radarSourceNote">El radar puede mostrar zonas sin precipitación cuando no hay lluvia detectada en la imagen disponible.</p>
+      <p class="source-note" id="radarSourceNote">El radar puede mostrar zonas sin precipitación cuando no hay lluvia detectada en la imagen disponible. Las vistas IMN se consultan desde el mismo mapa; su hora de consulta no sustituye la hora de observación impresa en cada producto.</p>
     </section>
 
     <section class="section">
@@ -473,7 +578,7 @@
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
   </main>
@@ -514,6 +619,52 @@
       }
     };
 
+    // Imágenes oficiales publicadas por el portal satelital del IMN.
+    // Se muestran como una vista flotante dentro del mismo mapa, no como
+    // una capa geográfica: no se dispone aquí de límites geográficos/teselas
+    // verificadas para alinearlas con calles y coordenadas.
+    const IMN_PRODUCTS = {
+      irvis: {
+        label: "Visible más infrarrojo",
+        url: "https://imagenes.imn.ac.cr/img/IRVISCR.png",
+        source: "https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2"
+      },
+      lightning: {
+        label: "Tormentas eléctricas",
+        url: "https://imagenes.imn.ac.cr/img/VISRAYCR.png",
+        source: "https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2"
+      },
+      convection: {
+        label: "Convección profunda",
+        url: "https://imagenes.imn.ac.cr/img/DPCCR.png",
+        source: "https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2"
+      },
+      radargif: {
+        label: "Radar animado IMN",
+        url: "https://www.imn.ac.cr/imagenes-sat/radar1m-animada.gif",
+        source: "https://www.imn.ac.cr/en/radar"
+      }
+    };
+
+    // Cámaras públicas: los marcadores abren la página del operador.
+    // Poás es una imagen de OVSICORI que se renueva; San José es un directo 4K.
+    const PUBLIC_CAMERAS = [
+      {
+        name: "Volcán Poás · cráter",
+        lat: 10.1980,
+        lon: -84.2310,
+        detail: "Imagen de OVSICORI-UNA que se renueva con frecuencia; no es vídeo continuo.",
+        url: "https://webcamscostarica.com/volcan-poas/"
+      },
+      {
+        name: "San José · panorámica 4K",
+        lat: 9.9330,
+        lon: -84.0800,
+        detail: "Cámara panorámica en directo. El punto del mapa representa la ciudad, no la ubicación exacta de la cámara.",
+        url: "https://webcamscostarica.com/san-jose/"
+      }
+    ];
+
     let homeLocation = null;
     let locationRequestInProgress = false;
     let destinationLocation = null;
@@ -531,6 +682,8 @@
     let radarFrameIndex = 0;
     let radarPlayTimer = null;
     let weatherRefreshTimer = null;
+    let imnRefreshTimer = null;
+    let cameraMarkers = [];
 
     const $ = (id) => document.getElementById(id);
 
@@ -662,6 +815,65 @@
         destinationMarker = makeMarker("#0284c7", destinationLocation.name)
           .setLngLat([destinationLocation.lon, destinationLocation.lat]).addTo(map);
       }
+    }
+
+    function clearCameraMarkers() {
+      cameraMarkers.forEach(marker => marker.remove());
+      cameraMarkers = [];
+    }
+
+    function addCameraMarkers() {
+      if (!mapReady) return;
+      clearCameraMarkers();
+      if (!$('camerasToggle').checked) return;
+
+      PUBLIC_CAMERAS.forEach(camera => {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "camera-marker";
+        element.textContent = "📷";
+        element.setAttribute("aria-label", "Abrir cámara: " + camera.name);
+        const popupHtml = `<div class="camera-popup"><strong>${escapeHtml(camera.name)}</strong><div>${escapeHtml(camera.detail)}</div><a href="${camera.url}" target="_blank" rel="noopener">Abrir cámara ↗</a></div>`;
+        const marker = new maplibregl.Marker({ element, anchor: "center" })
+          .setLngLat([camera.lon, camera.lat])
+          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "270px" }).setHTML(popupHtml))
+          .addTo(map);
+        cameraMarkers.push(marker);
+      });
+    }
+
+    function refreshImnImage() {
+      const productKey = $('imnProduct').value;
+      const product = IMN_PRODUCTS[productKey];
+      if (!product) return;
+
+      const image = $('imnMapImage');
+      const status = $('imnMapStatus');
+      $('imnCardTitle').textContent = "IMN · " + product.label;
+      $('imnSourceLink').href = product.source;
+      image.hidden = true;
+      status.textContent = "Solicitando imagen al IMN…";
+      status.className = "imn-card-status loading";
+
+      image.onload = () => {
+        image.hidden = false;
+        const consulted = new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+        status.textContent = "Imagen recibida · Consultada a las " + consulted + ". Revisa la fecha/hora impresa dentro del producto para conocer su observación.";
+        status.className = "imn-card-status success";
+      };
+      image.onerror = () => {
+        image.hidden = true;
+        status.textContent = "No se pudo cargar esta imagen desde el IMN. Usa el enlace oficial para comprobar su disponibilidad.";
+        status.className = "imn-card-status error-text";
+      };
+
+      const separator = product.url.includes("?") ? "&" : "?";
+      image.src = product.url + separator + "raintrack=" + Date.now();
+    }
+
+    function setImnVisibility(visible) {
+      $('imnMapCard').hidden = !visible;
+      if (visible) refreshImnImage();
     }
 
     function updateZoomHint() {
@@ -1273,6 +1485,32 @@
     });
 
     // ------------------------------------------------------------
+    // CAPAS INTEGRADAS EN EL MISMO MAPA
+    // ------------------------------------------------------------
+    $('layersToggle').addEventListener('click', () => {
+      const panel = $('layersPanel');
+      panel.hidden = !panel.hidden;
+      $('layersToggle').setAttribute('aria-expanded', String(!panel.hidden));
+      $('layersToggle').textContent = panel.hidden ? '☷ Capas del mapa ▼' : '☷ Capas del mapa ▲';
+    });
+
+    $('imnMapToggle').addEventListener('change', event => {
+      setImnVisibility(event.target.checked);
+    });
+    $('imnProduct').addEventListener('change', () => {
+      if ($('imnMapToggle').checked) refreshImnImage();
+    });
+    $('imnRefresh').addEventListener('click', () => {
+      if (!$('imnMapToggle').checked) $('imnMapToggle').checked = true;
+      setImnVisibility(true);
+    });
+    $('imnCardClose').addEventListener('click', () => {
+      $('imnMapToggle').checked = false;
+      setImnVisibility(false);
+    });
+    $('camerasToggle').addEventListener('change', addCameraMarkers);
+
+    // ------------------------------------------------------------
     // CONTROLES DESPLEGABLES Y ACTUALIZACIÓN AUTOMÁTICA
     // ------------------------------------------------------------
     $("forecastToggle").addEventListener("click", () => {
@@ -1298,6 +1536,10 @@
       setInterval(() => {
         if (mapReady) loadRadarSource();
       }, 5 * 60 * 1000);
+      if (imnRefreshTimer) clearInterval(imnRefreshTimer);
+      imnRefreshTimer = setInterval(() => {
+        if ($('imnMapToggle') && $('imnMapToggle').checked) refreshImnImage();
+      }, 10 * 60 * 1000);
     }
 
     // ------------------------------------------------------------
