@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
-  <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.6</title>
+  <meta name="description" content="APP TIEMPO CR · RainTrack: meteorología y vigilancia multi-amenaza con fuentes públicas verificables.">
+  <title>APP TIEMPO CR · RainTrack v2.0.0</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -1001,6 +1001,84 @@
     .maplibregl-ctrl-group { border-radius: 10px !important; overflow: hidden; }
     .maplibregl-ctrl-attrib { font-size: 10px !important; }
 
+
+    /* CENTRO DE VIGILANCIA MULTI-AMENAZA */
+    .hazard-center { overflow: hidden; }
+    .hazard-section-head { align-items: flex-start; }
+    .hazard-status-bar { margin:10px 0 12px;padding:11px 13px;border:1px solid rgba(56,189,248,.22);border-radius:12px;color:#dbeafe;background:rgba(14,116,144,.12);font-size:12px;line-height:1.5; }
+    .hazard-status-bar.partial { border-color:rgba(251,191,36,.28);background:rgba(146,64,14,.14);color:#fde68a; }
+    .hazard-status-bar.error { border-color:rgba(248,113,113,.28);background:rgba(127,29,29,.15);color:#fecaca; }
+    .hazard-stats-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0; }
+    .hazard-stat { min-width:0;padding:12px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(145deg,rgba(38,52,73,.9),rgba(20,31,48,.92)); }
+    .hazard-stat span { display:block;color:var(--muted);font-size:10px;line-height:1.35; }
+    .hazard-stat strong { display:block;margin-top:6px;font-size:23px;line-height:1;font-weight:850; }
+    .hazard-space-card { margin:12px 0;padding:14px;border:1px solid rgba(251,191,36,.2);border-radius:14px;background:linear-gradient(135deg,rgba(120,83,24,.16),rgba(30,41,59,.92)); }
+    .hazard-space-title { display:flex;align-items:flex-start;justify-content:space-between;gap:12px; }
+    .hazard-space-title strong { display:block;font-size:13px; }
+    .hazard-space-title span { display:block;margin-top:3px;color:var(--muted);font-size:10px; }
+    .hazard-space-title .hazard-data-stamp { text-align:right; }
+    .hazard-space-scales { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px; }
+    .hazard-scale { min-width:0;padding:10px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:rgba(15,23,42,.45); }
+    .hazard-scale span,.hazard-scale small { display:block;color:var(--muted);font-size:10px; }
+    .hazard-scale strong { display:block;margin:5px 0 2px;font-size:20px; }
+    .hazard-footnote,.hazard-map-note { margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.55; }
+    .hazard-toolbar { display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 10px;flex-wrap:wrap; }
+    .hazard-filter-row { display:flex;gap:7px;flex-wrap:wrap; }
+    .hazard-filter { min-height:34px;padding:7px 10px;border:1px solid var(--border);border-radius:999px;color:#dbeafe;background:rgba(51,65,85,.55);font-size:10px;font-weight:750; }
+    .hazard-filter.active { border-color:rgba(56,189,248,.55);color:#e0f2fe;background:rgba(2,132,199,.22); }
+    .hazard-layout { display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,.85fr);gap:12px;align-items:start; }
+    .hazard-main-column,.hazard-side-column { min-width:0; }
+    .hazard-event-list { display:grid;gap:9px; }
+    .hazard-event-card { min-width:0;padding:13px;border:1px solid var(--border);border-radius:13px;background:rgba(30,41,59,.72); }
+    .hazard-event-head { display:flex;align-items:flex-start;justify-content:space-between;gap:10px; }
+    .hazard-event-title { display:block;font-size:13px;font-weight:800;line-height:1.4;overflow-wrap:anywhere; }
+    .hazard-event-summary { margin:8px 0 0;color:#cbd5e1;font-size:11px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere; }
+    .hazard-event-meta { display:flex;flex-wrap:wrap;gap:6px;margin-top:9px; }
+    .hazard-chip { display:inline-flex;align-items:center;max-width:100%;padding:4px 7px;border:1px solid rgba(148,163,184,.16);border-radius:999px;color:#cbd5e1;background:rgba(15,23,42,.55);font-size:9px;font-weight:750; }
+    .hazard-chip.critical { border-color:rgba(248,113,113,.35);color:#fecaca;background:rgba(127,29,29,.22); }
+    .hazard-chip.high { border-color:rgba(251,146,60,.3);color:#fed7aa;background:rgba(154,52,18,.2); }
+    .hazard-chip.moderate { border-color:rgba(250,204,21,.25);color:#fef08a;background:rgba(133,77,14,.17); }
+    .hazard-chip.low { color:#bae6fd; }
+    .hazard-event-link { display:inline-block;margin-top:9px;color:var(--blue);font-size:10px;font-weight:750;text-decoration:none; }
+    .hazard-event-link:hover,.hazard-official-links a:hover { text-decoration:underline; }
+    .hazard-empty { padding:18px 14px;border:1px dashed rgba(148,163,184,.25);border-radius:12px;color:var(--muted);background:rgba(15,23,42,.25);font-size:12px;line-height:1.55; }
+    .hazard-side-column { display:grid;gap:10px; }
+    .hazard-side-panel { min-width:0;padding:12px;border:1px solid var(--border);border-radius:12px;background:rgba(30,41,59,.62); }
+    .hazard-side-head { display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:9px; }
+    .hazard-side-head strong { font-size:11px; }
+    .hazard-side-head span { color:var(--muted);font-size:9px;text-align:right; }
+    .hazard-source-list { display:grid;gap:7px; }
+    .hazard-source-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px 0;border-top:1px solid rgba(148,163,184,.1); }
+    .hazard-source-row:first-child { border-top:0; }
+    .hazard-source-row a,.hazard-source-row span { min-width:0;color:#dbeafe;font-size:10px;line-height:1.35;text-decoration:none;overflow-wrap:anywhere; }
+    .hazard-source-row small { display:block;margin-top:3px;color:var(--muted);font-size:9px;line-height:1.35; }
+    .hazard-source-state { flex:0 0 auto;color:#86efac;font-size:9px;font-weight:800; }
+    .hazard-source-state.stale { color:#fcd34d; }
+    .hazard-source-state.unavailable { color:#fca5a5; }
+    .hazard-official-links { display:grid;gap:8px; }
+    .hazard-official-links a { color:#bae6fd;font-size:10px;font-weight:700;text-decoration:none; }
+    .hazard-disclaimer { border-color:rgba(251,191,36,.2); }
+    .hazard-disclaimer strong { color:#fde68a;font-size:11px; }
+    .hazard-disclaimer p { margin:6px 0 0;color:var(--muted);font-size:10px;line-height:1.55; }
+    @media (max-width:850px) {
+      .hazard-layout { grid-template-columns:1fr; }
+      .hazard-side-column { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .hazard-disclaimer { grid-column:1 / -1; }
+    }
+    @media (max-width:650px) {
+      .hazard-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .hazard-space-scales { gap:6px; }
+      .hazard-scale { padding:8px 7px; }
+      .hazard-toolbar { align-items:stretch; }
+      .hazard-filter-row { gap:6px; }
+      .hazard-filter { min-height:38px;padding:8px 9px; }
+      .hazard-toolbar > .btn { width:100%; }
+      .hazard-side-column { grid-template-columns:1fr; }
+      .hazard-disclaimer { grid-column:auto; }
+      .hazard-section-head { flex-direction:column; }
+      .hazard-section-head > .btn { width:100%; }
+    }
+
     @media (max-width: 900px) {
       .hourly-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
@@ -1035,14 +1113,14 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.6</small></div>
+    <div class="brand">🌦️ APP TIEMPO <span>CR</span> <small class="version-tag">v2.0.0</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
   <main>
     <section class="intro">
-      <h1>Radar y pronóstico de lluvia</h1>
-      <p class="subtitle">Seguimiento de precipitaciones en Costa Rica · Consulta tu zona o cualquier destino del país.</p>
+      <h1>Centro meteorológico y de vigilancia global</h1>
+      <p class="subtitle">Meteorología de Costa Rica y seguimiento mundial de terremotos, ciclones, volcanes, tsunamis, desastres naturales y clima espacial.</p>
     </section>
 
     <div class="notice" id="homeSetupNotice" role="status" aria-live="polite">
@@ -1050,6 +1128,78 @@
       <p id="locationNoticeMessage">RainTrack reutiliza tu última ubicación durante 30 minutos. Puedes actualizarla manualmente cuando quieras.</p>
       <button class="btn secondary small-btn" id="retryLocation" type="button" style="margin-top:10px">Intentar nuevamente</button>
     </div>
+
+    <section class="section hazard-center" id="hazardCenter" aria-labelledby="hazardCenterTitle">
+      <div class="section-head hazard-section-head">
+        <div>
+          <h2 id="hazardCenterTitle">🌎 Centro de vigilancia de amenazas</h2>
+          <p class="subtitle">Eventos mundiales con prioridad geográfica para Costa Rica. Los avisos oficiales siempre tienen prioridad.</p>
+        </div>
+        <button class="btn secondary small-btn" id="refreshHazardsBtn" type="button">↻ Actualizar datos</button>
+      </div>
+      <div class="hazard-status-bar" id="hazardFeedStatus" role="status" aria-live="polite">
+        Preparando el primer corte de fuentes multi-amenaza…
+      </div>
+      <div class="hazard-stats-grid" id="hazardStats">
+        <article class="hazard-stat"><span>Eventos en el corte</span><strong id="hazardTotalCount">—</strong></article>
+        <article class="hazard-stat"><span>Costa Rica / región</span><strong id="hazardRegionalCount">—</strong></article>
+        <article class="hazard-stat"><span>Prioridad alta / crítica</span><strong id="hazardHighCount">—</strong></article>
+        <article class="hazard-stat"><span>Fuentes disponibles</span><strong id="hazardSourcesCount">—</strong></article>
+      </div>
+      <div class="hazard-space-card" id="spaceWeatherCard">
+        <div class="hazard-space-title">
+          <div><strong>☀️ Vigilancia del clima espacial</strong><span>Escalas NOAA R · S · G</span></div>
+          <span class="hazard-data-stamp" id="spaceWeatherStamp">Esperando datos</span>
+        </div>
+        <div class="hazard-space-scales" id="spaceWeatherScales">
+          <div class="hazard-scale"><span>Radio R</span><strong>—</strong><small>Sin lectura</small></div>
+          <div class="hazard-scale"><span>Radiación S</span><strong>—</strong><small>Sin lectura</small></div>
+          <div class="hazard-scale"><span>Geomagnética G</span><strong>—</strong><small>Sin lectura</small></div>
+        </div>
+        <p class="hazard-footnote">La actividad solar puede afectar comunicaciones, navegación y satélites. No representa automáticamente un peligro directo para las personas en superficie.</p>
+      </div>
+      <div class="hazard-toolbar">
+        <div class="hazard-filter-row" id="hazardFilters" aria-label="Filtrar eventos">
+          <button class="hazard-filter active" type="button" data-hazard-filter="all" aria-pressed="true">Todos</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="earthquake" aria-pressed="false">🌎 Sismos</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="cyclone" aria-pressed="false">🌀 Ciclones</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="flood" aria-pressed="false">🌊 Inundaciones</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="volcano" aria-pressed="false">🌋 Volcanes</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="wildfire" aria-pressed="false">🔥 Incendios</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="tsunami" aria-pressed="false">🌊 Tsunamis</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="space" aria-pressed="false">☀️ Espacio</button>
+          <button class="hazard-filter" type="button" data-hazard-filter="other" aria-pressed="false">Otros</button>
+        </div>
+        <button class="btn ghost small-btn" id="enableHazardNotifications" type="button">Activar avisos del navegador</button>
+      </div>
+      <div class="hazard-layout">
+        <div class="hazard-main-column">
+          <div class="hazard-event-list" id="hazardEventList" aria-live="polite">
+            <article class="hazard-empty">El motor está esperando su primera publicación. No se interpretará la falta de datos como ausencia de amenazas.</article>
+          </div>
+        </div>
+        <aside class="hazard-side-column">
+          <div class="hazard-side-panel">
+            <div class="hazard-side-head"><strong>Estado de las fuentes</strong><span id="hazardUpdatedAt">Sin actualización</span></div>
+            <div class="hazard-source-list" id="hazardSourceList"><p class="tiny">Los estados aparecerán al publicarse el primer corte.</p></div>
+          </div>
+          <div class="hazard-side-panel">
+            <div class="hazard-side-head"><strong>Fuentes oficiales de Costa Rica</strong></div>
+            <div class="hazard-official-links">
+              <a href="https://www.imn.ac.cr/" target="_blank" rel="noopener">IMN · Meteorología ↗</a>
+              <a href="https://www.cne.go.cr/" target="_blank" rel="noopener">CNE · Emergencias ↗</a>
+              <a href="https://www.ovsicori.una.ac.cr/sistemas/actividad-volcanica/" target="_blank" rel="noopener">OVSICORI · Volcanes ↗</a>
+              <a href="https://www.sinamot.una.ac.cr/" target="_blank" rel="noopener">SINAMOT · Tsunamis ↗</a>
+            </div>
+          </div>
+          <div class="hazard-side-panel hazard-disclaimer">
+            <strong>Importante</strong>
+            <p>RainTrack clasifica y reúne reportes públicos. No predice terremotos, no sustituye una alerta oficial y no es un sistema certificado de protección civil. Ante una emergencia, sigue las instrucciones de las autoridades.</p>
+          </div>
+        </aside>
+      </div>
+      <p class="hazard-map-note" id="hazardMapNote">Los eventos con coordenadas dentro de Costa Rica también pueden mostrarse en el mapa principal. Los eventos mundiales se consultan en este centro sin alterar el encuadre nacional del mapa.</p>
+    </section>
 
     <section class="section">
       <div class="section-head map-head">
