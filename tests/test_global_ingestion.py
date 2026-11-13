@@ -98,6 +98,20 @@ class NormalizationTests(unittest.TestCase):
 
 
     @patch.object(monitor, "fetch_text")
+    def test_imn_rss_without_cap_lifecycle_is_not_claimed_active(self, fetch_text):
+        fetch_text.return_value = """<rss><channel><item>
+          <title>Fin de Semana Lluvioso por Sistema de Baja Presión</title>
+          <link>https://imn.ac.cr/aviso/456</link><guid>imn-456</guid>
+          <pubDate>Fri, 13 Nov 2026 06:00:00 GMT</pubDate>
+          <description>Diagnóstico: Se esperan lluvias intensas y aguaceros en sectores vulnerables.</description>
+        </item></channel></rss>"""
+        rows = monitor.parse_imn_cap_rss({"provider":"IMN","url":"https://example.test/rss.xml"}, "2026-11-13T12:00:00Z")
+        self.assertEqual(rows[0]["status"], "unknown")
+        self.assertEqual(rows[0]["hazard_type"], "severe_storm")
+        self.assertEqual(rows[0]["observed_at"], "2026-11-13T06:00:00Z")
+        self.assertEqual(rows[0]["metrics"]["lifecycle_metadata"], "RSS-only")
+
+    @patch.object(monitor, "fetch_text")
     def test_imn_cap_preserves_severity_area_and_expiry(self, fetch_text):
         fetch_text.return_value = """<?xml version="1.0"?>
         <rss><channel><item>
