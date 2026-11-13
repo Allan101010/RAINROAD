@@ -98,6 +98,21 @@ class NormalizationTests(unittest.TestCase):
 
 
     @patch.object(monitor, "fetch_text")
+    def test_rsn_rss_parses_felt_earthquake_and_local_time(self, fetch_text):
+        fetch_text.return_value = """<rss><channel><item>
+          <title>SISMO, 05 de noviembre del 2026, 6:53 pm., Mag: 3,7 Mw, SENTIDO</title>
+          <link>https://rsn.ucr.ac.cr/actividad-sismica/ultimos-sismos</link>
+          <guid>rsn-event-1</guid><description>Evento sentido reportado por la RSN.</description>
+        </item></channel></rss>"""
+        rows = monitor.parse_rsn_rss({"provider":"RSN-UCR","url":"https://example.test/rss"}, "2026-11-13T12:00:00Z")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["hazard_type"], "earthquake")
+        self.assertEqual(rows[0]["status"], "unknown")
+        self.assertEqual(rows[0]["metrics"]["magnitude"], 3.7)
+        self.assertEqual(rows[0]["observed_at"], "2026-11-06T00:53:00Z")
+        self.assertIsNone(rows[0]["location"])
+
+    @patch.object(monitor, "fetch_text")
     def test_imn_rain_alert_not_reclassified_by_precautionary_text(self, fetch_text):
         rss = """<rss><channel><item><title>Sistema de Baja Presión</title>
           <link>https://cap-sources.s3.amazonaws.com/cr-imn-es/alert-rain.xml</link>
