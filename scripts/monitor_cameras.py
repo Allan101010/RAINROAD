@@ -41,6 +41,10 @@ CAMERA_DELAYED_MAX_AGE = timedelta(hours=1)
 CAMERA_NAME_OVERRIDES = {
     "punta-islita-default": "Comedero bajo",
     "punta-islita-lapas-rojas-copa": "Vista de copa de las lapas rojas",
+    "tamarindo-tamarindo-diria-1": "Tamarindo · Diriá 1",
+    "tamarindo-tamarindo-diria-2": "Tamarindo · Diriá 2",
+    "tamarindo-tamarindo-witchsrock-1": "Tamarindo · Witch's Rock 1",
+    "tamarindo-tamarindo-witchsrock-2": "Tamarindo · Witch's Rock 2",
 }
 HTTP_TIMEOUT = 25
 USER_AGENT = "RainTrackCR/1.5 (public weather-camera monitor; contact via project repository)"
@@ -378,6 +382,26 @@ def same_site_path(url_a: str, url_b: str) -> bool:
     return a.netloc == b.netloc and a.path.rstrip("/") == b.path.rstrip("/")
 
 
+def is_group_camera_title(value: str) -> bool:
+    """True when a heading describes a collection of cameras, not one camera."""
+    return bool(re.search(r"\b(?:las?\s+)?(?:\d+\s+)?c[aá]maras?\s+de\b", value or "", re.IGNORECASE))
+
+
+def camera_name_from_slug(site_slug: str, cam_slug: str) -> str:
+    """Build a readable per-camera name when the provider repeats a group heading."""
+    slug = cam_slug or ""
+    prefix = site_slug + "-"
+    if slug.startswith(prefix):
+        slug = slug[len(prefix):]
+    aliases = {"diria": "Diriá", "witchsrock": "Witch's Rock", "poas": "Poás", "irazu": "Irazú"}
+    parts = []
+    for part in slug.split("-"):
+        if not part:
+            continue
+        parts.append(aliases.get(part.lower(), part if part.isdigit() else part.capitalize()))
+    return " ".join(parts) if parts and slug != "default" else "Vista general del sitio"
+
+
 def extract_camera_variants(
     session: requests.Session, page_url: str, soup: BeautifulSoup
 ) -> list[tuple[str, str, str]]:
@@ -408,8 +432,12 @@ def extract_camera_variants(
         # ?cam=. Se incorpora solo si el título no está ya representado.
         h2 = soup.find("h2")
         default_name = h2.get_text(" ", strip=True) if h2 else ""
-        if default_name and not any(default_name.lower() in label.lower() or label.lower() in default_name.lower()
-                                    for _, label, _ in variants):
+        # No tratar el encabezado general "Las N cámaras de..." como una cámara extra.
+        # Las variantes ?cam= ya representan las cámaras individuales del sitio.
+        if default_name and not is_group_camera_title(default_name) and not any(
+            default_name.lower() in label.lower() or label.lower() in default_name.lower()
+            for _, label, _ in variants
+        ):
             variants.insert(0, ("default", default_name, page_url))
         return variants
 
@@ -525,8 +553,13 @@ def build_catalog(session: requests.Session) -> list[dict]:
 
                 h2 = camera_soup.find("h2")
                 camera_name = h2.get_text(" ", strip=True) if h2 else link_label
-                if not camera_name or camera_name.lower() in {"qué se ve", "qué se ve"}:
-                    camera_name = link_label or site_name
+                if (
+                    not camera_name
+                    or camera_name.lower() in {"qué se ve", "qué se ve"}
+                    or is_group_camera_title(camera_name)
+                ):
+                    candidate = (link_label or "").strip()
+                    camera_name = candidate if candidate and not is_group_camera_title(candidate) else camera_name_from_slug(site_slug, cam_slug)
                 camera_name = CAMERA_NAME_OVERRIDES.get(f"{site_slug}-{cam_slug}", camera_name)
 
                 offline = page_is_offline(camera_soup)

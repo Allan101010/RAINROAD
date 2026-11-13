@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.1</title>
+  <title>RainTrack CR v1.8.2</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -284,10 +284,6 @@
       font-size: 15px;
       cursor: pointer;
     }
-    .camera-popup { color: #172033; font: 12px/1.45 Arial, sans-serif; }
-    .camera-popup strong { display: block; margin-bottom: 4px; font-size: 13px; }
-    .camera-popup a { display: inline-block; margin-top: 7px; color: #0369a1; font-weight: 700; }
-
     .camera-marker.rain { background: #dc2626; }
     .camera-marker.possible, .camera-marker.mixed { background: #d97706; }
     .camera-marker.clear { background: #7c3aed; }
@@ -299,35 +295,132 @@
     .camera-marker.pending { background: #0f766e; }
     .camera-marker.station-marker { border-radius: 9px; background: #0e7490; }
     .camera-marker.station-marker.rain { background: #dc2626; }
-    .camera-popup { min-width: 190px; }
-    .camera-popup .camera-popup-note { display: block; margin-top: 7px; color: #475569; font-size: 10px; line-height: 1.4; }
-    .camera-popup .camera-popup-status {
-      margin-top: 7px;
-      padding: 6px 7px;
+
+    .maplibregl-popup.camera-site-popup {
+      max-width: min(340px, calc(100vw - 28px)) !important;
+    }
+    .maplibregl-popup.camera-site-popup .maplibregl-popup-content {
+      max-height: min(58svh, 460px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      padding: 12px;
+      border-radius: 13px;
+    }
+    .camera-popup {
+      width: 100%;
+      min-width: 0;
+      color: #172033;
+      font: 12px/1.45 Arial, sans-serif;
+    }
+    .camera-popup-heading strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+    .camera-popup-heading > div { color: #526174; font-size: 11px; }
+    .camera-popup-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 9px;
+    }
+    .camera-popup-summary span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      padding: 4px 7px;
       border-radius: 7px;
-      background: #eef2f7;
-      font-size: 11px;
+      background: #e8eef5;
+      color: #26364a;
+      font-size: 10px;
       font-weight: 700;
+    }
+    .camera-popup .camera-popup-status {
+      margin-top: 8px;
+      padding: 8px 9px;
+      border-radius: 8px;
+      background: #eef2f7;
+      color: #26364a;
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 600;
     }
     .camera-popup .camera-popup-list {
       display: grid;
-      gap: 5px;
+      gap: 0;
+      max-height: min(28svh, 210px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
       margin-top: 8px;
-      padding-top: 7px;
       border-top: 1px solid #d7dee8;
     }
     .camera-popup .camera-popup-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      font-size: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 3px 8px;
+      padding: 8px 1px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 11px;
     }
-    .camera-popup .camera-popup-row span:last-child {
+    .camera-popup-row-main { min-width: 0; }
+    .camera-popup-row-title {
+      display: block;
+      margin: 0 !important;
+      overflow-wrap: anywhere;
+      font-size: 11px !important;
+    }
+    .camera-popup-row-detail {
+      display: block;
+      margin-top: 2px;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 400;
+    }
+    .camera-popup-row-state {
+      align-self: center;
+      padding: 4px 6px;
+      border-radius: 7px;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 10px;
       font-weight: 700;
-      text-align: right;
-      white-space: normal;
-      max-width: 155px;
+      white-space: nowrap;
+    }
+    .camera-popup-row-state.online { background: #dcfce7; color: #166534; }
+    .camera-popup-row-state.offline { background: #fee2e2; color: #991b1b; }
+    .camera-popup-row-state.delayed, .camera-popup-row-state.stale { background: #fef3c7; color: #92400e; }
+    .camera-popup .camera-popup-row a {
+      grid-column: 1 / -1;
+      display: inline-block;
+      margin-top: 1px;
+      color: #0369a1;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .camera-popup .camera-popup-note {
+      display: block;
+      margin-top: 8px;
+      color: #64748b;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+    .camera-popup .camera-popup-site-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #0369a1;
+      font-weight: 700;
+    }
+    @media (max-width: 650px) {
+      .maplibregl-popup.camera-site-popup .maplibregl-popup-content {
+        max-height: 54svh;
+        padding: 11px;
+      }
+      .camera-popup .camera-popup-list { max-height: 24svh; }
+      .camera-popup .camera-popup-row { padding: 9px 1px; }
     }
     .camera-alert-stack {
       position: absolute;
@@ -723,7 +816,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.1</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.2</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1477,6 +1570,25 @@
       cameraMarkers = [];
     }
 
+    function cameraDisplayName(item) {
+      const original = String(item.camera_name || "").trim();
+      const groupTitle = new RegExp("\\b(?:las?\\s+)?(?:\\d+\\s+)?c[aá]maras?\\s+de\\b", "i").test(original);
+      if (original && !groupTitle) return original;
+
+      let slug = String(item.id || "");
+      const sitePrefix = String(item.site_slug || "") + "-";
+      if (sitePrefix !== "-" && slug.startsWith(sitePrefix)) slug = slug.slice(sitePrefix.length);
+      if (sitePrefix !== "-" && slug.startsWith(sitePrefix)) slug = slug.slice(sitePrefix.length);
+      if (!slug || slug === "default") return "Vista general del sitio";
+
+      const aliases = { diria: "Diriá", witchsrock: "Witch's Rock", poas: "Poás", irazu: "Irazú" };
+      return slug.split("-").filter(Boolean).map(part => {
+        if (aliases[part.toLowerCase()]) return aliases[part.toLowerCase()];
+        if (/^\\d+$/.test(part)) return part;
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      }).join(" ");
+    }
+
     function cameraStatusText(status) {
       return ({
         rain: "Señal visual elevada del modelo · sin confirmar",
@@ -1609,21 +1721,56 @@
         element.textContent = status === "mixed" ? "⚠️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : "📷";
         element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
 
-        const siteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
+        const allSiteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
           ? cameraMonitorData.cameras.filter(item => item.site_slug === camera.slug)
           : [];
+        const hasIndividualCameras = allSiteCameras.some(item => !String(item.id || "").endsWith("-default"));
+        const siteCameras = hasIndividualCameras
+          ? allSiteCameras.filter(item => {
+              const isGenericDefault = String(item.id || "").endsWith("-default") &&
+                new RegExp("\\b(?:las?\\s+)?(?:\\d+\\s+)?c[aá]maras?\\s+de\\b", "i").test(String(item.camera_name || ""));
+              return !isGenericDefault;
+            })
+          : allSiteCameras;
+
+        const recentCount = siteCameras.filter(item => item.availability_status === "online").length;
+        const offlineCount = siteCameras.filter(item => ["offline", "not_available"].includes(item.availability_status)).length;
+        const delayedCount = siteCameras.filter(item => item.availability_status === "delayed").length;
+        const staleCount = siteCameras.filter(item => item.availability_status === "stale").length;
+        const cameraSummary = siteCameras.length
+          ? [
+              `${siteCameras.length} ${siteCameras.length === 1 ? "cámara" : "cámaras"}`,
+              `${recentCount} con imagen reciente`,
+              offlineCount ? `${offlineCount} sin señal` : "",
+              delayedCount ? `${delayedCount} demoradas` : "",
+              staleCount ? `${staleCount} desactualizadas` : ""
+            ].filter(Boolean)
+          : ["Sin detalle individual disponible"];
+
         const cameraRows = siteCameras.slice(0, 10).map(item => {
-          const state = cameraStatusText(item.status);
-          const availability = cameraAvailabilityText(item.availability_status || "unknown");
-          const icon = ["rain", "possible"].includes(item.status) ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" ? "×" : "·";
+          const availabilityStatus = item.availability_status || "unknown";
+          const availability = cameraAvailabilityText(availabilityStatus);
+          const hasVisualSignal = ["rain", "possible"].includes(item.status);
+          const statusLabel = hasVisualSignal
+            ? "Señal visual · sin confirmar"
+            : item.status === "clear" ? "Sin indicios visuales" : availability;
+          const icon = hasVisualSignal ? "☔" : item.status === "clear" ? "✓" : availabilityStatus === "offline" ? "×" : "•";
           const age = item.image_age_minutes != null && Number.isFinite(Number(item.image_age_minutes))
-            ? " · " + Math.round(Number(item.image_age_minutes)) + " min"
+            ? Math.round(Number(item.image_age_minutes)) + " min"
             : "";
-          const recovered = item.recovered ? " · RECUPERADA" : "";
+          const recovered = item.recovered ? " · Recuperada" : "";
+          const stateClass = ["online", "offline", "delayed", "stale"].includes(availabilityStatus) ? availabilityStatus : "unknown";
           const sourceLink = item.page_url
-            ? `<br><small><a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${item.source_type === "ovsicori" ? "Fuente OVSICORI ↗" : "Abrir fuente ↗"}</a></small>`
+            ? `<a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
             : "";
-          return `<div class="camera-popup-row"><span>${escapeHtml(item.camera_name || "Cámara")}${sourceLink}</span><span>${icon} ${escapeHtml(state)}<br><small>${escapeHtml(availability + age + recovered)}</small></span></div>`;
+          return `<div class="camera-popup-row">
+            <div class="camera-popup-row-main">
+              <strong class="camera-popup-row-title">${escapeHtml(cameraDisplayName(item))}</strong>
+              <small class="camera-popup-row-detail">${escapeHtml([age, recovered.trim()].filter(Boolean).join(" "))}</small>
+            </div>
+            <span class="camera-popup-row-state ${stateClass}">${icon} ${escapeHtml(statusLabel)}</span>
+            ${sourceLink}
+          </div>`;
         }).join("");
         const summary = status === "mixed"
           ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
@@ -1641,16 +1788,19 @@
                     ? "Los encuadres disponibles no muestran suficiente entorno exterior."
                     : "No hay una alerta visual activa para este sitio.";
         const popupHtml = `<div class="camera-popup">
-          <strong>${escapeHtml(camera.name)}</strong>
-          <div>${escapeHtml(camera.zone)} · ${escapeHtml(camera.detail)}</div>
+          <div class="camera-popup-heading">
+            <strong>${escapeHtml(camera.name)}</strong>
+            <div>${escapeHtml(camera.zone)} · ${escapeHtml(camera.detail)}</div>
+          </div>
+          <div class="camera-popup-summary">${cameraSummary.map(value => `<span>${escapeHtml(value)}</span>`).join("")}</div>
           <div class="camera-popup-status">${escapeHtml(summary)}</div>
           ${cameraRows ? `<div class="camera-popup-list">${cameraRows}</div>` : ""}
-          <small class="camera-popup-note">La IA clasifica imágenes; no mide lluvia. Su puntuación no equivale a una probabilidad meteorológica. Contrasta con radar y estaciones.</small>
-          <a href="${escapeHtml(camera.url)}" target="_blank" rel="noopener">Ver cámaras de este sitio ↗</a>
+          <small class="camera-popup-note">La IA analiza imágenes; no mide lluvia. Una señal visual no confirma precipitación. Contrasta con radar y estaciones.</small>
+          <a class="camera-popup-site-link" href="${escapeHtml(camera.url)}" target="_blank" rel="noopener">Abrir página del sitio ↗</a>
         </div>`;
         const marker = new maplibregl.Marker({ element, anchor: "center" })
           .setLngLat([camera.lon, camera.lat])
-          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "310px" }).setHTML(popupHtml))
+          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "340px", className: "camera-site-popup" }).setHTML(popupHtml))
           .addTo(map);
         cameraMarkers.push(marker);
       });
