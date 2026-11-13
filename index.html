@@ -416,10 +416,10 @@
     }
     @media (max-width: 650px) {
       .maplibregl-popup.camera-site-popup .maplibregl-popup-content {
-        max-height: 54svh;
+        max-height: min(48svh, 360px);
         padding: 11px;
       }
-      .camera-popup .camera-popup-list { max-height: 24svh; }
+      .camera-popup .camera-popup-list { max-height: min(20svh, 145px); }
       .camera-popup .camera-popup-row { padding: 9px 1px; }
     }
     .camera-alert-stack {
