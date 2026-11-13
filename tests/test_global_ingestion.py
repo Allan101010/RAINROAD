@@ -98,6 +98,21 @@ class NormalizationTests(unittest.TestCase):
 
 
     @patch.object(monitor, "fetch_text")
+    def test_imn_rain_alert_not_reclassified_by_precautionary_text(self, fetch_text):
+        rss = """<rss><channel><item><title>Sistema de Baja Presión</title>
+          <link>https://cap-sources.s3.amazonaws.com/cr-imn-es/alert-rain.xml</link>
+          <guid>rain-1</guid></item></channel></rss>"""
+        cap = """<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+          <identifier>rain-1</identifier><sent>2026-11-13T06:00:00Z</sent>
+          <status>Actual</status><msgType>Alert</msgType>
+          <info><event>Rain</event><severity>Moderate</severity>
+            <description>Precaución en zonas propensas a inundación y deslizamientos.</description>
+          </info></alert>"""
+        fetch_text.side_effect = [rss, cap]
+        rows = monitor.parse_imn_cap_rss({"provider":"IMN","url":"https://example.test/rss.xml"}, "2026-11-13T07:00:00Z")
+        self.assertEqual(rows[0]["hazard_type"], "severe_storm")
+
+    @patch.object(monitor, "fetch_text")
     def test_imn_rss_fetches_linked_cap_xml(self, fetch_text):
         rss = """<rss><channel><item>
           <title>Alerta IMN por lluvias</title>
