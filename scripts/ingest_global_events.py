@@ -187,14 +187,27 @@ def parse_swpc_alerts(source, fetched_at):
         output.append(event_record(provider=source["provider"], raw_id=product_id, hazard_type=hazard, title=title[:220], description=message, url=item.get("link") or source["url"], observed_at=observed, issued_at=observed, ingested_at=fetched_at, confidence="official", status=event_status, severity=severity, metrics={"product_id": product_id, "message_type": item.get("message_type"), "age_hours": round(age_hours, 1) if age_hours is not None else None}))
     return output
 
+def repair_mojibake(value):
+    """Repair common UTF-8 text decoded as Latin-1 by an upstream feed."""
+    if not isinstance(value, str) or not any(marker in value for marker in ("Ã", "Â", "â€")):
+        return value
+    try:
+        repaired = value.encode("latin-1").decode("utf-8")
+        old_markers = sum(value.count(marker) for marker in ("Ã", "Â", "â€"))
+        new_markers = sum(repaired.count(marker) for marker in ("Ã", "Â", "â€"))
+        return repaired if new_markers < old_markers else value
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return value
+
+
 def parse_gdacs_rss(source, fetched_at):
     root = ET.fromstring(fetch_text(source["url"]))
     output = []
     for item in root.findall(".//item"):
-        title = item.findtext("title") or "GDACS alert"
+        title = repair_mojibake(item.findtext("title") or "GDACS alert")
         link = item.findtext("link") or source["url"]
         guid = item.findtext("guid") or link or title
-        description = item.findtext("description")
+        description = repair_mojibake(item.findtext("description"))
         # GeoRSS commonly supplies point as "latitude longitude".
         point = None
         for node in item.iter():
