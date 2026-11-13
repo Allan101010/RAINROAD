@@ -53,6 +53,18 @@
       "confidence_class": "provider_reported",
       "coverage": "global",
       "notes": "Curated open natural events; not a complete real-time sensor feed."
+    },
+    {
+      "id": "gdacs-cap",
+      "provider": "GDACS CAP",
+      "domain": "multi_hazard",
+      "kind": "rss",
+      "url": "https://www.gdacs.org/xml/gdacs_cap.xml",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "provider_reported",
+      "coverage": "global",
+      "notes": "CAP alert feed; preserve alert identifier, severity and source references."
     }
   ],
   "planned_sources": [
