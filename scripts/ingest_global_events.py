@@ -304,7 +304,9 @@ def parse_imn_cap_rss(source, fetched_at):
         raw_id = raw_id or item.findtext("guid") or link or title
         event_text = _xml_text(info, "event") or title
         categories = " ".join(node.text or "" for node in info.iter() if node.tag.rsplit("}", 1)[-1].lower() == "category") if info is not None else ""
-        hazard = _classify_cap_hazard(event_text + " " + (description or ""), categories)
+        # Classify the event itself, not the advisory's generic safety advice.
+        # Descriptions often mention flood/landslide precautions even for rain alerts.
+        hazard = _classify_cap_hazard(event_text + " " + title, categories)
         cap_severity = (_xml_text(info, "severity") or "unknown").lower()
         severity = severity_map.get(cap_severity, "unknown")
         urgency = _xml_text(info, "urgency") or "Unknown"
