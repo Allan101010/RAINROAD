@@ -18,6 +18,8 @@ Aplicación meteorológica y de inteligencia de fenómenos naturales con alcance
 - NASA EONET — eventos naturales abiertos.
 - NOAA National Hurricane Center — productos RSS del Atlántico y Pacífico oriental.
 - NOAA Space Weather Prediction Center — alertas oficiales de clima espacial.
+- Instituto Meteorológico Nacional de Costa Rica — avisos oficiales CAP con severidad, urgencia, certeza, áreas y vencimiento.
+- Red Sismológica Nacional UCR — reportes RSS de sismos sentidos, como complemento del catálogo USGS.
 
 ## Uso y limitaciones
 
