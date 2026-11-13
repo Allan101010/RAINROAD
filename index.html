@@ -1161,6 +1161,14 @@
                 </select>
               </label>
             </div>
+            <div class="route-destination-status" id="savedHomeStatus">
+              <strong>Ubicación de casa sin configurar.</strong><br>
+              Guarda tu ubicación mediante GPS o selecciónala en el mapa. Este dato se conservará únicamente en este dispositivo.
+            </div>
+            <div class="route-actions">
+              <button class="btn ghost small-btn" id="routeSetHomeGpsBtn" type="button">📍 Guardar mi ubicación actual como casa</button>
+              <button class="btn ghost small-btn" id="routePickHomeBtn" type="button">🏠 Elegir casa en el mapa</button>
+            </div>
             <div class="route-destination-status" id="savedWorkStatus">
               <strong>Destino laboral sin configurar.</strong><br>
               Búscalo por localidad o marca el punto exacto en el mapa una sola vez. Para que la llegada sea precisa, recomendamos seleccionar el punto exacto del trabajo en el mapa.
@@ -1313,14 +1321,9 @@
     const OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
     const OPEN_METEO_GEOCODING = "https://geocoding-api.open-meteo.com/v1/search";
 
-    // Ruta habitual: coordenadas de casa proporcionadas por el usuario.
-    // El destino laboral se configura una sola vez y se guarda localmente.
-    const ROUTE_HOME = {
-      name: "Casa · Santa Rosa de Poás",
-      lat: 10.102970,
-      lon: -84.264296,
-      detail: "Punto de origen guardado"
-    };
+    // Los puntos personales de las rutas se guardan únicamente en el navegador.
+    // No se incluyen coordenadas privadas dentro del código público del proyecto.
+    const ROUTE_HOME_STORAGE_KEY = "raintrackcr_saved_home_v1";
     const ROUTE_WORK_STORAGE_KEY = "raintrackcr_saved_work_v1";
     const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";
     const ROUTE_WEATHER_SAMPLES_MAX = 8;
@@ -1449,12 +1452,30 @@
     const dismissedCameraAlertIds = new Set();
 
     let routeMode = "saved";
+    let routeHomeLocation = null;
     let routeWorkLocation = null;
     let routeTemporaryDestination = null;
     let routePickMode = null;
     let routeStartMarker = null;
     let routeEndMarker = null;
     let routeIsVisible = false;
+
+    try {
+      const savedHome = JSON.parse(localStorage.getItem(ROUTE_HOME_STORAGE_KEY) || "null");
+      if (savedHome && savedHome.lat != null && savedHome.lon != null &&
+          Number.isFinite(Number(savedHome.lat)) && Number.isFinite(Number(savedHome.lon)) &&
+          Number(savedHome.lat) >= -90 && Number(savedHome.lat) <= 90 &&
+          Number(savedHome.lon) >= -180 && Number(savedHome.lon) <= 180) {
+        routeHomeLocation = {
+          name: "Casa",
+          lat: Number(savedHome.lat),
+          lon: Number(savedHome.lon),
+          detail: "Ubicación guardada en este dispositivo"
+        };
+      }
+    } catch (error) {
+      console.warn("No se pudo leer la ubicación de casa guardada:", error);
+    }
 
     try {
       const savedWork = JSON.parse(localStorage.getItem(ROUTE_WORK_STORAGE_KEY) || "null");
@@ -1747,7 +1768,11 @@
         }
 
         const selected = {
-          name: routePickMode === "work" ? "Trabajo · punto seleccionado" : "Destino temporal",
+          name: routePickMode === "work"
+            ? "Trabajo · punto seleccionado"
+            : routePickMode === "home"
+              ? "Casa · punto seleccionado"
+              : "Destino temporal",
           lat,
           lon: lng,
           detail: "Coordenadas seleccionadas directamente en el mapa"
@@ -1758,6 +1783,8 @@
         if (routePickMode === "work") {
           saveWorkRouteDestination(selected);
           $("routeWorkSearchInput").value = selected.name;
+        } else if (routePickMode === "home") {
+          saveHomeRouteDestination(selected);
         } else {
           routeTemporaryDestination = selected;
           $("routeTempSearchInput").value = selected.name;
@@ -2626,6 +2653,59 @@
       $("routeTempSection").hidden = routeMode !== "temporary";
       $("routeResult").hidden = true;
       updateSavedWorkStatus();
+      updateSavedHomeStatus();
+    }
+
+    function updateSavedHomeStatus() {
+      const status = $("savedHomeStatus");
+      if (!status) return;
+      if (routeHomeLocation) {
+        status.innerHTML = '<strong>Casa guardada.</strong><br><span class="tiny">La ubicación privada está almacenada únicamente en este dispositivo.</span>';
+      } else {
+        status.innerHTML = '<strong>Ubicación de casa sin configurar.</strong><br>Guárdala mediante GPS o selecciónala en el mapa. No se publicará en GitHub.';
+      }
+    }
+
+    function saveHomeRouteDestination(location) {
+      const lat = Number(location.lat);
+      const lon = Number(location.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+          lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        throw new Error("La ubicación seleccionada no tiene coordenadas válidas.");
+      }
+      const savedLocation = {
+        name: "Casa",
+        lat,
+        lon,
+        detail: "Ubicación guardada únicamente en este dispositivo"
+      };
+      try {
+        localStorage.setItem(ROUTE_HOME_STORAGE_KEY, JSON.stringify(savedLocation));
+      } catch (error) {
+        throw new Error("No se pudo guardar la ubicación en este dispositivo. Comprueba el almacenamiento del navegador.");
+      }
+      routeHomeLocation = savedLocation;
+      if (routeIsVisible) clearRouteLayers();
+      $("routeResult").hidden = true;
+      updateSavedHomeStatus();
+      $("mapStatusChip").textContent = "Ubicación de casa guardada en este dispositivo";
+    }
+
+    async function setHomeRouteLocationFromGps() {
+      const button = $("routeSetHomeGpsBtn");
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = "Obteniendo GPS…";
+      try {
+        const location = await getFreshGpsForRoute();
+        saveHomeRouteDestination(location);
+      } catch (error) {
+        const status = $("savedHomeStatus");
+        status.innerHTML = '<strong>No se pudo guardar la ubicación.</strong><br>' + escapeHtml(error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     }
 
     function updateSavedWorkStatus() {
@@ -2661,7 +2741,9 @@
       if (mapReady) map.getCanvas().style.cursor = "crosshair";
       $("mapStatusChip").textContent = mode === "work"
         ? "Selecciona en el mapa la ubicación exacta del trabajo"
-        : "Selecciona en el mapa tu destino temporal";
+        : mode === "home"
+          ? "Selecciona en el mapa la ubicación de casa"
+          : "Selecciona en el mapa tu destino temporal";
       $("routePanel").hidden = false;
       $("routeToggle").setAttribute("aria-expanded", "true");
     }
@@ -3058,17 +3140,20 @@
         let directionLabel;
 
         if (routeMode === "saved") {
+          if (!routeHomeLocation) {
+            throw new Error("Primero guarda la ubicación de casa mediante GPS o selecciónala en el mapa. Se conservará solo en este dispositivo.");
+          }
           if (!routeWorkLocation) {
             throw new Error("Primero configura el destino del trabajo: búscalo o selecciónalo directamente en el mapa.");
           }
           const direction = $("routeDirection").value;
           if (direction === "outbound") {
-            origin = ROUTE_HOME;
+            origin = routeHomeLocation;
             destination = routeWorkLocation;
             directionLabel = "Ida · Casa → trabajo";
           } else {
             origin = routeWorkLocation;
-            destination = ROUTE_HOME;
+            destination = routeHomeLocation;
             directionLabel = "Regreso · Trabajo → casa";
           }
         } else {
@@ -3742,6 +3827,7 @@
     // ------------------------------------------------------------
     // EVENTOS DEL PLANIFICADOR DE RUTAS
     // ------------------------------------------------------------
+    updateSavedHomeStatus();
     updateSavedWorkStatus();
 
     $("routeToggle").addEventListener("click", () => {
@@ -3749,7 +3835,10 @@
       panel.hidden = !panel.hidden;
       $("routeToggle").setAttribute("aria-expanded", String(!panel.hidden));
       $("routeToggle").textContent = panel.hidden ? "🧭 Rutas" : "🧭 Rutas ▲";
-      if (!panel.hidden) updateSavedWorkStatus();
+      if (!panel.hidden) {
+        updateSavedHomeStatus();
+        updateSavedWorkStatus();
+      }
     });
 
     $("routePanelClose").addEventListener("click", closeRoutePanelOnly);
@@ -3776,6 +3865,8 @@
       }
     });
 
+    $("routeSetHomeGpsBtn").addEventListener("click", setHomeRouteLocationFromGps);
+    $("routePickHomeBtn").addEventListener("click", () => beginRouteMapPick("home"));
     $("routePickWorkBtn").addEventListener("click", () => beginRouteMapPick("work"));
     $("routePickTempBtn").addEventListener("click", () => beginRouteMapPick("temporary"));
     $("routePickCancel").addEventListener("click", cancelRouteMapPick);
