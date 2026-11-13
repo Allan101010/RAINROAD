@@ -2,6 +2,6 @@ requests==2.32.3
 beautifulsoup4==4.13.4
 Pillow==11.2.1
 transformers==4.50.0
-safetensors>=0.5.3
+safetensors>=0.8.0
 sentencepiece==0.2.1
 pytesseract==0.3.13
