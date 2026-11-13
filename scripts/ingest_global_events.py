@@ -79,7 +79,7 @@ def fetch_json(url):
 def fetch_text(url):
     response = SESSION.get(url, timeout=TIMEOUT)
     response.raise_for_status()
-    return response.text
+    return response.content
 
 
 def parse_usgs(source, fetched_at):
@@ -145,14 +145,14 @@ def parse_swpc_alerts(source, fetched_at):
         message = str(item.get("message") or item.get("summary") or item.get("product_id") or "Aviso de clima espacial")
         product_id = str(item.get("product_id") or item.get("id") or message[:120])
         lower = message.lower()
-        hazard = "geomagnetic_storm" if any(x in lower for x in ("geomagnetic storm", "geomagnetic", "g-scale")) else "solar_flare" if any(x in lower for x in ("solar flare", "radio blackout", "x-ray")) else "space_weather"
+        hazard = "geomagnetic_storm" if any(x in lower for x in ("geomagnetic storm", "geomagnetic", "g-scale")) else "solar_flare" if any(x in lower for x in ("solar flare", "radio blackout", "x-ray", "type ii radio emission", "type iv radio emission", "solar radiation storm", "proton event")) else "space_weather"
         severity = "unknown"
         match = re.search(r"\\bG([1-5])\\b", message, re.I)
         if match:
             level = int(match.group(1))
             severity = "minor" if level == 1 else "moderate" if level == 2 else "severe" if level in (3, 4) else "extreme"
         observed = item.get("issue_datetime") or item.get("issue_time") or item.get("message_issue_time") or fetched_at
-        output.append(event_record(provider=source["provider"], raw_id=product_id, hazard_type=hazard, title=message.splitlines()[0][:220], description=message, url=item.get("link") or source["url"], observed_at=observed, issued_at=observed, ingested_at=fetched_at, confidence="official", severity=severity, metrics={"product_id": product_id, "message_type": item.get("message_type")}))
+        output.append(event_record(provider=source["provider"], raw_id=product_id, hazard_type=hazard, title=(product_id + " - " + next((line.strip() for line in message.splitlines() if line.strip().startswith(("ALERT:", "WATCH:", "WARNING:"))), message.splitlines()[0]))[:220], description=message, url=item.get("link") or source["url"], observed_at=observed, issued_at=observed, ingested_at=fetched_at, confidence="official", severity=severity, metrics={"product_id": product_id, "message_type": item.get("message_type")}))
     return output
 
 def parse_gdacs_rss(source, fetched_at):
