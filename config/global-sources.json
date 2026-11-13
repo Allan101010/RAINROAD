@@ -101,6 +101,18 @@
       "confidence_class": "official",
       "coverage": "Costa Rica",
       "notes": "Official CAP alert feed; preserve severity, urgency, certainty, area and expiry when published."
+    },
+    {
+      "id": "rsn-ucr-felt-earthquakes-rss",
+      "provider": "Red Sismológica Nacional UCR",
+      "domain": "solid_earth",
+      "kind": "rsn_rss",
+      "url": "https://rsn.ucr.ac.cr/actividad-sismica/ultimos-sismos?format=feed&type=rss",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "provider_reported",
+      "coverage": "Costa Rica and nearby region",
+      "notes": "RSN published recent felt-earthquake reports. Supplementary to USGS; not a complete real-time seismic catalog."
     }
   ],
   "planned_sources": [
