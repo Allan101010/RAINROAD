@@ -41,5 +41,7 @@ jobs:
             echo "No global event changes."
           else
             git commit -m "Update normalized global hazard events"
+            # Rebase generated data on latest main to avoid races with Pages commits.
+            git pull --rebase origin main
             git push
           fi
