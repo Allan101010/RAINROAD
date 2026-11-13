@@ -37,7 +37,7 @@ jobs:
           cache-dependency-path: requirements-camera-monitor.txt
 
       - name: Restaurar modelo de IA en caché
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
           key: raintrack-weather-scene-models-v2
