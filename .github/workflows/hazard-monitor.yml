@@ -1,0 +1,62 @@
+name: RainTrack CR · Motor de vigilancia multi-amenaza
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/monitor_hazards.py"
+      - "tests/test_monitor_hazards.py"
+      - ".github/workflows/hazard-monitor.yml"
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raintrack-hazard-monitor
+  cancel-in-progress: false
+
+jobs:
+  collect-hazards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ejecutar pruebas del recolector
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Consultar fuentes oficiales y generar snapshot
+        run: python scripts/monitor_hazards.py
+      - name: Publicar snapshot para GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hazards.json
+          if git diff --cached --quiet; then
+            echo "El snapshot no cambió."
+            exit 0
+          fi
+          git commit -m "Actualizar vigilancia global de amenazas"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo "Snapshot publicado."
+              exit 0
+            fi
+            git rebase --abort || true
+            sleep $((attempt * 3))
+          done
+          echo "::error::No fue posible publicar hazards.json después de tres intentos."
+          exit 1
