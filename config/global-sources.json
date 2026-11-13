@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "scope": {
+    "geographic": "global",
+    "priority_region": "Costa Rica and Central America",
+    "ingest_all_supported_events": true
+  },
+  "sources": [
+    {
+      "id": "usgs-earthquakes-significant",
+      "provider": "USGS Earthquake Hazards Program",
+      "domain": "solid_earth",
+      "kind": "geojson",
+      "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.geojson",
+      "enabled": true,
+      "poll_minutes": 5,
+      "confidence_class": "provider_reported",
+      "coverage": "global",
+      "notes": "Significant earthquakes in the past day."
+    },
+    {
+      "id": "usgs-earthquakes-all-day",
+      "provider": "USGS Earthquake Hazards Program",
+      "domain": "solid_earth",
+      "kind": "geojson",
+      "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+      "enabled": true,
+      "poll_minutes": 5,
+      "confidence_class": "provider_reported",
+      "coverage": "global",
+      "notes": "All earthquakes in the past day; event thresholds and availability are controlled by USGS."
+    },
+    {
+      "id": "gdacs-rss",
+      "provider": "GDACS",
+      "domain": "multi_hazard",
+      "kind": "rss",
+      "url": "https://www.gdacs.org/xml/rss.xml",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "provider_reported",
+      "coverage": "global",
+      "notes": "Global disaster alerts; retain provider severity and links."
+    },
+    {
+      "id": "nasa-eonet-open-events",
+      "provider": "NASA EONET",
+      "domain": "environment",
+      "kind": "json",
+      "url": "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100",
+      "enabled": true,
+      "poll_minutes": 30,
+      "confidence_class": "provider_reported",
+      "coverage": "global",
+      "notes": "Curated open natural events; not a complete real-time sensor feed."
+    }
+  ],
+  "planned_sources": [
+    {
+      "provider": "NOAA National Hurricane Center",
+      "domain": "atmosphere",
+      "status": "planned",
+      "reason": "Select official machine-readable advisory and track products by basin."
+    },
+    {
+      "provider": "NOAA Space Weather Prediction Center",
+      "domain": "space_weather",
+      "status": "planned",
+      "reason": "Integrate official observations, watches and warnings."
+    },
+    {
+      "provider": "IMN Costa Rica",
+      "domain": "weather",
+      "status": "planned",
+      "reason": "Preserve and extend existing Costa Rica weather integration."
+    },
+    {
+      "provider": "OVSICORI-UNA and RSN",
+      "domain": "solid_earth",
+      "status": "planned",
+      "reason": "Confirm stable public machine-readable event endpoints before enabling ingestion."
+    },
+    {
+      "provider": "CNE Costa Rica",
+      "domain": "multi_hazard",
+      "status": "planned",
+      "reason": "Integrate official public emergency advisories with clear attribution."
+    }
+  ]
+}
