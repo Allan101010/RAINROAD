@@ -83,6 +83,19 @@ class NormalizationTests(unittest.TestCase):
         rows = monitor.parse_swpc_alerts(source, "2026-11-13T06:05:00Z")
         self.assertEqual(rows[0]["status"], "resolved")
 
+    @patch.object(monitor, "fetch_json")
+    def test_swpc_naive_iso_timestamp_is_normalized_and_stale(self, fetch_json):
+        fetch_json.return_value = [{
+            "product_id": "K06A",
+            "issue_datetime": "2026-11-05 18:57:32.737",
+            "message": "ALERT: Geomagnetic K-index of 6"
+        }]
+        source = {"provider": "NOAA SWPC", "url": "https://example.test/alerts.json"}
+        rows = monitor.parse_swpc_alerts(source, "2026-11-13T06:05:00Z")
+        self.assertEqual(rows[0]["observed_at"], "2026-11-05T18:57:32.737000Z")
+        self.assertEqual(rows[0]["status"], "resolved")
+        self.assertEqual(rows[0]["severity"], "moderate")
+
     def test_epoch_milliseconds_are_converted(self):
         self.assertTrue(monitor.iso_from_epoch(1790000000000).endswith("Z"))
 
