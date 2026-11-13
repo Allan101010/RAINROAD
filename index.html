@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.0</title>
+  <title>RainTrack CR v1.8.1</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -157,7 +157,7 @@
     }
     .map-shell {
       position: relative;
-      height: clamp(350px, 55vh, 560px);
+      height: clamp(390px, 60vh, 620px);
       overflow: hidden;
       border: 1px solid rgba(255,255,255,.12);
       border-radius: 17px;
@@ -184,12 +184,13 @@
       z-index: 20;
       top: 12px;
       right: 12px;
-      width: min(290px, calc(100% - 24px));
+      width: min(340px, calc(100% - 24px));
       color: var(--text);
       pointer-events: auto;
     }
     .map-layer-toggle {
       display: block;
+      min-height: 42px;
       margin-left: auto;
       border: 1px solid rgba(255,255,255,.18);
       border-radius: 10px;
@@ -201,20 +202,53 @@
       font-weight: 800;
     }
     .map-layer-panel {
+      max-height: min(68vh, 440px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
       margin-top: 8px;
       padding: 12px;
       border: 1px solid rgba(255,255,255,.15);
       border-radius: 12px;
-      background: rgba(16,24,39,.96);
+      background: rgba(16,24,39,.98);
       box-shadow: 0 8px 24px rgba(0,0,0,.3);
       backdrop-filter: blur(8px);
+      touch-action: pan-y;
     }
     .map-layer-panel[hidden] { display: none !important; }
-    .map-layer-panel label { display: block; margin-top: 10px; color: #dbe7f5; font-size: 11px; }
-    .map-layer-panel .source-select { width: 100%; min-width: 0; margin-top: 5px; }
-    .layer-check { display: flex !important; align-items: center; gap: 8px; }
-    .layer-check input { accent-color: var(--blue); width: 16px; height: 16px; }
-    .layer-hint { margin-top: 9px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .map-layer-panel label { display: block; margin-top: 12px; color: #dbe7f5; font-size: 12px; }
+    .map-layer-panel .source-select { width: 100%; min-width: 0; min-height: 44px; margin-top: 6px; font-size: 13px; }
+    .map-layer-panel .layer-check { min-height: 42px; display: flex !important; align-items: center; gap: 9px; }
+    .map-layer-panel .layer-check span { font-size: 12px; line-height: 1.4; }
+    .layer-check input { flex: 0 0 18px; accent-color: var(--blue); width: 18px; height: 18px; }
+    .layer-hint { margin-top: 9px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .map-layer-panel-head {
+      position: sticky;
+      z-index: 2;
+      top: -12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: -12px -12px 8px;
+      padding: 11px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px 12px 0 0;
+      background: #101827;
+    }
+    .map-layer-panel-head strong { font-size: 13px; }
+    .map-layer-close {
+      flex: 0 0 auto;
+      min-width: 66px;
+      min-height: 34px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 8px;
+      color: #fff;
+      background: #334155;
+      font-size: 12px;
+      font-weight: 700;
+    }
     .imn-map-card {
       position: absolute;
       z-index: 15;
@@ -662,9 +696,14 @@
       main { padding: 17px 12px 30px; }
       .topbar { padding: 14px 13px; }
       .brand { font-size: 19px; }
-      .map-shell { height: 390px; border-radius: 14px; }
-      .map-layer-control { width: min(250px, calc(100% - 24px)); }
-      .imn-map-card { width: min(220px, calc(100% - 24px)); bottom: 42px; }
+      .map-shell { height: clamp(430px, 68svh, 600px); border-radius: 14px; }
+      .map-layer-control { left: 12px; right: 12px; width: calc(100% - 24px); }
+      .map-layer-panel { max-height: min(64svh, 350px); padding: 14px; }
+      .map-layer-panel-head { top: -14px; margin: -14px -14px 9px; padding: 12px 14px; }
+      .map-layer-panel .source-select { min-height: 46px; font-size: 14px; }
+      .map-layer-panel .layer-check { min-height: 46px; }
+      .map-layer-close { min-height: 40px; }
+      .imn-map-card { width: min(260px, calc(100% - 24px)); bottom: 42px; }
       .imn-map-card img { max-height: 125px; }
       .weather-grid, .solar-grid { grid-template-columns: 1fr; }
       .hourly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -684,7 +723,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.0</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.1</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -717,11 +756,14 @@
         <div class="map-layer-control">
           <button class="map-layer-toggle" id="layersToggle" type="button" aria-expanded="false">☷ Capas del mapa ▼</button>
           <div class="map-layer-panel" id="layersPanel" hidden>
-            <strong style="font-size:12px">Capas meteorológicas</strong>
+            <div class="map-layer-panel-head">
+              <strong>Capas meteorológicas</strong>
+              <button class="map-layer-close" id="layersClose" type="button" aria-label="Cerrar capas del mapa">Cerrar ×</button>
+            </div>
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
-              <option value="rainviewer">Radar terrestre IMN · imágenes cada 10 min</option>
-              <option value="librewxr">LibreWXR · estimación satelital NOAA</option>
+              <option value="rainviewer">Radar IMN / RainViewer · 10 min</option>
+              <option value="librewxr">LibreWXR · satélite NOAA</option>
             </select>
             <p class="layer-hint">La opción principal usa el radar del IMN distribuido por RainViewer. En Costa Rica hay una estación integrada (KSJC, San José), por lo que la cobertura puede disminuir lejos de ella y en zonas montañosas. LibreWXR queda como referencia satelital.</p>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
@@ -3100,11 +3142,21 @@
     // ------------------------------------------------------------
     // CAPAS INTEGRADAS EN EL MISMO MAPA
     // ------------------------------------------------------------
+    function closeLayersPanel() {
+      $('layersPanel').hidden = true;
+      $('layersToggle').setAttribute('aria-expanded', 'false');
+      $('layersToggle').textContent = '☷ Capas del mapa ▼';
+    }
+
     $('layersToggle').addEventListener('click', () => {
       const panel = $('layersPanel');
       panel.hidden = !panel.hidden;
       $('layersToggle').setAttribute('aria-expanded', String(!panel.hidden));
       $('layersToggle').textContent = panel.hidden ? '☷ Capas del mapa ▼' : '☷ Capas del mapa ▲';
+    });
+    $('layersClose').addEventListener('click', closeLayersPanel);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !$('layersPanel').hidden) closeLayersPanel();
     });
 
     $('imnMapToggle').addEventListener('change', event => {
