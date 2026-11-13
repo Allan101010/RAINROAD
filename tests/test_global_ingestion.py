@@ -102,7 +102,7 @@ class NormalizationTests(unittest.TestCase):
         fetch_text.return_value = """<rss><channel><item>
           <title>SISMO, 05 de noviembre del 2026, 6:53 pm., Mag: 3,7 Mw, SENTIDO</title>
           <link>https://rsn.ucr.ac.cr/actividad-sismica/ultimos-sismos</link>
-          <guid>rsn-event-1</guid><pubDate>Fri, 06 Nov 2026 01:19:23 GMT</pubDate><description>Evento sentido reportado por la RSN.</description>
+          <guid>rsn-event-1</guid><pubDate>Fri, 06 Nov 2026 01:19:23 GMT</pubDate><description><![CDATA[<p><strong>Localización: </strong>4 km al Suroeste de Quepos</p><p><strong>Coordenadas: </strong>9,409 y -84,2.</p><p><strong>Profundidad: </strong>31 km.</p>]]></description>
         </item></channel></rss>"""
         rows = monitor.parse_rsn_rss({"provider":"RSN-UCR","url":"https://example.test/rss"}, "2026-11-13T12:00:00Z")
         self.assertEqual(len(rows), 1)
@@ -111,7 +111,10 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(rows[0]["metrics"]["magnitude"], 3.7)
         self.assertEqual(rows[0]["observed_at"], "2026-11-06T00:53:00Z")
         self.assertEqual(rows[0]["issued_at"], "2026-11-06T01:19:23Z")
-        self.assertIsNone(rows[0]["location"])
+        self.assertAlmostEqual(rows[0]["location"]["latitude"], 9.409)
+        self.assertAlmostEqual(rows[0]["location"]["longitude"], -84.2)
+        self.assertEqual(rows[0]["location"]["depth_km"], 31.0)
+        self.assertEqual(rows[0]["location"]["place_name"], "4 km al Suroeste de Quepos")
 
     @patch.object(monitor, "fetch_text")
     def test_imn_rain_alert_not_reclassified_by_precautionary_text(self, fetch_text):
