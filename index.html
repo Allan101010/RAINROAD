@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.9</title>
+  <title>RainTrack CR v1.8.10</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -154,27 +154,6 @@
       padding: 9px 11px;
       color: white;
       background: var(--panel);
-    }
-    .provider-key-panel {
-      margin-top: 11px;
-      padding: 12px;
-      border: 1px solid rgba(148,163,184,.28);
-      border-radius: 12px;
-      background: rgba(15,23,42,.72);
-    }
-    .provider-key-panel[hidden] { display: none !important; }
-    .provider-key-panel label {
-      display: block;
-      margin: 10px 0 5px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .provider-key-input { width: 100%; }
-    .provider-key-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
     }
     .map-shell {
       position: relative;
@@ -1056,7 +1035,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.9</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.10</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1095,26 +1074,10 @@
             </div>
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
-              <option value="librewxr">LibreWXR · estimación satelital global (principal)</option>
-              <option value="weatherapi">WeatherAPI · pronóstico horario de precipitación (sin KEY)</option>
-              <option value="openweather">OpenWeather · precipitación mundial (requiere KEY)</option>
-              <option value="tomorrow">Tomorrow.io · intensidad y pronóstico (requiere KEY)</option>
+              <option value="librewxr">LibreWXR · precipitación estimada por satélite (principal)</option>
+              <option value="weatherapi">WeatherAPI · pronóstico horario de precipitación (experimental)</option>
             </select>
-            <p class="layer-hint">LibreWXR permanece como fuente principal. Las nuevas opciones son pruebas independientes: WeatherAPI ofrece pronóstico horario, OpenWeather una capa mundial de precipitación y Tomorrow.io mosaicos de intensidad. No todas son radar observado; una zona transparente no confirma que esté despejado.</p>
-            <div class="provider-key-panel" id="providerKeysPanel" hidden>
-              <strong>Claves temporales para pruebas</strong>
-              <label for="openWeatherApiKey">OpenWeather API key</label>
-              <input class="field provider-key-input" id="openWeatherApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Pega aquí tu clave de OpenWeather">
-              <p class="tiny"><a href="https://home.openweathermap.org/api_keys" target="_blank" rel="noopener">Crear o consultar clave de OpenWeather</a></p>
-              <label for="tomorrowApiKey">Tomorrow.io API key</label>
-              <input class="field provider-key-input" id="tomorrowApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Pega aquí tu clave de Tomorrow.io">
-              <p class="tiny"><a href="https://app.tomorrow.io/" target="_blank" rel="noopener">Crear cuenta de Tomorrow.io</a></p>
-              <div class="provider-key-actions">
-                <button class="btn secondary small-btn" id="providerKeysApply" type="button">Aplicar claves y probar</button>
-                <button class="btn ghost small-btn" id="providerKeysClear" type="button">Borrar claves</button>
-              </div>
-              <p class="layer-hint">Las claves se mantienen solo en la memoria de esta pestaña y no se guardan en GitHub ni en el almacenamiento local. Para estas pruebas el navegador las envía al proveedor en cada mosaico; no uses claves con permisos o límites de facturación abiertos. Para producción habrá que moverlas a un intermediario seguro.</p>
-            </div>
+            <p class="layer-hint">LibreWXR sigue siendo la fuente principal. WeatherAPI se incorpora como segunda referencia para comparar su pronóstico horario de precipitación. No es un radar observado: una zona transparente no confirma que esté despejado.</p>
             <button class="btn secondary small-btn" id="radarSourceRefresh" type="button" style="width:100%;margin:9px 0">↻ Actualizar fuente seleccionada</button>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
             <label for="imnProduct">Producto oficial IMN</label>
@@ -1128,7 +1091,7 @@
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
             <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos para Webcams Costa Rica y OVSICORI. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
-            <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos del mapa. Sus imágenes oficiales se actualizan aproximadamente cada 5 minutos; se muestran como referencia visual y no generan alertas automáticas de lluvia.</p>
+            <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos. Algunas fichas, como el Aeropuerto de Cóbano, ofrecen video en vivo en su página original. RainTrack muestra una miniatura y verifica la disponibilidad; todavía no reproduce ni analiza el flujo de video.</p>
           </div>
         </div>
 
@@ -1323,7 +1286,7 @@
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · <a href="https://www.weatherapi.com/" target="_blank" rel="noopener">WeatherAPI</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
   
@@ -1395,15 +1358,6 @@
     const ROUTE_WEATHER_SAMPLES_MAX = 8;
 
     const RADAR_SOURCES = {
-      rainviewer: {
-        label: "Radar IMN / RainViewer",
-        metadataUrl: "https://api.rainviewer.com/public/weather-maps.json",
-        fallbackHost: "https://tilecache.rainviewer.com",
-        maxZoom: 7,
-        color: 2,
-        smooth: 0,
-        snow: 0
-      },
       librewxr: {
         type: "radar",
         label: "LibreWXR",
@@ -1418,16 +1372,6 @@
         type: "hourly_forecast",
         label: "WeatherAPI",
         maxZoom: 12
-      },
-      openweather: {
-        type: "current_map",
-        label: "OpenWeather",
-        maxZoom: 10
-      },
-      tomorrow: {
-        type: "short_forecast",
-        label: "Tomorrow.io",
-        maxZoom: 8
       }
     };
 
@@ -1522,10 +1466,8 @@
     let radarMetadata = null;
     let radarFrames = [];
     const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
-    let radarSourceKey = ["librewxr", "weatherapi", "openweather", "tomorrow"].includes(savedRadarSource)
+    let radarSourceKey = ["librewxr", "weatherapi"].includes(savedRadarSource)
       ? savedRadarSource : "librewxr";
-    let openWeatherApiKey = "";
-    let tomorrowApiKey = "";
     let radarFrameIndex = 0;
     let radarPlayTimer = null;
     let weatherRefreshTimer = null;
@@ -2239,7 +2181,7 @@
             ? item.status
             : ["online", "offline", "delayed", "stale"].includes(availabilityStatus) ? availabilityStatus : "unknown";
           const sourceLink = item.page_url
-            ? `<a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${isSkylineCamera ? "Abrir en SkylineWebcams ↗" : item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
+            ? `<a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${isSkylineCamera ? (item.live_video_page ? "Abrir video en vivo ↗" : "Abrir en SkylineWebcams ↗") : item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
             : "";
           const previewMarkup = isSkylineCamera
             ? availabilityStatus === "online" && item.preview_url
@@ -2252,7 +2194,7 @@
           return `<div class="camera-popup-row">
             <div class="camera-popup-row-main">
               <strong class="camera-popup-row-title">${escapeHtml(cameraDisplayName(item))}</strong>
-              <small class="camera-popup-row-detail">${escapeHtml(isSkylineCamera ? "Fuente externa · imagen fija" : [age, recovered.trim()].filter(Boolean).join(" "))}</small>
+              <small class="camera-popup-row-detail">${escapeHtml(isSkylineCamera ? (item.live_video_page ? "Video en vivo en la fuente · miniatura en RainTrack" : "Vista previa externa · no analizada") : [age, recovered.trim()].filter(Boolean).join(" "))}</small>
             </div>
             <span class="camera-popup-row-state ${stateClass}">${icon} ${escapeHtml(statusLabel)}</span>
             ${previewMarkup}
@@ -2260,8 +2202,11 @@
           </div>`;
         }).join("");
         const hasSkylineCameras = siteCameras.some(item => item.source_type === "skylinewebcams");
-        const summary = hasSkylineCameras
-          ? "Previsualizaciones oficiales de SkylineWebcams. Son imágenes fijas que se actualizan aproximadamente cada 5 minutos; no son vídeo continuo y no se utilizan para generar alertas automáticas de lluvia."
+        const hasLiveSkylineVideo = siteCameras.some(item => item.source_type === "skylinewebcams" && item.live_video_page === true);
+        const summary = hasLiveSkylineVideo
+          ? "La página original de SkylineWebcams ofrece video en vivo. RainTrack muestra una miniatura y verifica que la ficha esté disponible; todavía no reproduce ni analiza el flujo de video. Abre la cámara original para verla en directo."
+          : hasSkylineCameras
+            ? "RainTrack muestra una previsualización externa de SkylineWebcams y verifica la disponibilidad de la ficha. La imagen de previsualización no se analiza con IA ni genera alertas automáticas de lluvia."
           : status === "mixed"
             ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
             : status === "rain"
@@ -2480,20 +2425,6 @@
       });
     }
 
-    function createTomorrowFrames() {
-      const start = new Date();
-      start.setUTCMinutes(0, 0, 0);
-      return Array.from({ length: 7 }, (_, index) => {
-        const date = new Date(start.getTime() + index * 60 * 60 * 1000);
-        return {
-          time: Math.floor(date.getTime() / 1000),
-          frameType: "forecast",
-          provider: "tomorrow",
-          tomorrowTime: date.toISOString().replace(/\.\d{3}Z$/, "Z")
-        };
-      });
-    }
-
     function setRadarTimeline(frames, allowAnimation = true) {
       radarFrames = frames;
       radarFrameIndex = 0;
@@ -2510,16 +2441,6 @@
         return "https://weathermaps.weatherapi.com/precip/tiles/" +
           frame.weatherApiStamp + "/{z}/{x}/{y}.png";
       }
-      if (radarSourceKey === "openweather") {
-        return "https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=" +
-          encodeURIComponent(openWeatherApiKey);
-      }
-      if (radarSourceKey === "tomorrow") {
-        return "https://api.tomorrow.io/v4/map/tile/{z}/{x}/{y}/precipitationIntensity/" +
-          encodeURIComponent(frame.tomorrowTime) + ".png?apikey=" +
-          encodeURIComponent(tomorrowApiKey);
-      }
-
       const host = String(metadata.host || config.fallbackHost).replace(/\/$/, "");
       const path = String(frame.path || "");
       return host + path + "/256/{z}/{x}/{y}/" + config.color + "/" + config.smooth + "_" + config.snow + ".png";
@@ -2542,41 +2463,13 @@
       removeRadarLayer();
 
       try {
-        if (radarSourceKey === "weatherapi" ||
-            radarSourceKey === "openweather" ||
-            radarSourceKey === "tomorrow") {
-          if (radarSourceKey === "openweather" && !openWeatherApiKey) {
-            throw new Error("OpenWeather necesita una API KEY. Pégala en el panel de claves y pulsa «Aplicar claves y probar».");
-          }
-          if (radarSourceKey === "tomorrow" && !tomorrowApiKey) {
-            throw new Error("Tomorrow.io necesita una API KEY. Pégala en el panel de claves y pulsa «Aplicar claves y probar».");
-          }
-
-          radarMetadata = { provider: radarSourceKey };
-          if (radarSourceKey === "weatherapi") {
-            setRadarTimeline(createWeatherApiFrames());
-            $("mapStatusChip").textContent = "WeatherAPI · pronóstico horario de precipitación";
-            $("radarSourceNote").innerHTML =
-              'WeatherAPI ofrece mosaicos de <strong>pronóstico horario</strong> para las próximas 72 horas, alineados en UTC. No es un radar observado y puede diferir de la lluvia real. No requiere API KEY. Fuente: <a href="https://www.weatherapi.com/docs/weather-maps/" target="_blank" rel="noopener">documentación de WeatherAPI</a>.';
-            $("radarTime").textContent = "Pronóstico horario · selecciona una hora en la línea de tiempo";
-          } else if (radarSourceKey === "openweather") {
-            setRadarTimeline([{
-              time: Math.floor(Date.now() / 1000),
-              frameType: "current",
-              provider: "openweather"
-            }]);
-            $("mapStatusChip").textContent = "OpenWeather · capa mundial de precipitación";
-            $("radarSourceNote").innerHTML =
-              'Capa mundial <strong>precipitation_new</strong> de OpenWeather. Es una visualización de precipitación del proveedor, no debe interpretarse automáticamente como eco de radar local. Requiere API KEY y está sujeta a los límites y permisos de tu cuenta. Fuente: <a href="https://openweathermap.org/api/weathermaps" target="_blank" rel="noopener">Weather Maps 1.0</a>.';
-            $("radarTime").textContent = "Capa de precipitación actual · OpenWeather";
-          } else {
-            setRadarTimeline(createTomorrowFrames(), false);
-            $("mapStatusChip").textContent = "Tomorrow.io · intensidad de precipitación";
-            $("radarSourceNote").innerHTML =
-              'Mosaicos de <strong>precipitationIntensity</strong> de Tomorrow.io, con una ventana de prueba de hasta 6 horas. No es un radar terrestre observado. En el plan gratuito cada mosaico cuenta como una solicitud (500 al día y 25 por hora); se limita el zoom a 8, se desactiva la animación y no se actualiza automáticamente para proteger la cuota. Fuente: <a href="https://docs.tomorrow.io/reference/get-map-tile" target="_blank" rel="noopener">Weather Maps API</a>.';
-            $("radarTime").textContent = "Intensidad pronosticada · selecciona una hora";
-          }
-
+        if (radarSourceKey === "weatherapi") {
+          radarMetadata = { provider: "weatherapi" };
+          setRadarTimeline(createWeatherApiFrames());
+          $("mapStatusChip").textContent = "WeatherAPI · pronóstico horario de precipitación";
+          $("radarSourceNote").innerHTML =
+            'WeatherAPI ofrece mosaicos de <strong>pronóstico horario</strong> para las próximas 72 horas, alineados en UTC. No es un radar observado y puede diferir de la lluvia real. No requiere API KEY. Fuente: <a href="https://www.weatherapi.com/docs/weather-maps/" target="_blank" rel="noopener">documentación de WeatherAPI</a>.';
+          $("radarTime").textContent = "Pronóstico horario · selecciona una hora en la línea de tiempo";
           showRadarFrame(0);
           $("radarStatus").textContent = "Fuente seleccionada · solicitando mosaicos";
           $("radarStatus").className = "muted";
@@ -2611,17 +2504,9 @@
         $("radarStatus").className = "muted";
         $("radarTime").textContent = "Último mosaico publicado: " + formatClockFromTimestamp(lastObserved.time);
 
-        if (radarSourceKey === "rainviewer") {
-          $("mapStatusChip").textContent = "RainViewer · radar terrestre IMN KSJC · cobertura limitada";
-          $("radarSourceNote").innerHTML =
-            'Esta capa muestra el radar terrestre del <strong>IMN de Costa Rica</strong>, distribuido por RainViewer. Costa Rica dispone de una sola estación integrada (KSJC, San José). La API conserva imágenes de las últimas 2 horas en intervalos de 10 minutos. <strong>Su cobertura disminuye con la distancia y el relieve:</strong> una zona transparente puede estar fuera del alcance del radar o no presentar ecos; no confirma que esté despejado. ' +
-            'Fuentes: <a href="https://www.imn.ac.cr/radar" target="_blank" rel="noopener">IMN</a> · ' +
-            '<a href="https://www.rainviewer.com/es/radars/costa-rica.html" target="_blank" rel="noopener">RainViewer · estación de Costa Rica</a>.';
-        } else {
-          $("mapStatusChip").textContent = "LibreWXR · precipitación global estimada por satélite";
-          $("radarSourceNote").innerHTML =
-            'En Costa Rica, LibreWXR utiliza principalmente NOAA RRQPE, una <strong>estimación satelital infrarroja de precipitación</strong>, no una medición directa de radar terrestre. Tiene una cadencia aproximada de 10 minutos y una latencia mediana cercana a 17 minutos; puede subestimar lluvias cálidas o estratiformes. Su cobertura geográfica es más amplia, pero debe contrastarse con estaciones y avisos oficiales. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.';
-        }
+        $("mapStatusChip").textContent = "LibreWXR · precipitación global estimada por satélite";
+        $("radarSourceNote").innerHTML =
+          'En Costa Rica, LibreWXR utiliza principalmente NOAA RRQPE, una <strong>estimación satelital infrarroja de precipitación</strong>, no una medición directa de radar terrestre. Tiene una cadencia aproximada de 10 minutos y una latencia mediana cercana a 17 minutos; puede subestimar lluvias cálidas o estratiformes. Su cobertura geográfica es más amplia, pero debe contrastarse con estaciones y avisos oficiales. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.';
 
         updateZoomHint();
       } catch (error) {
@@ -2660,10 +2545,7 @@
         maxzoom: config.maxZoom,
         attribution: ({
           librewxr: "Precipitation data: LibreWXR / NOAA RRQPE",
-          rainviewer: "Radar data: IMN Costa Rica / RainViewer",
-          weatherapi: "Precipitation forecast: WeatherAPI.com",
-          openweather: "Precipitation map: OpenWeather",
-          tomorrow: "Precipitation intensity: Tomorrow.io"
+          weatherapi: "Precipitation forecast: WeatherAPI.com"
         })[radarSourceKey] || "Precipitation data"
       });
 
@@ -3999,30 +3881,9 @@
     });
 
     $("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
-    $("providerKeysPanel").hidden = !["openweather", "tomorrow"].includes($("radarSource").value);
-    $("radarSource").addEventListener("change", () => {
-      $("providerKeysPanel").hidden = !["openweather", "tomorrow"].includes($("radarSource").value);
-      loadRadarSource();
-    });
-    $("providerKeysApply").addEventListener("click", () => {
-      openWeatherApiKey = $("openWeatherApiKey").value.trim();
-      tomorrowApiKey = $("tomorrowApiKey").value.trim();
-      loadRadarSource();
-    });
+    $("radarSource").addEventListener("change", loadRadarSource);
     $("radarSourceRefresh").addEventListener("click", loadRadarSource);
-    $("providerKeysClear").addEventListener("click", () => {
-      openWeatherApiKey = "";
-      tomorrowApiKey = "";
-      $("openWeatherApiKey").value = "";
-      $("tomorrowApiKey").value = "";
-      loadRadarSource();
-    });
-    $("frameSlider").addEventListener("input", event => {
-      if (radarSourceKey !== "tomorrow") showRadarFrame(Number(event.target.value));
-    });
-    $("frameSlider").addEventListener("change", event => {
-      if (radarSourceKey === "tomorrow") showRadarFrame(Number(event.target.value));
-    });
+    $("frameSlider").addEventListener("input", event => showRadarFrame(Number(event.target.value)));
     $("playRadar").addEventListener("click", toggleRadarAnimation);
 
     function refreshWeatherData() {
