@@ -10,7 +10,7 @@
 ## Implementation status (13 November 2026)
 - Operational ingestion: USGS global earthquakes, GDACS, NASA EONET, NOAA NHC Atlantic/Eastern Pacific RSS, and NOAA SWPC alerts.
 - Scheduled publication: GitHub Actions polls the enabled public feeds and publishes the normalized `global-events.json` dataset.
-- Client: a separate world map plots events with coordinates, while the Costa Rica weather map remains locally focused; hazard and regional filters drive the global event list and map.
+- Client: **the global events panel was removed from the web page (v1.8.13)**; the dataset is still generated. Previously, a separate world map plotted events with coordinates, while the Costa Rica weather map remains locally focused; hazard and regional filters drive the global event list and map.
 - Event cards expose provider, observation time, confidence class, and active/resolved state. Stale records from unavailable sources are explicitly marked.
 - Automated ingestion tests and Python compilation checks pass. Source coverage remains dependent on each provider's public feed and latency.
 

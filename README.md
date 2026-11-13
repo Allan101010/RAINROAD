@@ -6,10 +6,7 @@ Aplicación meteorológica y de inteligencia de fenómenos naturales con alcance
 
 - Mapa meteorológico de Costa Rica, radar, pronóstico y rutas.
 - Catálogo de eventos globales normalizados.
-- Mapa mundial interactivo de eventos con coordenadas.
-- Filtros por terremotos, ciclones tropicales, inundaciones, incendios, tormentas y clima espacial.
-- Estado de las fuentes, atribución, hora de observación y estado del evento.
-- Actualización automática del conjunto global cada 10 minutos; la interfaz consulta el conjunto publicado cada 5 minutos. El conjunto es una instantánea actual, no un historial.
+- Actualización automática del conjunto global cada 10 minutos (`global-events.json`). La página principal ya no muestra este panel; los datos se siguen generando para uso futuro. El conjunto es una instantánea actual, no un historial.
 
 ## Fuentes conectadas
 

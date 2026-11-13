@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.12</title>
+  <title>RainTrack CR v1.8.13</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.12">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.13">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.12</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.13</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -290,40 +290,9 @@
       Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · <a href="https://www.weatherapi.com/" target="_blank" rel="noopener">WeatherAPI</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
-  
-    <section class="section" id="globalIntelligencePanel" aria-labelledby="globalIntelligenceTitle">
-      <div class="section-head">
-        <div>
-          <h2 id="globalIntelligenceTitle">🌎 Inteligencia global de fenómenos</h2>
-          <p class="subtitle">Eventos reportados por fuentes públicas internacionales. Costa Rica y Centroamérica tienen prioridad de visualización.</p>
-        </div>
-        <button class="btn secondary small-btn" id="globalEventsRefresh" type="button">Actualizar eventos</button>
-      </div>
-      <div class="panel" style="margin-bottom:12px">
-        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
-          <div><strong id="globalEventsStatus">Conectando con fuentes globales…</strong><div class="tiny" id="globalEventsUpdated">Esperando el primer conjunto de datos.</div></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="map-chip" style="position:static;display:inline-block" id="globalEventsCount">0 eventos</span><span class="map-chip" style="position:static;display:inline-block" id="globalSourcesCount">0 fuentes</span></div>
-        </div>
-        <div id="globalSourceHealth" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px"></div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px">
-        <select class="source-select" id="globalHazardFilter" aria-label="Filtrar por fenómeno">
-          <option value="all">Todos los fenómenos</option><option value="earthquake">Terremotos y sismos</option><option value="volcano">Volcanes</option><option value="tropical_cyclone">Ciclones y huracanes</option><option value="flood">Inundaciones</option><option value="wildfire">Incendios</option><option value="severe_storm">Tormentas</option><option value="space_weather">Clima espacial</option><option value="geomagnetic_storm">Tormentas geomagnéticas</option><option value="solar_flare">Erupciones solares</option><option value="other">Otros eventos</option>
-        </select>
-        <select class="source-select" id="globalRegionFilter" aria-label="Filtrar por región">
-          <option value="all">Todo el mundo</option><option value="priority">Costa Rica y Centroamérica</option>
-        </select>
-      </div>
-      <div id="globalEventsMap" role="region" aria-label="Mapa mundial de fenómenos reportados" style="height:300px;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:0 0 12px;background:var(--panel)"></div>
-      <p class="tiny" style="margin:-4px 0 12px">El mapa muestra únicamente eventos con coordenadas publicadas por su fuente. Los avisos sin ubicación geográfica permanecen en el listado.</p>
-      <div id="globalEventsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:11px">
-        <div class="panel small muted">Cargando eventos publicados…</div>
-      </div>
-      <p class="tiny" style="margin-top:12px">Los eventos dependen de la disponibilidad y latencia de cada proveedor. La ausencia de registros no significa ausencia de peligro. Esta plataforma es informativa y no sustituye los avisos oficiales ni permite predecir terremotos.</p>
-    </section>
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.12"></script>
+  <script src="assets/app.js?v=1.8.13"></script>
 </body>
 </html>
