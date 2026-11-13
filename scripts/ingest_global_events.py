@@ -151,18 +151,35 @@ def parse_swpc_alerts(source, fetched_at):
         if match:
             level = int(match.group(1))
             severity = "minor" if level == 1 else "moderate" if level == 2 else "severe" if level in (3, 4) else "extreme"
+        else:
+            kp_match = re.search(r"K-index of ([0-9])", message, re.I)
+            if kp_match:
+                kp = int(kp_match.group(1))
+                severity = "minor" if kp == 5 else "moderate" if kp == 6 else "severe" if kp in (7, 8) else "extreme" if kp >= 9 else "unknown"
         observed_raw = item.get("issue_datetime") or item.get("issue_time") or item.get("message_issue_time") or fetched_at
         observed = observed_raw
-        # NOAA messages use timestamps such as "2026 Nov 05 1857 UTC".
-        for date_format in ("%Y %b %d %H%M UTC", "%Y %b %d %H:%M:%S.%f", "%Y %b %d %H:%M:%S"):
-            try:
-                observed = datetime.strptime(str(observed_raw), date_format).replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
-                break
-            except ValueError:
-                continue
+        # Normalize ISO-like provider timestamps that may omit their timezone.
+        try:
+            parsed_observed = datetime.fromisoformat(str(observed_raw).replace("Z", "+00:00"))
+            if parsed_observed.tzinfo is None:
+                parsed_observed = parsed_observed.replace(tzinfo=timezone.utc)
+            observed = parsed_observed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        except ValueError:
+            pass
+        # NOAA messages also use timestamps such as "2026 Nov 05 1857 UTC".
+        if observed == observed_raw:
+            for date_format in ("%Y %b %d %H%M UTC", "%Y %b %d %H:%M:%S.%f", "%Y %b %d %H:%M:%S"):
+                try:
+                    observed = datetime.strptime(str(observed_raw), date_format).replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+                    break
+                except ValueError:
+                    continue
         age_hours = None
         try:
-            age_hours = (datetime.fromisoformat(fetched_at.replace("Z", "+00:00")) - datetime.fromisoformat(observed.replace("Z", "+00:00"))).total_seconds() / 3600
+            observed_dt = datetime.fromisoformat(observed.replace("Z", "+00:00"))
+            if observed_dt.tzinfo is None:
+                observed_dt = observed_dt.replace(tzinfo=timezone.utc)
+            age_hours = (datetime.fromisoformat(fetched_at.replace("Z", "+00:00")) - observed_dt).total_seconds() / 3600
         except (TypeError, ValueError):
             pass
         event_status = "resolved" if age_hours is not None and age_hours > 24 else "active"
