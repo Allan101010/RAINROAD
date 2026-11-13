@@ -1889,6 +1889,7 @@
 
         showCostaRicaOverview(false);
         updateMapMarkers();
+        updateHazardMapLayer();
 
         if (homeLocation) {
           map.flyTo({
@@ -4042,6 +4043,319 @@
     $("frameSlider").addEventListener("input", event => showRadarFrame(Number(event.target.value)));
     $("playRadar").addEventListener("click", toggleRadarAnimation);
 
+
+    // ------------------------------------------------------------
+    // MOTOR DE VIGILANCIA MULTI-AMENAZA
+    // ------------------------------------------------------------
+    let hazardData = null;
+    let hazardFilter = "all";
+    let hazardLoadInProgress = false;
+    const HAZARD_NOTIFICATION_KEY = "raintrackcr_hazard_notifications_v1";
+    const HAZARD_NOTIFIED_IDS_KEY = "raintrackcr_hazard_notified_ids_v1";
+    let hazardNotificationsEnabled = localStorage.getItem(HAZARD_NOTIFICATION_KEY) === "true";
+
+    const HAZARD_TYPE_LABELS = {
+      earthquake:"Sismo", cyclone:"Ciclón tropical", flood:"Inundación",
+      volcano:"Actividad volcánica", wildfire:"Incendio forestal", tsunami:"Boletín de tsunami",
+      space_weather:"Clima espacial", solar_flare:"Llamarada solar",
+      coronal_mass_ejection:"Eyección de masa coronal", storm:"Tormenta severa",
+      landslide:"Deslizamiento", drought:"Sequía", atmosphere:"Polvo / atmósfera",
+      cryosphere:"Hielo / nieve", other:"Evento ambiental"
+    };
+    const HAZARD_TYPE_ICONS = {
+      earthquake:"🌎",cyclone:"🌀",flood:"🌊",volcano:"🌋",wildfire:"🔥",
+      tsunami:"🌊",space_weather:"☀️",solar_flare:"☀️",coronal_mass_ejection:"☀️",
+      storm:"⛈️",landslide:"⛰️",drought:"🌵",atmosphere:"🌫️",cryosphere:"❄️",other:"⚠️"
+    };
+    const HAZARD_SEVERITY_LABELS = {critical:"Crítico",high:"Alto",moderate:"Moderado",low:"Bajo",info:"Informativo"};
+    const HAZARD_FILTER_TYPES = {
+      all:null,earthquake:["earthquake"],cyclone:["cyclone"],flood:["flood"],
+      volcano:["volcano"],wildfire:["wildfire"],tsunami:["tsunami"],
+      space:["space_weather","solar_flare","coronal_mass_ejection"],
+      other:["storm","landslide","drought","atmosphere","cryosphere","other"]
+    };
+
+    function hazardSafeUrl(value) {
+      try {
+        const url = new URL(String(value || ""));
+        return url.protocol === "https:" ? url.href : "";
+      } catch (_) { return ""; }
+    }
+
+    function formatHazardDate(value) {
+      const date = value ? new Date(value) : null;
+      if (!date || Number.isNaN(date.getTime())) return "Hora no disponible";
+      return new Intl.DateTimeFormat("es-CR",{dateStyle:"short",timeStyle:"short",timeZone:"America/Costa_Rica"}).format(date);
+    }
+
+    function hazardSourceStateLabel(state) {
+      if (state === "online") return "Disponible";
+      if (state === "stale") return "Dato anterior";
+      if (state === "unavailable") return "No disponible";
+      return "Pendiente";
+    }
+
+    function updateHazardNotificationButton() {
+      const button = $("enableHazardNotifications");
+      if (!button) return;
+      if (!("Notification" in window)) {
+        button.textContent = "Avisos no compatibles con este navegador";
+        button.disabled = true;
+        return;
+      }
+      if (Notification.permission === "denied") {
+        button.textContent = "Permiso de avisos bloqueado";
+        button.disabled = true;
+        return;
+      }
+      button.textContent = hazardNotificationsEnabled && Notification.permission === "granted"
+        ? "✓ Avisos del navegador activados" : "Activar avisos del navegador";
+    }
+
+    function readNotifiedHazardIds() {
+      try {
+        const value = JSON.parse(localStorage.getItem(HAZARD_NOTIFIED_IDS_KEY) || "[]");
+        return new Set(Array.isArray(value) ? value : []);
+      } catch (_) { return new Set(); }
+    }
+
+    function notifyNewHazardEvents(data) {
+      if (!hazardNotificationsEnabled || !("Notification" in window) || Notification.permission !== "granted") return;
+      const seen = readNotifiedHazardIds();
+      const now = Date.now();
+      const recent = (data.events || []).filter(event => {
+        if (event.stale || !["critical","high"].includes(event.severity)) return false;
+        if (!["costa_rica","regional"].includes(event.relevance)) return false;
+        const timestamp = event.observed_at ? new Date(event.observed_at).getTime() : NaN;
+        return Number.isFinite(timestamp) && now - timestamp <= 30 * 60 * 1000 && now >= timestamp;
+      });
+      recent.forEach(event => {
+        if (seen.has(event.id)) return;
+        try {
+          new Notification("APP TIEMPO CR · " + (event.title || "Amenaza regional"), {
+            body:String(event.summary || "Se registró un evento regional. Consulta la fuente oficial.").slice(0,180),
+            tag:String(event.id || "raintrack-hazard")
+          });
+          seen.add(event.id);
+        } catch (error) { console.warn("No se pudo mostrar el aviso del navegador:",error); }
+      });
+      localStorage.setItem(HAZARD_NOTIFIED_IDS_KEY,JSON.stringify(Array.from(seen).slice(-120)));
+    }
+
+    function renderHazardStats(data) {
+      const summary = data.summary || {};
+      $("hazardTotalCount").textContent = Number(summary.total_events || 0).toLocaleString("es-CR");
+      $("hazardRegionalCount").textContent = Number(summary.costa_rica_or_regional || 0).toLocaleString("es-CR");
+      $("hazardHighCount").textContent = (Number(summary.critical || 0) + Number(summary.high || 0)).toLocaleString("es-CR");
+      $("hazardSourcesCount").textContent = String(summary.sources_online || 0) + "/" + String((data.sources || []).length);
+      $("hazardUpdatedAt").textContent = data.generated_at ? "Corte " + formatHazardDate(data.generated_at) : "Sin corte publicado";
+
+      const status = $("hazardFeedStatus");
+      status.className = "hazard-status-bar" + (data.status === "partial" ? " partial" : data.status === "unavailable" ? " error" : "");
+      if (data.status === "not_run") {
+        status.textContent = "El motor todavía no ha publicado su primera lectura. La falta de datos no significa que no existan amenazas.";
+      } else if (data.status === "unavailable") {
+        status.textContent = "No fue posible consultar las fuentes. No interpretes este corte como ausencia de amenazas; revisa directamente los organismos oficiales.";
+      } else if (data.status === "partial") {
+        status.textContent = "Corte parcial: " + (summary.sources_online || 0) + " fuentes disponibles y " + (summary.sources_with_problems || 0) + " con problemas. Los datos anteriores se identifican como desactualizados.";
+      } else {
+        status.textContent = "Fuentes consultadas correctamente. Corte generado " + formatHazardDate(data.generated_at) + ". El recolector automático actualiza los datos aproximadamente cada 10 minutos.";
+      }
+    }
+
+    function renderSpaceWeather(data) {
+      const scales = data.space_weather;
+      const container = $("spaceWeatherScales");
+      if (!scales || !scales.current) {
+        container.innerHTML = '<div class="hazard-scale"><span>Radio R</span><strong>—</strong><small>Sin lectura disponible</small></div>' +
+          '<div class="hazard-scale"><span>Radiación S</span><strong>—</strong><small>Sin lectura disponible</small></div>' +
+          '<div class="hazard-scale"><span>Geomagnética G</span><strong>—</strong><small>Sin lectura disponible</small></div>';
+        $("spaceWeatherStamp").textContent = "Sin datos";
+        return;
+      }
+      const current = scales.current;
+      const rows = [["Radio R",current.radio_blackout],["Radiación S",current.solar_radiation],["Geomagnética G",current.geomagnetic]];
+      container.innerHTML = rows.map(row =>
+        '<div class="hazard-scale"><span>' + escapeHtml(row[0]) + '</span><strong>' +
+        escapeHtml(row[1] && row[1].scale ? row[1].scale : "0") + '</strong><small>' +
+        escapeHtml(row[1] && row[1].text ? row[1].text : "Sin evento reportado") + '</small></div>'
+      ).join("");
+      $("spaceWeatherStamp").textContent = (scales.stale ? "Dato anterior · " : "") + formatHazardDate(scales.observed_at);
+    }
+
+    function renderHazardSources(data) {
+      const container = $("hazardSourceList");
+      const sources = data.sources || [];
+      if (!sources.length) {
+        container.innerHTML = '<p class="tiny">El primer ciclo de consulta todavía no se ha ejecutado.</p>';
+        return;
+      }
+      container.innerHTML = sources.map(source => {
+        const state = source.status || "unavailable";
+        const url = hazardSafeUrl(source.url);
+        const label = escapeHtml(source.name || source.id || "Fuente");
+        const name = url ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + label + ' ↗</a>' : '<span>' + label + '</span>';
+        const message = escapeHtml(source.message || "");
+        return '<div class="hazard-source-row"><div>' + name + '<small>' + message + '</small></div>' +
+          '<span class="hazard-source-state ' + escapeHtml(state) + '">' + escapeHtml(hazardSourceStateLabel(state)) + '</span></div>';
+      }).join("");
+    }
+
+    function renderHazardEvents(data) {
+      const container = $("hazardEventList");
+      const events = (data.events || []).filter(event => {
+        if (hazardFilter === "all") return true;
+        const types = HAZARD_FILTER_TYPES[hazardFilter] || [];
+        return types.includes(event.type);
+      });
+      if (!events.length) {
+        const sourceProblems = (data.sources || []).some(source => source.status !== "online");
+        let message;
+        if (data.status === "not_run") message = "El motor está esperando su primera lectura. No se interpretará la falta de datos como ausencia de amenazas.";
+        else if (sourceProblems) message = "No hay eventos para este filtro en los datos recibidos, pero algunas fuentes presentan problemas. Consulta los organismos oficiales.";
+        else message = "Las fuentes consultadas no reportan eventos para este filtro en el último corte disponible. Esto no descarta fenómenos fuera de la cobertura de los proveedores.";
+        container.innerHTML = '<div class="hazard-empty">' + escapeHtml(message) + '</div>';
+        return;
+      }
+      container.innerHTML = events.slice(0,45).map(event => {
+        const severity = event.severity || "info";
+        const stale = event.stale ? '<span class="hazard-chip moderate">Dato desactualizado</span>' : "";
+        const location = event.relevance_label || event.region || "Ubicación no especificada";
+        const time = formatHazardDate(event.observed_at);
+        const type = HAZARD_TYPE_LABELS[event.type] || "Evento ambiental";
+        const icon = HAZARD_TYPE_ICONS[event.type] || "⚠️";
+        const eventUrl = hazardSafeUrl(event.url);
+        const link = eventUrl ? '<a class="hazard-event-link" href="' + escapeHtml(eventUrl) + '" target="_blank" rel="noopener">Consultar fuente original ↗</a>' : "";
+        const distance = Number.isFinite(Number(event.distance_to_cr_km))
+          ? " · " + Math.round(Number(event.distance_to_cr_km)).toLocaleString("es-CR") + " km del centro de Costa Rica" : "";
+        return '<article class="hazard-event-card"><div class="hazard-event-head">' +
+          '<div class="hazard-event-title">' + icon + ' ' + escapeHtml(event.title || type) + '</div>' +
+          '<span class="hazard-chip ' + escapeHtml(severity) + '">' + escapeHtml(HAZARD_SEVERITY_LABELS[severity] || "Informativo") + '</span></div>' +
+          '<p class="hazard-event-summary">' + escapeHtml(event.summary || "Sin descripción adicional.") + '</p>' +
+          '<div class="hazard-event-meta"><span class="hazard-chip">' + escapeHtml(type) + '</span>' +
+          '<span class="hazard-chip">' + escapeHtml(location + distance) + '</span>' +
+          '<span class="hazard-chip">' + escapeHtml(time) + '</span>' + stale + '</div>' +
+          '<div class="hazard-event-meta"><span class="hazard-chip">' + escapeHtml(event.source_name || "Fuente pública") + '</span></div>' +
+          link + '</article>';
+      }).join("");
+    }
+
+    function updateHazardMapLayer() {
+      if (!mapReady || !map || !hazardData || !Array.isArray(hazardData.events)) return;
+      const west = CR_NAVIGATION_BOUNDS[0][0], south = CR_NAVIGATION_BOUNDS[0][1];
+      const east = CR_NAVIGATION_BOUNDS[1][0], north = CR_NAVIGATION_BOUNDS[1][1];
+      const features = hazardData.events.filter(event =>
+        Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lon)) &&
+        Number(event.lon) >= west && Number(event.lon) <= east &&
+        Number(event.lat) >= south && Number(event.lat) <= north
+      ).map(event => ({
+        type:"Feature",
+        geometry:{type:"Point",coordinates:[Number(event.lon),Number(event.lat)]},
+        properties:{
+          event_id:String(event.id || ""),title:String(event.title || "Evento"),
+          summary:String(event.summary || ""),event_type:String(event.type || "other"),
+          severity:String(event.severity || "info"),source_name:String(event.source_name || "Fuente pública"),
+          observed_at:String(event.observed_at || ""),url:String(event.url || ""),stale:Boolean(event.stale)
+        }
+      }));
+      const geojson = {type:"FeatureCollection",features:features};
+      if (!map.getSource("raintrack-hazard-events")) {
+        map.addSource("raintrack-hazard-events",{type:"geojson",data:geojson});
+        map.addLayer({
+          id:"raintrack-hazard-events",type:"circle",source:"raintrack-hazard-events",
+          paint:{
+            "circle-radius":["interpolate",["linear"],["zoom"],6,5,12,9,16,12],
+            "circle-color":["match",["get","severity"],"critical","#ef4444","high","#f97316","moderate","#eab308","low","#38bdf8","#94a3b8"],
+            "circle-stroke-color":"#f8fafc","circle-stroke-width":1.5,
+            "circle-opacity":["case",["get","stale"],0.45,0.92]
+          }
+        });
+        map.on("click","raintrack-hazard-events",event => {
+          if (routePickMode) return;
+          const props = event.features && event.features[0] ? event.features[0].properties : {};
+          const url = hazardSafeUrl(props.url);
+          const link = url ? '<p><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Consultar fuente original ↗</a></p>' : "";
+          showMapDetail({
+            eyebrow:"EVENTO DE VIGILANCIA",
+            title:props.title || "Evento reportado",
+            subtitle:(props.source_name || "Fuente pública") + " · " + formatHazardDate(props.observed_at),
+            content:'<div class="camera-popup"><div class="camera-popup-status">' +
+              escapeHtml(props.summary || "Sin descripción adicional.") + '</div><p>' +
+              (props.stale ? "Dato anterior; verificar actualización." : "Registro publicado por una fuente externa.") +
+              '</p>' + link + '</div>'
+          });
+        });
+        map.on("mouseenter","raintrack-hazard-events",() => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave","raintrack-hazard-events",() => { map.getCanvas().style.cursor = ""; });
+      } else {
+        map.getSource("raintrack-hazard-events").setData(geojson);
+      }
+      $("hazardMapNote").textContent = features.length + " evento(s) con coordenadas dentro del encuadre de Costa Rica aparecen también en el mapa principal. El resto se consulta en el registro mundial.";
+    }
+
+    function renderHazardData(data) {
+      renderHazardStats(data);
+      renderSpaceWeather(data);
+      renderHazardSources(data);
+      renderHazardEvents(data);
+      updateHazardMapLayer();
+      notifyNewHazardEvents(data);
+      updateHazardNotificationButton();
+    }
+
+    async function loadHazardData() {
+      if (hazardLoadInProgress) return;
+      hazardLoadInProgress = true;
+      try {
+        const response = await fetch("hazards.json?rt=" + Date.now(),{cache:"no-store"});
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data || data.schema_version !== 1 || !Array.isArray(data.events) || !Array.isArray(data.sources)) {
+          throw new Error("El snapshot de amenazas no tiene el formato esperado.");
+        }
+        hazardData = data;
+        renderHazardData(data);
+      } catch (error) {
+        console.error("No se pudo cargar el snapshot multi-amenaza:",error);
+        if (hazardData) {
+          $("hazardFeedStatus").className = "hazard-status-bar partial";
+          $("hazardFeedStatus").textContent = "No se pudo actualizar la vista. Se conserva en pantalla el último corte cargado.";
+        } else {
+          $("hazardFeedStatus").className = "hazard-status-bar error";
+          $("hazardFeedStatus").textContent = "No se pudo leer el snapshot de amenazas. Comprueba la publicación y consulta directamente las fuentes oficiales.";
+        }
+      } finally {
+        hazardLoadInProgress = false;
+      }
+    }
+
+    $("refreshHazardsBtn").addEventListener("click",loadHazardData);
+    $("hazardFilters").addEventListener("click",event => {
+      const button = event.target.closest("[data-hazard-filter]");
+      if (!button) return;
+      hazardFilter = button.dataset.hazardFilter || "all";
+      $("hazardFilters").querySelectorAll("[data-hazard-filter]").forEach(item => {
+        const active = item === button;
+        item.classList.toggle("active",active);
+        item.setAttribute("aria-pressed",String(active));
+      });
+      if (hazardData) renderHazardEvents(hazardData);
+    });
+    $("enableHazardNotifications").addEventListener("click",async () => {
+      if (!("Notification" in window)) return;
+      try {
+        const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+        hazardNotificationsEnabled = permission === "granted";
+        localStorage.setItem(HAZARD_NOTIFICATION_KEY,String(hazardNotificationsEnabled));
+        updateHazardNotificationButton();
+        if (hazardNotificationsEnabled) {
+          $("hazardFeedStatus").textContent = "Avisos del navegador activados. Funcionan mientras APP TIEMPO CR permanece abierta; no son notificaciones push cuando la aplicación está cerrada.";
+        }
+      } catch (error) { console.warn("No se pudo activar las notificaciones:",error); }
+    });
+    updateHazardNotificationButton();
+
+
     function refreshWeatherData() {
       if (homeLocation) loadWeatherForLocation(homeLocation, "home");
       if (destinationLocation) loadWeatherForLocation(destinationLocation, "destination");
@@ -4053,6 +4367,8 @@
       loadCameraMonitoringData();
       if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
       cameraMonitorTimer = setInterval(loadCameraMonitoringData, 5 * 60 * 1000);
+      loadHazardData();
+      setInterval(loadHazardData, 5 * 60 * 1000);
       setInterval(() => {
         if (mapReady) loadRadarSource();
       }, 5 * 60 * 1000);
