@@ -1186,6 +1186,7 @@ def status_signature(payload: dict) -> tuple:
             item.get("scene_assessment"),
             item.get("image_quality_status"),
             item.get("rain_evidence_assessment"),
+            item.get("station_corroboration"),
         )
         for item in rows
         if item.get("id")
@@ -1240,6 +1241,56 @@ def resolve_snapshot_url(session: requests.Session, camera: dict) -> tuple[str |
     except Exception as exc:
         logging.info("No se pudo recuperar la ficha %s: %s", camera.get("id"), exc)
         return None, "offline"
+
+
+STATION_CORROBORATION_RADIUS_KM = 25.0
+
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    from math import asin, cos, radians, sin, sqrt
+    d_lat, d_lon = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(d_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(d_lon / 2) ** 2
+    return 6371.0 * 2 * asin(sqrt(a))
+
+
+def corroborate_with_stations(camera_alerts: list[dict], stations: list[dict],
+                              radius_km: float = STATION_CORROBORATION_RADIUS_KM) -> list[dict]:
+    """Cruza cada alerta visual de cámara con la estación IMN en línea más cercana.
+
+    - confirmed: la estación midió lluvia (la medición instrumental es la prueba).
+    - not_confirmed: hay estación cercana en línea pero no mide lluvia.
+    - no_nearby_station: ninguna estación en línea dentro del radio.
+    La alerta de cámara nunca se descarta: solo se etiqueta; la lluvia solo
+    se considera confirmada si una estación la mide.
+    """
+    usable = [
+        st for st in stations
+        if st.get("availability_status") == "online"
+        and st.get("lat") is not None and st.get("lon") is not None
+    ]
+    for alert in camera_alerts:
+        alert["station_corroboration"] = "no_nearby_station"
+        alert["corroborating_station_id"] = None
+        alert["corroborating_station_name"] = None
+        alert["station_distance_km"] = None
+        alert["station_rain_last_hour_mm"] = None
+        if alert.get("lat") is None or alert.get("lon") is None:
+            continue
+        nearby = sorted(
+            ((haversine_km(alert["lat"], alert["lon"], st["lat"], st["lon"]), st) for st in usable),
+            key=lambda pair: pair[0],
+        )
+        nearby = [pair for pair in nearby if pair[0] <= radius_km]
+        if not nearby:
+            continue
+        raining = [pair for pair in nearby if pair[1].get("rain_observed")]
+        distance, station = (raining or nearby)[0]
+        alert["station_corroboration"] = "confirmed" if raining else "not_confirmed"
+        alert["corroborating_station_id"] = station.get("id")
+        alert["corroborating_station_name"] = station.get("station_name")
+        alert["station_distance_km"] = round(distance, 1)
+        alert["station_rain_last_hour_mm"] = station.get("rain_last_hour_mm")
+    return camera_alerts
 
 
 def main() -> int:
@@ -1551,6 +1602,7 @@ def main() -> int:
         and item.get("scene_outdoor_score", 0.0) >= 0.70
         and item.get("availability_status") == "online"
     ]
+    corroborate_with_stations(alerts, stations)
     recovered_cameras = [item for item in results if item.get("recovered")]
     availability_counts = {
         state: sum(1 for item in results if item.get("availability_status") == state)

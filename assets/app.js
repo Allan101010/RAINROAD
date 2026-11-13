@@ -723,7 +723,8 @@ function cameraStatusForSite(siteSlug) {
 function cameraAlertKey(item) {
   const kind = item.alert_type === "station" ? "station" : "camera";
   const id = item.station_id || item.id || item.site_slug || item.site_name || item.camera_name || "alert";
-  return kind + ":" + id;
+  // Si una señal visual pasa a "confirmada", vuelve a mostrarse aunque se hubiera cerrado antes.
+  return kind + ":" + id + (kind === "camera" ? ":" + (item.station_corroboration || "") : "");
 }
 
 function renderCameraAlerts() {
@@ -751,7 +752,11 @@ function renderCameraAlerts() {
         item.availability_status === "online"
       )
     : [];
-  const active = [...stationAlerts, ...cameraAlerts]
+  // Una cámara confirmada por una estación ya incluye la medición: no se repite la alerta de esa estación.
+  const confirmedStationIds = new Set(
+    cameraAlerts.filter(item => item.station_corroboration === "confirmed").map(item => item.corroborating_station_id)
+  );
+  const active = [...stationAlerts.filter(item => !confirmedStationIds.has(item.station_id)), ...cameraAlerts]
     .filter(item => !dismissedCameraAlertIds.has(cameraAlertKey(item)));
 
   if (!active.length) {
@@ -763,16 +768,25 @@ function renderCameraAlerts() {
   stack.hidden = false;
   stack.innerHTML = active.slice(0, 4).map(item => {
     const isStation = item.alert_type === "station";
-    const isRain = isStation && item.status === "rain";
+    const isConfirmed = !isStation && item.station_corroboration === "confirmed";
+    const isRain = (isStation && item.status === "rain") || isConfirmed;
+    const stationDistance = item.station_distance_km != null ? " a " + item.station_distance_km + " km" : "";
     const label = isStation
       ? "Lluvia medida por estación"
-      : "Señal visual experimental · sin confirmar";
+      : isConfirmed
+        ? "Lluvia confirmada"
+        : "Señal visual experimental · sin confirmar";
     const detail = isStation
       ? Number(item.rain_last_hour_mm).toFixed(1) + " mm en la última hora"
-      : "La cámara muestra indicios visibles; contrasta con el radar y las estaciones.";
+      : isConfirmed
+        ? "La cámara ve lluvia y la " + (item.corroborating_station_name || "estación IMN") + stationDistance +
+          " midió " + Number(item.station_rain_last_hour_mm || 0).toFixed(1) + " mm en la última hora."
+        : item.station_corroboration === "not_confirmed"
+          ? "La cámara muestra indicios, pero la estación IMN más cercana" + stationDistance + " no mide lluvia."
+          : "La cámara muestra indicios visibles; no hay estación IMN cercana para confirmar.";
     const alertKey = cameraAlertKey(item);
     return `<div class="camera-alert-item ${isRain ? "rain" : "possible"}">
-      <span class="camera-alert-icon">${isStation ? "🌧️" : "☔"}</span>
+      <span class="camera-alert-icon">${isStation || isConfirmed ? "🌧️" : "☔"}</span>
       <div class="camera-alert-content">
         <strong>${escapeHtml(label)} · ${escapeHtml(item.camera_name || item.station_name || item.site_name || "Cámara")}</strong>
         <small>${escapeHtml(item.site_name || item.station_name || "")} · ${escapeHtml(detail)}</small>
@@ -876,7 +890,7 @@ function addCameraMarkers() {
       const statusLabel = isSkylineCamera
         ? availabilityStatus === "online" ? "Imagen externa disponible" : availabilityStatus === "offline" ? "Fuera de línea en Skyline" : "Estado sin verificar"
         : hasVisualSignal
-          ? "Indicios visuales · sin confirmar"
+          ? (item.station_corroboration === "confirmed" ? "Lluvia confirmada por estación IMN" : "Indicios visuales · sin confirmar")
           : item.status === "low_visibility" || item.image_quality_status === "low_visibility"
             ? "No evaluable · poca visibilidad"
             : item.status === "weather_uncertain" || item.status === "possible"

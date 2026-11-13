@@ -6,7 +6,7 @@ Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, r
 
 - Mapa meteorológico de Costa Rica, radar (LibreWXR / WeatherAPI), imágenes satelitales del IMN, pronóstico y rutas.
 - Estaciones del IMN con lluvia medida.
-- Monitoreo **experimental** de cámaras públicas (Webcams Costa Rica, OVSICORI, SkylineWebcams): disponibilidad, frescura de la imagen e indicios visuales de lluvia. Una cámara nunca confirma lluvia por sí sola.
+- Monitoreo **experimental** de cámaras públicas (Webcams Costa Rica, OVSICORI, SkylineWebcams): disponibilidad, frescura de la imagen e indicios visuales de lluvia. Una cámara nunca confirma lluvia por sí sola: si una estación IMN en línea a menos de 25 km mide lluvia, la alerta pasa a "Lluvia confirmada"; si no, se muestra como señal experimental sin confirmar.
 
 ## Cómo funciona
 

@@ -83,5 +83,47 @@ class CameraSourcesTests(unittest.TestCase):
                 self.assertTrue(row["page_url"].startswith("https://"), row["id"])
 
 
+class StationCorroborationTests(unittest.TestCase):
+    CAMERA = {"id": "cam", "lat": 9.93, "lon": -84.08}
+
+    def station(self, sid, lat, lon, raining, status="online", mm=0.0):
+        return {"id": sid, "station_name": "Estación " + sid, "lat": lat, "lon": lon,
+                "rain_observed": raining, "rain_last_hour_mm": mm, "availability_status": status}
+
+    def run_case(self, stations):
+        alert = dict(self.CAMERA)
+        return cams.corroborate_with_stations([alert], stations)[0]
+
+    def test_confirmed_when_nearby_station_measures_rain(self):
+        alert = self.run_case([self.station("a", 9.94, -84.07, True, mm=1.4)])
+        self.assertEqual(alert["station_corroboration"], "confirmed")
+        self.assertEqual(alert["corroborating_station_id"], "a")
+        self.assertEqual(alert["station_rain_last_hour_mm"], 1.4)
+
+    def test_not_confirmed_when_nearby_station_is_dry(self):
+        alert = self.run_case([self.station("a", 9.94, -84.07, False)])
+        self.assertEqual(alert["station_corroboration"], "not_confirmed")
+
+    def test_no_nearby_station_when_all_are_far(self):
+        alert = self.run_case([self.station("far", 10.60, -85.50, True)])
+        self.assertEqual(alert["station_corroboration"], "no_nearby_station")
+        self.assertIsNone(alert["corroborating_station_id"])
+
+    def test_offline_station_is_ignored(self):
+        alert = self.run_case([self.station("a", 9.94, -84.07, True, status="stale")])
+        self.assertEqual(alert["station_corroboration"], "no_nearby_station")
+
+    def test_raining_station_wins_over_closer_dry_one(self):
+        alert = self.run_case([self.station("dry", 9.931, -84.081, False),
+                               self.station("wet", 9.99, -84.10, True, mm=0.6)])
+        self.assertEqual(alert["station_corroboration"], "confirmed")
+        self.assertEqual(alert["corroborating_station_id"], "wet")
+
+    def test_haversine_known_distance(self):
+        # San José a Heredia, aproximadamente 10 km.
+        d = cams.haversine_km(9.9281, -84.0907, 9.9981, -84.1165)
+        self.assertTrue(7 < d < 12, d)
+
+
 if __name__ == "__main__":
     unittest.main()
