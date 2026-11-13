@@ -1563,7 +1563,7 @@ def main() -> int:
     payload = {
         "status": "ok",
         "generated_at": iso_now(),
-        "interval_minutes": 30,
+        "interval_minutes": 10,
         "source_url": BASE_URL,
         "sources": [
             {"name": "Webcams Costa Rica", "url": BASE_URL, "type": "public_webcams"},
@@ -1651,7 +1651,7 @@ if __name__ == "__main__":
         fallback = {
             "status": "error",
             "generated_at": iso_now(),
-            "interval_minutes": 30,
+            "interval_minutes": 10,
             "source_url": BASE_URL,
             "model": MODEL_ID,
             "scene_model": SCENE_MODEL_ID,

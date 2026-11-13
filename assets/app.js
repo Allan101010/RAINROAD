@@ -2657,7 +2657,7 @@ function startAutomaticUpdates() {
   weatherRefreshTimer = setInterval(refreshWeatherData, 30 * 60 * 1000);
   loadCameraMonitoringData();
   if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
-  cameraMonitorTimer = setInterval(loadCameraMonitoringData, 5 * 60 * 1000);
+  cameraMonitorTimer = setInterval(loadCameraMonitoringData, 2 * 60 * 1000);
   // Solo LibreWXR se actualiza automáticamente; los proveedores con KEY
   // quedan bajo actualización manual para no consumir cuota por mosaicos.
   setInterval(() => {

@@ -11,7 +11,7 @@ Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, r
 ## Cómo funciona
 
 - Sitio estático: `index.html`, `assets/styles.css`, `assets/app.js`.
-- `scripts/monitor_cameras.py` (GitHub Actions, cada 30 minutos) genera `camera-alerts.json` y `camera-catalog.json`. Solo publica cuando cambia el estado o pasó una hora.
+- `scripts/monitor_cameras.py` (GitHub Actions, cada 10 minutos) genera `camera-alerts.json` y `camera-catalog.json`. Solo publica cuando cambia el estado o pasó una hora.
 - Las listas de cámaras y estaciones están en `config/camera-sources.json`.
 
 ## Uso y limitaciones
