@@ -41,7 +41,16 @@ jobs:
             echo "No global event changes."
           else
             git commit -m "Update normalized global hazard events"
-            # Rebase generated data on latest main to avoid races with Pages commits.
-            git pull --rebase origin main
-            git push
+            # Keep the freshly fetched dataset when another scheduled run
+            # or Pages deployment updates main at the same time.
+            for attempt in 1 2 3; do
+              git pull --rebase -X theirs origin main
+              if git push; then
+                exit 0
+              fi
+              echo "Push race on attempt $attempt; retrying against latest main."
+              sleep 2
+            done
+            echo "Could not publish after 3 retries."
+            exit 1
           fi
