@@ -236,6 +236,13 @@
         "null"
       ],
       "format": "uri"
+    },
+    "data_freshness": {
+      "type": "string",
+      "enum": [
+        "current",
+        "carried_forward_source_unavailable"
+      ]
     }
   },
   "additionalProperties": false
