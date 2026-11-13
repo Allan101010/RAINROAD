@@ -7,7 +7,18 @@ on:
     paths:
       - "scripts/monitor_hazards.py"
       - "tests/test_monitor_hazards.py"
+      - "tests/test_frontend_contract.py"
       - ".github/workflows/hazard-monitor.yml"
+      - "index.html"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/monitor_hazards.py"
+      - "tests/test_monitor_hazards.py"
+      - "tests/test_frontend_contract.py"
+      - ".github/workflows/hazard-monitor.yml"
+      - "index.html"
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
@@ -20,7 +31,40 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ejecutar pruebas unitarias y de contrato
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Preparar Node.js para validar JavaScript
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validar sintaxis del JavaScript integrado
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script>(.*?)</script>", html, flags=re.S | re.I)
+          if not scripts:
+              raise SystemExit("No se encontró el script principal de la aplicación.")
+          Path("/tmp/raintrack-inline.js").write_text(scripts[-1], encoding="utf-8")
+          PY
+          node --check /tmp/raintrack-inline.js
+      - name: Validar sintaxis Python
+        run: python -m py_compile scripts/monitor_hazards.py
+
   collect-hazards:
+    if: github.event_name != 'pull_request'
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -34,8 +78,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Ejecutar pruebas del recolector
-        run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Consultar fuentes oficiales y generar snapshot
         run: python scripts/monitor_hazards.py
       - name: Publicar snapshot para GitHub Pages
