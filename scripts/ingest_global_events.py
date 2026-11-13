@@ -64,7 +64,7 @@ def event_record(*, provider, raw_id, hazard_type, title, url, observed_at,
         "ingested_at": ingested_at,
         "updated_at": None,
         "expires_at": None,
-        "region_priority": "global",
+        "region_priority": ("costa_rica_central_america" if location and 5.0 <= location.get("latitude", 999) <= 18.5 and -94.0 <= location.get("longitude", 999) <= -77.0 else "global"),
         "correlation_group_id": None,
         "official_advisory_url": url if url.startswith("https://") else None,
     }
@@ -124,7 +124,7 @@ def parse_eonet(source, fetched_at):
                         "depth_km": None, "place_name": None, "country_code": None}
         cats = [c.get("title", "") for c in item.get("categories", [])]
         category_text = " ".join(cats).lower()
-        hazard = "wildfire" if "wildfire" in category_text else "severe_storm" if "storm" in category_text else "volcano" if "volcano" in category_text else "other"
+        hazard = ("wildfire" if any(w in category_text for w in ("wildfire", "fire")) else "severe_storm" if any(w in category_text for w in ("storm", "severe weather")) else "volcano" if "volcano" in category_text else "flood" if "flood" in category_text else "drought" if "drought" in category_text else "other")
         output.append(event_record(
             provider=source["provider"], raw_id=item.get("id"), hazard_type=hazard,
             title=item.get("title"), description=item.get("description"),
@@ -134,6 +134,26 @@ def parse_eonet(source, fetched_at):
             metrics={"categories": ", ".join(cats), "geometry_type": latest.get("type") or "unknown"}))
     return output
 
+
+def parse_swpc_alerts(source, fetched_at):
+    payload = fetch_json(source["url"])
+    output = []
+    items = payload if isinstance(payload, list) else payload.get("alerts", [])
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        message = str(item.get("message") or item.get("summary") or item.get("product_id") or "Aviso de clima espacial")
+        product_id = str(item.get("product_id") or item.get("id") or message[:120])
+        lower = message.lower()
+        hazard = "geomagnetic_storm" if any(x in lower for x in ("geomagnetic storm", "geomagnetic", "g-scale")) else "solar_flare" if any(x in lower for x in ("solar flare", "radio blackout", "x-ray")) else "space_weather"
+        severity = "unknown"
+        match = re.search(r"\\bG([1-5])\\b", message, re.I)
+        if match:
+            level = int(match.group(1))
+            severity = "minor" if level == 1 else "moderate" if level == 2 else "severe" if level in (3, 4) else "extreme"
+        observed = item.get("issue_datetime") or item.get("issue_time") or item.get("message_issue_time") or fetched_at
+        output.append(event_record(provider=source["provider"], raw_id=product_id, hazard_type=hazard, title=message.splitlines()[0][:220], description=message, url=item.get("link") or source["url"], observed_at=observed, issued_at=observed, ingested_at=fetched_at, confidence="official", severity=severity, metrics={"product_id": product_id, "message_type": item.get("message_type")}))
+    return output
 
 def parse_gdacs_rss(source, fetched_at):
     root = ET.fromstring(fetch_text(source["url"]))
@@ -175,7 +195,7 @@ def parse_gdacs_rss(source, fetched_at):
     return output
 
 
-PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss}
+PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss, "swpc_json": parse_swpc_alerts}
 
 
 def main():
