@@ -5,7 +5,6 @@
 // La última ubicación GPS se conserva localmente durante 30 minutos.
 // ------------------------------------------------------------
 const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v2";
-const WEATHER_MAP_PRODUCT_STORAGE_KEY = "raintrackcr_weather_map_product_v1";
 const LIBREWXR_COLOR_STORAGE_KEY = "raintrackcr_librewxr_color_v1";
 const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
 const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -44,32 +43,12 @@ const RADAR_SOURCES = {
     smooth: 0,
     snow: 0
   },
-  weatherapi: {
-    type: "hourly_forecast",
-    label: "WeatherAPI",
-    maxZoom: 12
-  }
-};
-const WEATHER_MAP_PRODUCTS = {
-  precip: {
-    label: "precipitación",
-    path: "precip",
-    note: "Pronóstico horario de precipitación para los próximos tres días. No es radar observado. WeatherAPI no publica en esta página una leyenda cuantitativa de colores; por eso los tonos no deben interpretarse como milímetros por hora."
-  },
-  tmp2m: {
-    label: "temperatura a 2 m",
-    path: "tmp2m",
-    note: "Pronóstico horario de temperatura del aire a dos metros de altura para los próximos tres días. Los colores son una escala visual del proveedor."
-  },
-  wind: {
-    label: "velocidad del viento",
-    path: "wind",
-    note: "Pronóstico horario de velocidad del viento para los próximos tres días. Los colores son una escala visual del proveedor."
-  },
-  pressure: {
-    label: "presión atmosférica",
-    path: "pressure",
-    note: "Pronóstico horario de presión atmosférica para los próximos tres días. Los colores son una escala visual del proveedor."
+  nasa: {
+    type: "satellite",
+    label: "NASA IMERG",
+    maxZoom: 6,
+    frameCount: 12,
+    stepMinutes: 30
   }
 };
 const LIBREWXR_PALETTES = [1, 4, 8, 10, 14];
@@ -165,11 +144,8 @@ let destinationMarker = null;
 let radarMetadata = null;
 let radarFrames = [];
 const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
-let radarSourceKey = ["librewxr", "weatherapi"].includes(savedRadarSource)
+let radarSourceKey = ["librewxr", "nasa"].includes(savedRadarSource)
   ? savedRadarSource : "librewxr";
-const savedWeatherMapProduct = localStorage.getItem(WEATHER_MAP_PRODUCT_STORAGE_KEY);
-let weatherMapProductKey = Object.prototype.hasOwnProperty.call(WEATHER_MAP_PRODUCTS, savedWeatherMapProduct)
-  ? savedWeatherMapProduct : "precip";
 const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
 let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
 let radarFrameIndex = 0;
@@ -1039,26 +1015,38 @@ function removeRadarLayer() {
   if (map.getSource("raintrack-radar-source")) map.removeSource("raintrack-radar-source");
 }
 
-function utcDateHourStamp(date) {
-  const pad = value => String(value).padStart(2, "0");
-  return String(date.getUTCFullYear()) +
-    pad(date.getUTCMonth() + 1) +
-    pad(date.getUTCDate()) +
-    pad(date.getUTCHours());
+function gibsTimeStamp(date) {
+  return date.toISOString().slice(0, 19) + "Z";
 }
 
-function createWeatherApiFrames() {
-  const start = new Date();
-  start.setUTCMinutes(0, 0, 0);
-  return Array.from({ length: 72 }, (_, index) => {
-    const date = new Date(start.getTime() + index * 60 * 60 * 1000);
-    return {
-      time: Math.floor(date.getTime() / 1000),
-      frameType: "forecast",
-      provider: "weatherapi",
-      weatherApiStamp: utcDateHourStamp(date)
-    };
-  });
+const GIBS_TILE_BASE = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/IMERG_Precipitation_Rate_30min/default/";
+const GIBS_PROBE_TILE = "/GoogleMapsCompatible_Level6/6/31/17.png"; // tile sobre Costa Rica
+
+// IMERG se publica con unas horas de retraso: se busca la imagen más reciente disponible.
+async function createNasaFrames(config) {
+  const stepMs = config.stepMinutes * 60 * 1000;
+  let candidate = Math.floor((Date.now() - 2 * 3600 * 1000) / stepMs) * stepMs;
+  const limit = candidate - 14 * 3600 * 1000;
+  while (candidate >= limit) {
+    try {
+      const response = await fetch(GIBS_TILE_BASE + gibsTimeStamp(new Date(candidate)) + GIBS_PROBE_TILE);
+      if (response.ok) {
+        return Array.from({ length: config.frameCount }, (_, index) => {
+          const time = candidate - (config.frameCount - 1 - index) * stepMs;
+          return {
+            time: Math.floor(time / 1000),
+            frameType: "observed",
+            provider: "nasa",
+            gibsStamp: gibsTimeStamp(new Date(time))
+          };
+        });
+      }
+    } catch (error) {
+      throw new Error("No se pudo consultar NASA GIBS.");
+    }
+    candidate -= stepMs;
+  }
+  throw new Error("NASA GIBS no tiene imágenes recientes.");
 }
 
 function setRadarTimeline(frames, allowAnimation = true) {
@@ -1073,10 +1061,8 @@ function setRadarTimeline(frames, allowAnimation = true) {
 }
 
 function radarTileUrl(frame, metadata, config) {
-  if (radarSourceKey === "weatherapi") {
-    const product = WEATHER_MAP_PRODUCTS[weatherMapProductKey] || WEATHER_MAP_PRODUCTS.precip;
-    return "https://weathermaps.weatherapi.com/" + product.path + "/tiles/" +
-      frame.weatherApiStamp + "/{z}/{x}/{y}.png";
+  if (radarSourceKey === "nasa") {
+    return GIBS_TILE_BASE + frame.gibsStamp + "/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png";
   }
   const host = String(metadata.host || config.fallbackHost).replace(/\/$/, "");
   const path = String(frame.path || "");
@@ -1093,9 +1079,7 @@ async function loadRadarSource() {
   localStorage.setItem(SOURCE_STORAGE_KEY, radarSourceKey);
 
   const config = RADAR_SOURCES[radarSourceKey];
-  $("weatherMapProductControl").hidden = radarSourceKey !== "weatherapi";
   $("librewxrStyleControl").hidden = radarSourceKey !== "librewxr";
-  $("weatherMapProduct").value = weatherMapProductKey;
   $("librewxrColorScheme").value = String(librewxrColorScheme);
   $("radarStatus").textContent = "Consultando " + config.label + "…";
   $("radarStatus").className = "loading";
@@ -1104,18 +1088,18 @@ async function loadRadarSource() {
   removeRadarLayer();
 
   try {
-    if (radarSourceKey === "weatherapi") {
-      const product = WEATHER_MAP_PRODUCTS[weatherMapProductKey] || WEATHER_MAP_PRODUCTS.precip;
-      radarMetadata = { provider: "weatherapi" };
-      setRadarTimeline(createWeatherApiFrames());
-      $("mapStatusChip").textContent = "WeatherAPI · " + product.label + " · pronóstico horario";
-      $("weatherMapProductHint").textContent = product.note;
-      $("radarLegend").hidden = true;
+    if (radarSourceKey === "nasa") {
+      const frames = await createNasaFrames(config);
+      radarMetadata = { provider: "nasa" };
+      setRadarTimeline(frames);
+      radarFrameIndex = frames.length - 1;
+      $("frameSlider").value = String(radarFrameIndex);
+      $("mapStatusChip").textContent = "NASA IMERG · precipitación observada por satélite";
+      $("radarLegend").hidden = false;
       $("radarSourceNote").innerHTML =
-        product.note + ' Fuente: <a href="https://www.weatherapi.com/docs/weather-maps/" target="_blank" rel="noopener">documentación de WeatherAPI</a>.';
-      $("radarTime").textContent = "Pronóstico horario de " + product.label + " · selecciona una hora";
-      showRadarFrame(0);
-      $("radarStatus").textContent = "Mosaicos horarios · WeatherAPI";
+        'NASA IMERG combina datos de satélites de microondas e infrarrojo para estimar la precipitación cada 30 minutos. Es una medición real, pero se publica con <strong>varias horas de retraso</strong>; úsala para ver por dónde llovió, no para saber si llueve ahora (para eso usa LibreWXR y las estaciones del IMN). Fuente: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a>.';
+      showRadarFrame(radarFrameIndex);
+      $("radarStatus").textContent = "Imágenes recibidas · NASA IMERG";
       $("radarStatus").className = "muted";
       updateZoomHint();
       return;
@@ -1190,7 +1174,7 @@ function showRadarFrame(index) {
     maxzoom: config.maxZoom,
     attribution: ({
       librewxr: "Precipitation data: LibreWXR / NOAA RRQPE",
-      weatherapi: "Precipitation forecast: WeatherAPI.com"
+      nasa: "Precipitation data: NASA GIBS / GPM IMERG"
     })[radarSourceKey] || "Precipitation data"
   });
 
@@ -1200,9 +1184,9 @@ function showRadarFrame(index) {
     type: "raster",
     source: "raintrack-radar-source",
     paint: {
-      "raster-opacity": radarSourceKey === "weatherapi" ? 0.56 : 0.76,
+      "raster-opacity": radarSourceKey === "nasa" ? 0.7 : 0.76,
       "raster-fade-duration": 0,
-      "raster-resampling": radarSourceKey === "weatherapi" ? "linear" : "nearest"
+      "raster-resampling": radarSourceKey === "nasa" ? "linear" : "nearest"
     }
   };
 
@@ -1230,8 +1214,7 @@ function showRadarFrame(index) {
     const firstFrameTime = radarFrames[0] ? radarFrames[0].time : frame.time;
     const hours = Math.max(0, Math.round((frame.time - firstFrameTime) / 3600));
     $("frameLabel").textContent = hours === 0 ? "Pronóstico actual" : "Pronóstico +" + hours + " h";
-    const productLabel = WEATHER_MAP_PRODUCTS[weatherMapProductKey]?.label || "precipitación";
-    $("radarTime").textContent = "Pronóstico de " + productLabel + " · " + formatClockFromTimestamp(frame.time);
+    $("radarTime").textContent = "Pronóstico · " + formatClockFromTimestamp(frame.time);
   } else {
     $("frameLabel").textContent = formatClockFromTimestamp(frame.time);
     $("radarTime").textContent = "Imagen correspondiente a las " + formatClockFromTimestamp(frame.time);
@@ -2530,15 +2513,8 @@ $("forecastToggle").addEventListener("click", () => {
 });
 
 $("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
-$("weatherMapProduct").value = weatherMapProductKey;
 $("librewxrColorScheme").value = String(librewxrColorScheme);
 $("radarSource").addEventListener("change", loadRadarSource);
-$("weatherMapProduct").addEventListener("change", event => {
-  weatherMapProductKey = Object.prototype.hasOwnProperty.call(WEATHER_MAP_PRODUCTS, event.target.value)
-    ? event.target.value : "precip";
-  localStorage.setItem(WEATHER_MAP_PRODUCT_STORAGE_KEY, weatherMapProductKey);
-  loadRadarSource();
-});
 $("librewxrColorScheme").addEventListener("change", event => {
   const nextColor = Number(event.target.value);
   librewxrColorScheme = LIBREWXR_PALETTES.includes(nextColor) ? nextColor : 10;

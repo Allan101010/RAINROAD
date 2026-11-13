@@ -4,7 +4,7 @@ Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, r
 
 ## Módulos
 
-- Mapa meteorológico de Costa Rica, radar (LibreWXR / WeatherAPI), imágenes satelitales del IMN, pronóstico y rutas.
+- Mapa meteorológico de Costa Rica, radar (LibreWXR / NASA IMERG), imágenes satelitales del IMN, pronóstico y rutas.
 - **Estaciones del IMN:** la lluvia se informa solo con sus mediciones. Si una estación mide lluvia, aparece un aviso en la página.
 - **Cámaras públicas** (Webcams Costa Rica, OVSICORI, SkylineWebcams): se muestra si están en línea, qué tan reciente es su imagen y si es legible. Las cámaras **no** generan alertas de lluvia: ninguna cámara confirma lluvia por sí sola.
 

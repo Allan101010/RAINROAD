@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.18</title>
+  <title>RainTrack CR v1.8.19</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.18">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.19">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.18</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.19</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -33,7 +33,7 @@
       <div class="section-head map-head">
         <div>
           <h2>Mapa meteorológico</h2>
-          <p class="subtitle">Precipitación, temperatura, viento y presión sobre el mapa de Costa Rica.</p>
+          <p class="subtitle">Precipitación sobre el mapa de Costa Rica.</p>
         </div>
         <p class="tiny">Activa las capas desde el botón «Capas» dentro del mapa.</p>
       </div>
@@ -55,19 +55,9 @@
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
               <option value="librewxr">LibreWXR · precipitación estimada por satélite (principal)</option>
-              <option value="weatherapi">WeatherAPI · pronóstico horario de precipitación (experimental)</option>
+              <option value="nasa">NASA IMERG · precipitación observada por satélite (con retraso de horas)</option>
             </select>
-            <p class="layer-hint">LibreWXR ofrece imágenes de precipitación estimada y un nowcast corto. WeatherAPI ofrece mapas de pronóstico horario; no es radar observado.</p>
-            <div id="weatherMapProductControl" hidden>
-              <label for="weatherMapProduct">Producto WeatherAPI · sin API KEY</label>
-              <select class="source-select" id="weatherMapProduct">
-                <option value="precip">Precipitación</option>
-                <option value="tmp2m">Temperatura a 2 m</option>
-                <option value="wind">Velocidad del viento</option>
-                <option value="pressure">Presión atmosférica</option>
-              </select>
-              <p class="layer-hint" id="weatherMapProductHint">Pronóstico horario para los próximos tres días.</p>
-            </div>
+            <p class="layer-hint">LibreWXR muestra la lluvia casi en tiempo real. NASA IMERG es una medición satelital más precisa, pero llega con varias horas de retraso.</p>
             <div id="librewxrStyleControl">
               <label for="librewxrColorScheme">Estilo visual del radar LibreWXR</label>
               <select class="source-select" id="librewxrColorScheme">
@@ -212,7 +202,7 @@
         <span class="legend-item"><span class="legend-dot" style="background:#facc15"></span> Fuerte</span>
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Intensa</span>
       </div>
-      <p class="source-note" id="radarSourceNote">LibreWXR es la fuente principal. Las nuevas capas experimentales pueden representar pronósticos y no necesariamente observaciones de radar; la hora de validez debe revisarse antes de interpretar la precipitación.</p>
+      <p class="source-note" id="radarSourceNote">LibreWXR es la fuente principal. NASA IMERG es observación satelital con retraso de horas; revisa la hora de la imagen antes de interpretarla.</p>
     </section>
 
     <section class="section">
@@ -288,12 +278,12 @@
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · <a href="https://www.weatherapi.com/" target="_blank" rel="noopener">WeatherAPI</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.18"></script>
+  <script src="assets/app.js?v=1.8.19"></script>
 </body>
 </html>
