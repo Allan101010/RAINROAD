@@ -12,7 +12,7 @@ import re
 import time
 import hashlib
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import requests
@@ -368,7 +368,62 @@ def parse_imn_cap_rss(source, fetched_at):
     return output
 
 
-PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss, "swpc_json": parse_swpc_alerts, "cap_rss": parse_imn_cap_rss}
+
+def parse_rsn_rss(source, fetched_at):
+    root = ET.fromstring(fetch_text(source["url"]))
+    output = []
+    month_names = {
+        "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+        "julio":7, "agosto":8, "septiembre":9, "setiembre":9, "octubre":10,
+        "noviembre":11, "diciembre":12
+    }
+    for item in root.findall(".//item"):
+        title = repair_mojibake(item.findtext("title") or "Sismo reportado por RSN")
+        description = repair_mojibake(item.findtext("description"))
+        link = item.findtext("link") or source["url"]
+        raw_id = item.findtext("guid") or link or title
+        observed = None
+        published = item.findtext("pubDate")
+        if published:
+            try:
+                from email.utils import parsedate_to_datetime
+                parsed = parsedate_to_datetime(published)
+                observed = parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+            except (TypeError, ValueError, OverflowError):
+                pass
+        if not observed:
+            match = re.search(r"(\d{1,2}) de ([a-záéíóú]+) del (\d{4}),?\s*(\d{1,2}):(\d{2})\s*(am|pm)", title, re.I)
+            if match and month_names.get(match.group(2).lower()):
+                day, month, year, hour, minute = int(match.group(1)), month_names[match.group(2).lower()], int(match.group(3)), int(match.group(4)), int(match.group(5))
+                if match.group(6).lower() == "pm" and hour != 12:
+                    hour += 12
+                elif match.group(6).lower() == "am" and hour == 12:
+                    hour = 0
+                local = datetime(year, month, day, hour, minute, tzinfo=timezone(timedelta(hours=-6)))
+                observed = local.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        observed = observed or fetched_at
+        mag_match = re.search(r"Mag(?:nitud)?:?\s*(\d+(?:[.,]\d+)?)\s*(Mw|Ml|Mc)?", title + " " + (description or ""), re.I)
+        magnitude = float(mag_match.group(1).replace(",", ".")) if mag_match else None
+        magnitude_type = mag_match.group(2) if mag_match else None
+        location = None
+        point = next((node.text.strip() for node in item.iter() if node.tag.rsplit("}", 1)[-1].lower() == "point" and node.text), None)
+        if point:
+            try:
+                lat, lon = [float(v) for v in re.split(r"[ ,]+", point)[:2]]
+                location = {"latitude": lat, "longitude": lon, "depth_km": None, "place_name": None, "country_code": "CR"}
+            except (ValueError, TypeError):
+                pass
+        output.append(event_record(
+            provider=source["provider"], raw_id=raw_id, hazard_type="earthquake",
+            title=title, description=description, url=link, observed_at=observed,
+            issued_at=observed, ingested_at=fetched_at, confidence="provider_reported",
+            status="unknown", severity="unknown", location=location,
+            metrics={"magnitude": magnitude, "magnitude_type": magnitude_type,
+                     "report_type": "RSN published felt-earthquake report"}))
+    return output
+
+
+PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss, "swpc_json": parse_swpc_alerts, "cap_rss": parse_imn_cap_rss, "rsn_rss": parse_rsn_rss}
 
 
 def main():
