@@ -240,7 +240,111 @@ def parse_gdacs_rss(source, fetched_at):
     return output
 
 
-PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss, "swpc_json": parse_swpc_alerts}
+
+def _xml_text(parent, name):
+    if parent is None:
+        return None
+    for child in parent.iter():
+        if child.tag.rsplit("}", 1)[-1].lower() == name.lower() and child.text:
+            return child.text.strip()
+    return None
+
+
+def _cap_datetime(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    except ValueError:
+        return None
+
+
+def _classify_cap_hazard(event_text, category_text=""):
+    text = (event_text + " " + category_text).lower()
+    rules = [
+        (("tsunami", "maremoto"), "tsunami"),
+        (("landslide", "deslizamiento", "derrumbe"), "landslide"),
+        (("flood", "inundación", "inundacion", "crecida"), "flood"),
+        (("cyclone", "hurricane", "huracán", "tormenta tropical"), "tropical_cyclone"),
+        (("thunderstorm", "tormenta eléctrica", "tormenta electrica", "rayo"), "severe_storm"),
+        (("wind", "viento", "ráfaga", "rafaga"), "severe_storm"),
+        (("rain", "lluvia", "precipitación", "precipitacion", "onda tropical"), "severe_storm"),
+        (("volcano", "volcán", "volcan", "ashfall", "ceniza"), "volcano"),
+        (("earthquake", "sismo", "terremoto"), "earthquake")
+    ]
+    for words, hazard in rules:
+        if any(word in text for word in words):
+            return hazard
+    return "other"
+
+
+def parse_imn_cap_rss(source, fetched_at):
+    root = ET.fromstring(fetch_text(source["url"]))
+    output = []
+    severity_map = {"extreme":"extreme", "severe":"severe", "moderate":"moderate", "minor":"minor", "unknown":"unknown"}
+    for item in root.findall(".//item"):
+        cap_alert = next((node for node in item.iter() if node.tag.rsplit("}", 1)[-1].lower() == "alert"), None)
+        info = next((node for node in cap_alert.iter() if node.tag.rsplit("}", 1)[-1].lower() == "info"), None) if cap_alert is not None else None
+        title = item.findtext("title") or _xml_text(info, "event") or "Aviso meteorológico del IMN"
+        description = _xml_text(info, "description") or item.findtext("description")
+        link = item.findtext("link") or source["url"]
+        raw_id = _xml_text(cap_alert, "identifier") if cap_alert is not None else None
+        raw_id = raw_id or item.findtext("guid") or link or title
+        event_text = _xml_text(info, "event") or title
+        categories = " ".join(node.text or "" for node in info.iter() if node.tag.rsplit("}", 1)[-1].lower() == "category") if info is not None else ""
+        hazard = _classify_cap_hazard(event_text, categories)
+        cap_severity = (_xml_text(info, "severity") or "unknown").lower()
+        severity = severity_map.get(cap_severity, "unknown")
+        urgency = _xml_text(info, "urgency") or "Unknown"
+        certainty = _xml_text(info, "certainty") or "Unknown"
+        effective = _cap_datetime(_xml_text(info, "effective") or _xml_text(info, "onset"))
+        expires = _cap_datetime(_xml_text(info, "expires"))
+        sent = _cap_datetime(_xml_text(cap_alert, "sent")) or fetched_at
+        status_value = (_xml_text(cap_alert, "status") or "Actual").lower()
+        msg_type = (_xml_text(cap_alert, "msgType") or "Alert").lower()
+        now_dt = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+        expires_dt = datetime.fromisoformat(expires.replace("Z", "+00:00")) if expires else None
+        if msg_type in ("cancel", "ack") or (expires_dt and expires_dt <= now_dt):
+            status = "resolved"
+        elif status_value in ("test", "exercise", "system"):
+            status = "unknown"
+        else:
+            status = "active"
+        location = None
+        area_desc = None
+        if info is not None:
+            for area in (node for node in info.iter() if node.tag.rsplit("}", 1)[-1].lower() == "area"):
+                area_desc = _xml_text(area, "areaDesc") or area_desc
+                polygon = _xml_text(area, "polygon")
+                if polygon:
+                    try:
+                        pairs = [tuple(float(v) for v in pair.split(",")) for pair in polygon.split()]
+                        if pairs and all(len(pair) == 2 for pair in pairs):
+                            location = {
+                                "latitude": sum(pair[0] for pair in pairs) / len(pairs),
+                                "longitude": sum(pair[1] for pair in pairs) / len(pairs),
+                                "depth_km": None, "place_name": area_desc, "country_code": "CR"
+                            }
+                            break
+                    except (ValueError, TypeError):
+                        pass
+        event = event_record(
+            provider=source["provider"], raw_id=raw_id, hazard_type=hazard,
+            title=title, description=description, url=link, observed_at=effective or sent,
+            issued_at=sent, ingested_at=fetched_at, confidence="official",
+            status=status, severity=severity, location=location,
+            metrics={"cap_event": event_text, "urgency": urgency, "certainty": certainty,
+                     "area": area_desc or "Costa Rica", "message_type": msg_type, "cap_status": status_value})
+        event["expires_at"] = expires
+        event["region_priority"] = "costa_rica_central_america"
+        output.append(event)
+    return output
+
+
+PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss, "swpc_json": parse_swpc_alerts, "cap_rss": parse_imn_cap_rss}
 
 
 def main():
