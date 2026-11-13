@@ -147,12 +147,27 @@ def parse_swpc_alerts(source, fetched_at):
         lower = message.lower()
         hazard = "geomagnetic_storm" if any(x in lower for x in ("geomagnetic storm", "geomagnetic", "g-scale")) else "solar_flare" if any(x in lower for x in ("solar flare", "radio blackout", "x-ray", "type ii radio emission", "type iv radio emission", "solar radiation storm", "proton event")) else "space_weather"
         severity = "unknown"
-        match = re.search(r"\\bG([1-5])\\b", message, re.I)
+        match = re.search(r"\bG([1-5])\b", message, re.I)
         if match:
             level = int(match.group(1))
             severity = "minor" if level == 1 else "moderate" if level == 2 else "severe" if level in (3, 4) else "extreme"
-        observed = item.get("issue_datetime") or item.get("issue_time") or item.get("message_issue_time") or fetched_at
-        output.append(event_record(provider=source["provider"], raw_id=product_id, hazard_type=hazard, title=(product_id + " - " + next((line.strip() for line in message.splitlines() if line.strip().startswith(("ALERT:", "WATCH:", "WARNING:"))), message.splitlines()[0]))[:220], description=message, url=item.get("link") or source["url"], observed_at=observed, issued_at=observed, ingested_at=fetched_at, confidence="official", severity=severity, metrics={"product_id": product_id, "message_type": item.get("message_type")}))
+        observed_raw = item.get("issue_datetime") or item.get("issue_time") or item.get("message_issue_time") or fetched_at
+        observed = observed_raw
+        # NOAA messages use timestamps such as "2026 Nov 05 1857 UTC".
+        for date_format in ("%Y %b %d %H%M UTC", "%Y %b %d %H:%M:%S.%f", "%Y %b %d %H:%M:%S"):
+            try:
+                observed = datetime.strptime(str(observed_raw), date_format).replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+                break
+            except ValueError:
+                continue
+        age_hours = None
+        try:
+            age_hours = (datetime.fromisoformat(fetched_at.replace("Z", "+00:00")) - datetime.fromisoformat(observed.replace("Z", "+00:00"))).total_seconds() / 3600
+        except (TypeError, ValueError):
+            pass
+        event_status = "resolved" if age_hours is not None and age_hours > 24 else "active"
+        title = product_id + " - " + next((line.strip() for line in message.splitlines() if line.strip().startswith(("ALERT:", "WATCH:", "WARNING:"))), message.splitlines()[0])
+        output.append(event_record(provider=source["provider"], raw_id=product_id, hazard_type=hazard, title=title[:220], description=message, url=item.get("link") or source["url"], observed_at=observed, issued_at=observed, ingested_at=fetched_at, confidence="official", status=event_status, severity=severity, metrics={"product_id": product_id, "message_type": item.get("message_type"), "age_hours": round(age_hours, 1) if age_hours is not None else None}))
     return output
 
 def parse_gdacs_rss(source, fetched_at):
