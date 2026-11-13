@@ -1,0 +1,27 @@
+name: Global intelligence validation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/ingest_global_events.py"
+      - "tests/**"
+      - "schemas/**"
+      - "config/global-sources.json"
+      - ".github/workflows/global-intelligence-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-global-monitor.txt
+      - run: python -m py_compile scripts/ingest_global_events.py
+      - run: python -m unittest discover -s tests -v
+      - name: Validate JSON documents
+        run: |
+          python -c "import json,pathlib; [json.loads(p.read_text()) for p in pathlib.Path('.').rglob('*.json')]; print('JSON files valid')"
