@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.0</title>
+  <title>RainTrack CR v1.8.1</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -684,7 +684,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.0</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.1</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1543,8 +1543,12 @@
 
     async function loadCameraMonitoringData() {
       try {
-        const response = await fetch("camera-alerts.json?rt=" + Date.now(), { cache: "no-store" });
-        if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
+        // The camera monitor updates this public JSON through GitHub Actions every 15 minutes.
+        // Fetch it from raw GitHub so static hosts (including Cloudflare Pages) do not need
+        // to rebuild the site every time the monitoring data changes.
+        const dataUrl = "https://raw.githubusercontent.com/Allan101010/raintrack-cr/main/camera-alerts.json?rt=" + Date.now();
+        const response = await fetch(dataUrl, { cache: "no-store" });
+        if (!response.ok) throw new Error("No se pudo consultar el archivo público de monitoreo de cámaras.");
         cameraMonitorData = await response.json();
         renderCameraAlerts();
         if (mapReady && $("camerasToggle").checked) addCameraMarkers();
