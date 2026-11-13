@@ -1119,7 +1119,11 @@
         gap: 7px;
       }
       .map-expand-toggle { padding: 9px 10px; font-size: 11px; }
-      .map-layer-control { width: min(230px, calc(100vw - 150px)); }
+      .map-layer-control {
+        left: auto;
+        right: auto;
+        width: min(230px, calc(100vw - 150px));
+      }
       .map-chip {
         max-width: min(40%, 190px);
         overflow: hidden;
@@ -1156,8 +1160,8 @@
     <section class="section" id="precipitationSection">
       <div class="section-head map-head">
         <div>
-          <h2>Mapa de precipitaciones</h2>
-          <p class="subtitle">Mapa de localidades y carreteras con una capa meteorológica superpuesta.</p>
+          <h2>Mapa meteorológico</h2>
+          <p class="subtitle">Precipitación, temperatura, viento y presión sobre el mapa de Costa Rica.</p>
         </div>
         <p class="tiny">Activa las capas desde el botón «Capas» dentro del mapa.</p>
       </div>
@@ -1165,7 +1169,7 @@
       <div class="map-shell" id="mapShell">
         <div id="map" aria-label="Mapa de precipitaciones de Costa Rica"></div>
         <div class="map-chip" id="mapLocationChip">🇨🇷 Costa Rica</div>
-        <div class="map-status-chip" id="mapStatusChip">Preparando mapa y radar…</div>
+        <div class="map-status-chip" id="mapStatusChip">Preparando mapa meteorológico…</div>
 
         <div class="map-top-actions">
           <button class="map-expand-toggle" id="mapExpandToggle" type="button" aria-pressed="false" aria-label="Ampliar mapa a pantalla completa">⛶ Ampliar mapa</button>
@@ -1250,7 +1254,7 @@
       <div class="map-toolbar">
         <div class="radar-toolbar-top">
           <div>
-            <div id="radarStatus" class="loading">Consultando radar…</div>
+            <div id="radarStatus" class="loading">Consultando capa meteorológica…</div>
             <div id="radarTime" class="radar-time">Esperando imagen meteorológica</div>
           </div>
           <div style="display:flex;gap:7px;flex-wrap:wrap">
