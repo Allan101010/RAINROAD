@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7.6</title>
+  <title>RainTrack CR v1.7.7</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -684,7 +684,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.6</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.7</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -2188,7 +2188,7 @@
         latitude: String(location.lat),
         longitude: String(location.lon),
         current: "precipitation,rain,showers,weather_code",
-        hourly: "precipitation_probability,precipitation,weather_code",
+        hourly: "precipitation_probability,precipitation,rain,showers,weather_code",
         forecast_days: "2",
         timezone: "America/Costa_Rica"
       });
@@ -2213,12 +2213,37 @@
         time: times[bestIndex],
         probability: Number(data.hourly.precipitation_probability?.[bestIndex] ?? 0),
         precipitation: Number(data.hourly.precipitation?.[bestIndex] ?? 0),
+        rain: Number(data.hourly.rain?.[bestIndex] ?? 0),
+        showers: Number(data.hourly.showers?.[bestIndex] ?? 0),
         weatherCode: Number(data.hourly.weather_code?.[bestIndex] ?? 0)
       };
     }
 
     function isRainWeatherCode(code) {
       return [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(Number(code));
+    }
+
+    function getRouteCurrentPrecipitationMm(current) {
+      const values = ["precipitation", "rain", "showers"]
+        .map(key => current?.[key])
+        .filter(value => value !== null && value !== undefined && value !== "")
+        .map(Number)
+        .filter(value => Number.isFinite(value) && value >= 0);
+      return values.length ? Math.max(...values) : null;
+    }
+
+    function getRouteCurrentRainComponentMm(current) {
+      const values = ["rain", "showers"]
+        .map(key => current?.[key])
+        .filter(value => value !== null && value !== undefined && value !== "")
+        .map(Number)
+        .filter(value => Number.isFinite(value) && value >= 0);
+      return values.length ? Math.max(...values) : null;
+    }
+
+    function formatRouteMillimeters(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? Math.max(0, number).toFixed(2) : "--";
     }
 
     function formatRouteDuration(seconds) {
@@ -2291,29 +2316,62 @@
 
     function renderRouteAnalysis(route, samples, results, origin, destination, directionLabel) {
       const totalRainNow = results.filter(item => item.currentRain).length;
+      const totalWeakSignals = results.filter(item => item.currentWeakSignal).length;
       const totalRainEta = results.filter(item => item.etaRain).length;
+      const pointsWithoutData = results.filter(item => !item.data).length;
+
       const sampleMarkup = results.map((item, index) => {
-        let label = "Sin señal importante";
+        let label = "Sin precipitación estimada";
         let className = "clear";
         if (!item.data) {
           label = "Sin datos";
           className = "unknown";
         } else if (item.currentRain) {
-          label = "Lluvia estimada ahora";
+          label = "Precipitación estimada ahora";
           className = "rain";
         } else if (item.etaRain) {
           label = "Posible lluvia al llegar";
           className = "possible";
+        } else if (item.currentWeakSignal) {
+          label = "Señal débil del modelo";
+          className = "possible";
         }
+
         const etaText = item.eta.toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+        const currentTimeText = item.currentTime ? formatLocalHour(item.currentTime) : "hora no disponible";
+        const currentAmountText = item.currentPrecipitationMm === null
+          ? "sin dato"
+          : formatRouteMillimeters(item.currentPrecipitationMm) + " mm";
+        const currentText = !item.data
+          ? "Sin datos actuales"
+          : item.currentRain
+            ? currentAmountText + " · señal cuantitativa coherente del modelo"
+            : item.currentWeakSignal
+              ? currentAmountText + " · señal débil o no corroborada"
+              : currentAmountText + " · sin precipitación cuantificable";
+        const codeText = item.data
+          ? item.currentCodeSuggestsRain && !item.currentRain
+            ? "Código actual del modelo: " + item.currentWeatherDescription + " (no basta para confirmar precipitación)."
+            : "Condición actual del modelo: " + item.currentWeatherDescription + "."
+          : "";
         const forecastText = item.forecast
-          ? `${Math.round(item.forecast.probability)}% · ${formatMillimeters(item.forecast.precipitation)} mm previstos`
+          ? Math.round(item.forecast.probability) + "% de probabilidad · " +
+            formatRouteMillimeters(item.forecast.precipitation) + " mm previstos" +
+            (isRainWeatherCode(item.forecast.weatherCode)
+              ? " · código horario: " + weatherInfo(item.forecast.weatherCode).text
+              : "")
           : "Pronóstico no disponible";
+
         return `
           <div class="route-sample">
             <div>
               <strong>Tramo ${index + 1} · ${escapeHtml(item.label)}</strong>
-              <small>Km ${item.distanceAlongKm.toFixed(1)} desde la salida · Llegada estimada ${etaText}<br>${item.data ? "A la llegada: " + forecastText : "No fue posible consultar el pronóstico de este punto."}</small>
+              <small>
+                Km ${item.distanceAlongKm.toFixed(1)} desde la salida · Llegada estimada ${etaText}
+                <br>Ahora (modelo, ${escapeHtml(currentTimeText)}): ${escapeHtml(currentText)}
+                <br>${escapeHtml(codeText)}
+                <br>A la llegada: ${escapeHtml(forecastText)}
+              </small>
             </div>
             <span class="route-status-pill ${className}">${label}</span>
           </div>
@@ -2321,17 +2379,27 @@
       }).join("");
 
       let summary;
-      const pointsWithoutData = results.filter(item => !item.data).length;
       if (pointsWithoutData === results.length) {
         summary = "No fue posible obtener datos meteorológicos de los puntos de esta ruta. No se puede concluir si lloverá.";
-      } else if (totalRainNow > 0) {
-        summary = `El modelo meteorológico estima precipitación actual en ${totalRainNow} de ${results.length} puntos de la ruta.`;
-      } else if (totalRainEta > 0) {
-        summary = `El modelo señala posible precipitación a la hora estimada de llegada en ${totalRainEta} de ${results.length} puntos.`;
-      } else if (pointsWithoutData > 0) {
-        summary = `En los puntos con datos, el modelo no señala una posibilidad importante de lluvia. No hubo datos en ${pointsWithoutData} puntos; no se puede descartar lluvia localizada.`;
       } else {
-        summary = "El modelo no señala una posibilidad importante de lluvia en los puntos consultados durante este recorrido. Esto no descarta lluvia localizada.";
+        const summaryParts = [];
+        if (totalRainNow > 0) {
+          summaryParts.push(`El modelo muestra una señal cuantitativa coherente de precipitación actual (≥ 0,20 mm) en ${totalRainNow} de ${results.length} puntos. No es una observación directa de lluvia.`);
+        } else {
+          summaryParts.push("No hay una señal cuantitativa coherente suficiente para marcar precipitación actual en los puntos consultados.");
+        }
+        if (totalWeakSignals > 0) {
+          summaryParts.push(`${totalWeakSignals} puntos presentan señales débiles o contradictorias del modelo; no se cuentan como lluvia actual.`);
+        }
+        if (totalRainEta > 0) {
+          summaryParts.push(`Para la hora estimada de llegada, el pronóstico indica posibilidad de precipitación en ${totalRainEta} de ${results.length} puntos (probabilidad ≥ 50% o acumulación ≥ 0,10 mm).`);
+        } else {
+          summaryParts.push("El pronóstico no alcanza los umbrales definidos para señalar posibilidad de precipitación a la llegada.");
+        }
+        if (pointsWithoutData > 0) {
+          summaryParts.push(`No hubo datos en ${pointsWithoutData} puntos; no se puede descartar lluvia localizada allí.`);
+        }
+        summary = summaryParts.join(" ");
       }
 
       $("routeResult").innerHTML = `
@@ -2345,7 +2413,7 @@
         </div>
         <div class="route-result-summary">${escapeHtml(summary)}</div>
         <div class="route-samples">${sampleMarkup}</div>
-        <p class="tiny" style="margin-top:10px">Fuente meteorológica: Open-Meteo. Se consultan ${results.length} puntos distribuidos a lo largo del recorrido. La condición actual y la de llegada son estimaciones del modelo, no observaciones directas de radar. El tiempo de viaje no incorpora tráfico en vivo.</p>
+        <p class="tiny" style="margin-top:10px">Fuente meteorológica: Open-Meteo. Se consultan ${results.length} puntos distribuidos a lo largo del recorrido. La etiqueta de precipitación actual requiere al menos 0,20 mm y coherencia entre variables del modelo; el código meteorológico por sí solo no activa lluvia. El pronóstico de llegada usa probabilidad ≥ 50% o acumulación ≥ 0,10 mm. Son estimaciones, no observaciones directas. El tiempo de viaje no incorpora tráfico en vivo.</p>
       `;
       $("routeResult").hidden = false;
     }
@@ -2424,17 +2492,36 @@
           };
           try {
             const data = await getRouteWeather(point);
-            const currentRain = Number(data.current?.precipitation || 0) >= 0.1 ||
-              Number(data.current?.rain || 0) >= 0.1 ||
-              Number(data.current?.showers || 0) >= 0.1 ||
-              isRainWeatherCode(data.current?.weather_code);
+            const currentPrecipitationMm = getRouteCurrentPrecipitationMm(data.current);
+            const currentRainComponentMm = getRouteCurrentRainComponentMm(data.current);
+            const currentWeatherCode = Number(data.current?.weather_code);
+            const currentCodeSuggestsRain = isRainWeatherCode(currentWeatherCode);
+            // Para marcar precipitación actual se exige cantidad >= 0,20 mm y
+            // coherencia con el campo rain/showers o con el código meteorológico.
+            // El código WMO por sí solo nunca activa una alerta de lluvia actual.
+            const currentRain = currentPrecipitationMm !== null &&
+              currentPrecipitationMm >= 0.2 &&
+              ((currentRainComponentMm !== null && currentRainComponentMm >= 0.1) || currentCodeSuggestsRain);
+            const currentWeakSignal = !currentRain && (
+              (currentPrecipitationMm !== null && currentPrecipitationMm >= 0.05) ||
+              currentCodeSuggestsRain
+            );
             const forecast = nearestHourlyForecast(data, eta);
+            // El código horario es descriptivo, pero no basta por sí solo para
+            // marcar lluvia futura: se exige probabilidad >= 50% o >= 0,10 mm.
             const etaRain = forecast
-              ? forecast.probability >= 30 || forecast.precipitation >= 0.1 || isRainWeatherCode(forecast.weatherCode)
+              ? forecast.probability >= 50 || forecast.precipitation >= 0.1
               : false;
             return {
               data,
               currentRain,
+              currentWeakSignal,
+              currentPrecipitationMm,
+              currentRainComponentMm,
+              currentWeatherCode,
+              currentWeatherDescription: weatherInfo(currentWeatherCode).text,
+              currentCodeSuggestsRain,
+              currentTime: data.current?.time || null,
               etaRain,
               forecast,
               eta,
@@ -2446,6 +2533,13 @@
             return {
               data: null,
               currentRain: false,
+              currentWeakSignal: false,
+              currentPrecipitationMm: null,
+              currentRainComponentMm: null,
+              currentWeatherCode: null,
+              currentWeatherDescription: "Sin datos",
+              currentCodeSuggestsRain: false,
+              currentTime: null,
               etaRain: false,
               forecast: null,
               eta,
