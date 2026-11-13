@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "collector_version": "1.0.0",
+  "generated_at": null,
+  "status": "not_run",
+  "summary": {
+    "total_events": 0,
+    "costa_rica_or_regional": 0,
+    "critical": 0,
+    "high": 0,
+    "by_type": {},
+    "sources_online": 0,
+    "sources_with_problems": 0
+  },
+  "events": [],
+  "sources": [],
+  "space_weather": null,
+  "institutional_sources": [
+    {
+      "id": "imn",
+      "name": "IMN Costa Rica",
+      "url": "https://www.imn.ac.cr/"
+    },
+    {
+      "id": "cne",
+      "name": "CNE Costa Rica",
+      "url": "https://www.cne.go.cr/"
+    },
+    {
+      "id": "ovs",
+      "name": "OVSICORI-UNA",
+      "url": "https://www.ovsicori.una.ac.cr/sistemas/actividad-volcanica/"
+    },
+    {
+      "id": "sinamot",
+      "name": "SINAMOT",
+      "url": "https://www.sinamot.una.ac.cr/"
+    },
+    {
+      "id": "usgs",
+      "name": "USGS Earthquakes",
+      "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php"
+    },
+    {
+      "id": "nhc",
+      "name": "NOAA National Hurricane Center",
+      "url": "https://www.nhc.noaa.gov/CurrentStorms.json"
+    },
+    {
+      "id": "gdacs",
+      "name": "GDACS",
+      "url": "https://www.gdacs.org/gdacsapi/swagger/index.html"
+    },
+    {
+      "id": "swpc",
+      "name": "NOAA Space Weather Prediction Center",
+      "url": "https://www.swpc.noaa.gov/"
+    },
+    {
+      "id": "nasa",
+      "name": "NASA DONKI / EONET",
+      "url": "https://api.nasa.gov/"
+    },
+    {
+      "id": "tsunami",
+      "name": "NOAA Tsunami Warning Centers",
+      "url": "https://www.tsunami.gov/?page=productRetrieval"
+    }
+  ],
+  "coverage_notes": [
+    "El registro mundial es una selección de fuentes públicas; no representa cobertura total de todos los fenómenos del planeta.",
+    "Un feed sin eventos no significa que no exista peligro. Las fuentes no disponibles se muestran como tales y nunca se convierten en una alerta verde.",
+    "Los boletines PTWC/NTWC no sustituyen las decisiones de SINAMOT ni de las autoridades costarricenses.",
+    "Los sismos no pueden predecirse con precisión. La magnitud de un evento no determina por sí sola el impacto local.",
+    "La actividad volcánica de OVSICORI se enlaza como fuente oficial y se complementa con el monitor visual existente; no se infiere un nivel instrumental desde imágenes de cámaras.",
+    "La actividad solar y geomagnética se presenta como vigilancia espacial y tecnológica; no implica automáticamente peligro directo para las personas en superficie.",
+    "Los avisos oficiales del IMN y la CNE prevalecen sobre cualquier clasificación interna de RainTrack."
+  ]
+}
