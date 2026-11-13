@@ -3927,7 +3927,7 @@
           const p = feature.properties || {};
           new maplibregl.Popup({closeButton:true, maxWidth:"280px"})
             .setLngLat(event.lngLat)
-            .setHTML('<strong>'+globalEscape(p.title)+'</strong><br><span>'+globalEscape(p.type)+'</span><br><small>'+globalEscape(p.provider)+' · '+globalEscape(p.time)+'</small>')
+            .setHTML('<strong>'+globalEscape(p.title)+'</strong><br><span>'+globalEscape(p.type)+'</span><br><small>'+globalEscape(p.provider)+' · '+globalEscape(p.time)+' · '+globalEscape(p.status)+'</small>')
             .addTo(globalWorldMap);
         });
         globalWorldMap.on("mouseenter","raintrack-global-events-points",()=>{globalWorldMap.getCanvas().style.cursor="pointer";});
@@ -3952,6 +3952,7 @@
           type:globalHazardLabels[event.hazard_type] || event.hazard_type,
           provider:event.source?.provider || "Fuente no identificada",
           time:globalDate(event.observed_at),
+          status:event.status || "unknown",
           severity:event.severity || "unknown"
         }
       }));
