@@ -89,15 +89,21 @@
       "confidence_class": "official",
       "coverage": "global",
       "notes": "Official space-weather alerts, watches and warnings."
+    },
+    {
+      "id": "imn-costa-rica-cap-alerts",
+      "provider": "Instituto Meteorológico Nacional de Costa Rica",
+      "domain": "atmosphere",
+      "kind": "cap_rss",
+      "url": "https://cap-sources.s3.amazonaws.com/cr-imn-es/rss.xml",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "official",
+      "coverage": "Costa Rica",
+      "notes": "Official CAP alert feed; preserve severity, urgency, certainty, area and expiry when published."
     }
   ],
   "planned_sources": [
-    {
-      "provider": "IMN Costa Rica",
-      "domain": "weather",
-      "status": "planned",
-      "reason": "Preserve and extend existing Costa Rica weather integration."
-    },
     {
       "provider": "OVSICORI-UNA and RSN",
       "domain": "solid_earth",
