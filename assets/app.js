@@ -1,0 +1,2835 @@
+"use strict";
+
+// ------------------------------------------------------------
+// CONFIGURACIÓN GENERAL
+// La última ubicación GPS se conserva localmente durante 30 minutos.
+// ------------------------------------------------------------
+const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v2";
+const WEATHER_MAP_PRODUCT_STORAGE_KEY = "raintrackcr_weather_map_product_v1";
+const LIBREWXR_COLOR_STORAGE_KEY = "raintrackcr_librewxr_color_v1";
+const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
+const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
+const LOCATION_CACHE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+
+// El mapa se limita a Costa Rica: permite acercar y alejar, pero no
+// navegar libremente por el resto del mundo.
+const CR_BOUNDARY_URL = "https://geojson-maps.kyd.au/countries/10m/CRI.geojson";
+const CR_MAINLAND_BOUNDS = [[-85.98, 7.95], [-82.52, 11.25]];
+const CR_NAVIGATION_BOUNDS = [[-86.25, 7.65], [-82.25, 11.55]];
+const CR_MASK_COLOR = "#dce4e7";
+const OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
+const OPEN_METEO_GEOCODING = "https://geocoding-api.open-meteo.com/v1/search";
+
+// Ruta habitual: coordenadas de casa proporcionadas por el usuario.
+// El destino laboral se configura una sola vez y se guarda localmente.
+const ROUTE_HOME = {
+  name: "Casa · Santa Rosa de Poás",
+  lat: 10.102970,
+  lon: -84.264296,
+  detail: "Punto de origen guardado"
+};
+const ROUTE_WORK_STORAGE_KEY = "raintrackcr_saved_work_v1";
+const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";
+const ROUTE_WEATHER_SAMPLES_MAX = 8;
+
+const RADAR_SOURCES = {
+  librewxr: {
+    type: "radar",
+    label: "LibreWXR",
+    metadataUrl: "https://api.librewxr.net/public/weather-maps.json",
+    fallbackHost: "https://api.librewxr.net",
+    maxZoom: 12,
+    color: 10,
+    smooth: 0,
+    snow: 0
+  },
+  weatherapi: {
+    type: "hourly_forecast",
+    label: "WeatherAPI",
+    maxZoom: 12
+  }
+};
+const WEATHER_MAP_PRODUCTS = {
+  precip: {
+    label: "precipitación",
+    path: "precip",
+    note: "Pronóstico horario de precipitación para los próximos tres días. No es radar observado. WeatherAPI no publica en esta página una leyenda cuantitativa de colores; por eso los tonos no deben interpretarse como milímetros por hora."
+  },
+  tmp2m: {
+    label: "temperatura a 2 m",
+    path: "tmp2m",
+    note: "Pronóstico horario de temperatura del aire a dos metros de altura para los próximos tres días. Los colores son una escala visual del proveedor."
+  },
+  wind: {
+    label: "velocidad del viento",
+    path: "wind",
+    note: "Pronóstico horario de velocidad del viento para los próximos tres días. Los colores son una escala visual del proveedor."
+  },
+  pressure: {
+    label: "presión atmosférica",
+    path: "pressure",
+    note: "Pronóstico horario de presión atmosférica para los próximos tres días. Los colores son una escala visual del proveedor."
+  }
+};
+const LIBREWXR_PALETTES = [1, 4, 8, 10, 14];
+
+// Imágenes oficiales publicadas por el portal satelital del IMN.
+// Se muestran como una vista flotante dentro del mismo mapa, no como
+// una capa geográfica: no se dispone aquí de límites geográficos/teselas
+// verificadas para alinearlas con calles y coordenadas.
+const IMN_PRODUCTS = {
+  irvis: {
+    label: "Visible más infrarrojo",
+    url: "https://imagenes.imn.ac.cr/img/IRVISCR.png",
+    source: "https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2"
+  },
+  lightning: {
+    label: "Tormentas eléctricas",
+    url: "https://imagenes.imn.ac.cr/img/VISRAYCR.png",
+    source: "https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2"
+  },
+  convection: {
+    label: "Convección profunda",
+    url: "https://imagenes.imn.ac.cr/img/DPCCR.png",
+    source: "https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2"
+  },
+  radargif: {
+    label: "Radar animado IMN",
+    url: "https://www.imn.ac.cr/imagenes-sat/radar1m-animada.gif",
+    source: "https://www.imn.ac.cr/en/radar"
+  }
+};
+
+// Cámaras públicas de Costa Rica. Los puntos son coordenadas de referencia
+// del sitio o volcán, no necesariamente la posición exacta de cada lente.
+// Los ocho feeds OVSICORI se agrupan en los volcanes ya presentes en el mapa.
+const PUBLIC_CAMERAS = [
+  { slug: "playa-flamingo", name: "Playa Flamingo", zone: "Guanacaste", lat: 10.4340, lon: -85.7860, url: "https://webcamscostarica.com/playa-flamingo/", detail: "Bahía y atardecer · 2 cámaras" },
+  { slug: "playa-hermosa-guanacaste", name: "Playa Hermosa de Guanacaste", zone: "Guanacaste", lat: 10.5750, lon: -85.6770, url: "https://webcamscostarica.com/playa-hermosa-guanacaste/", detail: "Bahía de Papagayo · 1 cámara" },
+  { slug: "playas-del-coco", name: "Playas del Coco", zone: "Guanacaste", lat: 10.5530, lon: -85.6940, url: "https://webcamscostarica.com/playas-del-coco/", detail: "Bahía de Playas del Coco · 1 cámara" },
+  { slug: "tamarindo", name: "Tamarindo", zone: "Guanacaste", lat: 10.3000, lon: -85.8410, url: "https://webcamscostarica.com/tamarindo/", detail: "Playa y surf · 4 cámaras" },
+  { slug: "volcan-rincon-de-la-vieja", name: "Volcán Rincón de la Vieja", zone: "Guanacaste", lat: 10.8300, lon: -85.3240, url: "https://webcamscostarica.com/volcan-rincon-de-la-vieja/", detail: "Imágenes del volcán · 3 cámaras" },
+  { slug: "jaco", name: "Jacó", zone: "Pacífico Central", lat: 9.6140, lon: -84.6290, url: "https://webcamscostarica.com/jaco/", detail: "Playa y bahía · 3 cámaras" },
+  { slug: "manuel-antonio", name: "Manuel Antonio", zone: "Pacífico Central", lat: 9.3920, lon: -84.1400, url: "https://webcamscostarica.com/manuel-antonio/", detail: "Playa Espadilla · 1 cámara" },
+  { slug: "playa-herradura", name: "Playa Herradura", zone: "Pacífico Central", lat: 9.6600, lon: -84.6350, url: "https://webcamscostarica.com/playa-herradura/", detail: "Bahía de Herradura · 1 cámara" },
+  { slug: "quepos", name: "Quepos", zone: "Pacífico Central", lat: 9.4050, lon: -84.1570, url: "https://webcamscostarica.com/quepos/", detail: "Bahía de Quepos · 1 cámara" },
+  { slug: "punta-islita", name: "Lapas rojas de Punta Islita", zone: "Península de Nicoya", lat: 9.8530, lon: -85.3980, url: "https://webcamscostarica.com/punta-islita/", detail: "Cámaras exteriores de fauna · encuadre evaluado por IA" },
+  { slug: "nosara", name: "Nosara", zone: "Península de Nicoya", lat: 9.9400, lon: -85.6650, url: "https://webcamscostarica.com/nosara/", detail: "Costa y surf · 1 cámara" },
+  { slug: "reserva-karen-mogensen", name: "Reserva Karen Mogensen", zone: "Península de Nicoya", lat: 9.8690, lon: -85.0580, url: "https://webcamscostarica.com/reserva-karen-mogensen/", detail: "Bosque de la reserva · 1 cámara" },
+  { slug: "santa-teresa", name: "Santa Teresa", zone: "Península de Nicoya", lat: 9.6460, lon: -85.1690, url: "https://webcamscostarica.com/santa-teresa/", detail: "Playa y surf · puede estar fuera de emisión" },
+  { slug: "cartago", name: "Cartago", zone: "Valle Central", lat: 9.8640, lon: -83.9190, url: "https://webcamscostarica.com/cartago/", detail: "Panorámica de Cartago e Irazú · 1 cámara" },
+  { slug: "cerros-de-escazu", name: "Cerros de Escazú", zone: "Valle Central", lat: 9.9040, lon: -84.1580, url: "https://webcamscostarica.com/cerros-de-escazu/", detail: "Cerro Bebedero · 1 cámara" },
+  { slug: "san-jose", name: "San José", zone: "Valle Central", lat: 9.9330, lon: -84.0800, url: "https://webcamscostarica.com/san-jose/", detail: "Panorámica 4K · 1 cámara" },
+  { slug: "toucan-rescue-ranch", name: "Toucan Rescue Ranch", zone: "Valle Central", lat: 10.0350, lon: -84.1000, url: "https://webcamscostarica.com/toucan-rescue-ranch/", detail: "Cámaras exteriores de fauna · encuadre evaluado por IA" },
+  { slug: "volcan-irazu", name: "Volcán Irazú", zone: "Valle Central", lat: 9.9790, lon: -83.8520, url: "https://webcamscostarica.com/volcan-irazu/", detail: "Imagen del cráter · 1 cámara" },
+  { slug: "volcan-poas", name: "Volcán Poás", zone: "Valle Central", lat: 10.1980, lon: -84.2310, url: "https://webcamscostarica.com/volcan-poas/", detail: "Cráter del Poás · imágenes del OVSICORI" },
+  { slug: "sarapiqui", name: "Lapas verdes de Sarapiquí", zone: "Zona Norte", lat: 10.4560, lon: -84.0190, url: "https://webcamscostarica.com/sarapiqui/", detail: "Cámaras de fauna y dosel · encuadre evaluado por IA" },
+  { slug: "volcan-turrialba", name: "Volcán Turrialba", zone: "Valle Central", lat: 10.0250, lon: -83.7670, url: "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-turrialba", detail: "OVSICORI-UNA · cámara del cráter" },
+  { slug: "skyline-moravia", name: "SkylineWebcams · Moravia", zone: "Valle Central", lat: 9.96164, lon: -84.04880, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia.html", detail: "4 vistas · San Vicente, Irazú, San José y Braulio Carrillo · ubicación de referencia" },
+  { slug: "skyline-cerro-bebedero", name: "SkylineWebcams · Cerro Bebedero", zone: "Valle Central", lat: 9.907972, lon: -84.162667, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/panorama-san-jose-costa-rica.html", detail: "Panorama de San José · coordenada de referencia" },
+  { slug: "skyline-bahia-salinas", name: "SkylineWebcams · Bahía Salinas", zone: "Guanacaste", lat: 11.0300, lon: -85.7172, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/guanacaste/la-cruz/bahia-salinas.html", detail: "Playa Nandel · Nandel Beach Resort" },
+  { slug: "skyline-cobano", name: "SkylineWebcams · Aeropuerto de Cóbano", zone: "Península de Nicoya", lat: 9.69328, lon: -85.09104, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/cobano.html", detail: "Pistas del Aeropuerto de Cóbano" },
+  { slug: "skyline-esterillos", name: "SkylineWebcams · Esterillos Este", zone: "Pacífico Central", lat: 9.52478, lon: -84.45324, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/costa-rica-puntarenas.html", detail: "Playa Esterillos Este · Alma del Pacífico" },
+  { slug: "skyline-san-isidro", name: "SkylineWebcams · San Isidro", zone: "Zona Sur", lat: 9.3706, lon: -83.7046, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/perez-zeledon/san-isidro.html", detail: "Valle de San Isidro de El General" }
+];
+
+const PUBLIC_STATIONS = [
+  { id: "imn-aranjuez", name: "Estación IMN · Aranjuez", zone: "Valle Central", lat: 9.937944, lon: -84.069722, url: "https://www.imn.ac.cr/especial/estacion.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/imn.html", coordinateNote: "Coordenadas de referencia del producto público del IMN." },
+  { id: "imn-volcan-turrialba", name: "Estación IMN · Volcán Turrialba", zone: "Valle Central", lat: 10.019167, lon: -83.756389, url: "https://www.imn.ac.cr/especial/estacionVturri.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/turrialba.html", coordinateNote: "Coordenada de referencia del volcán; no necesariamente la posición exacta del sensor." },
+  { id: "imn-quepos", name: "Estación IMN · Quepos", zone: "Pacífico Central", lat: 9.4310, lon: -84.1610, url: "https://www.imn.ac.cr/especial/redquepos.png", tableUrl: "https://www.imn.ac.cr/especial/tablas/quepos.html", coordinateNote: "Ubicación de referencia de Quepos; no representa necesariamente el sensor exacto." },
+  { id: "imn-la-ligia", name: "Estación IMN · La Ligia (Parrita)", zone: "Pacífico Central", lat: 9.5200, lon: -84.3250, url: "https://www.imn.ac.cr/especial/estacionligia.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/laligia.html", coordinateNote: "Ubicación de referencia de Parrita/La Ligia; no representa necesariamente el sensor exacto." },
+  { id: "imn-horquetas", name: "Estación IMN · Horquetas", zone: "Zona Norte", lat: 10.3270, lon: -83.9370, url: "https://www.imn.ac.cr/especial/tablas/horquetas.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/horquetas.html", coordinateNote: "Ubicación de referencia de Horquetas, Sarapiquí; no representa necesariamente el sensor exacto." },
+  { id: "imn-universidad-para-la-paz", name: "Estación IMN · Universidad para la Paz", zone: "Valle Central", lat: 9.9160, lon: -84.2420, url: "https://www.imn.ac.cr/especial/tablas/upaz.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/upaz.html", coordinateNote: "Ubicación de referencia de Universidad para la Paz, Mora; no representa necesariamente el sensor exacto." },
+  { id: "imn-santa-clara", name: "Estación IMN · ITCR Santa Clara", zone: "Zona Norte", lat: 10.3650, lon: -84.5120, url: "https://www.imn.ac.cr/especial/tablas/staclara.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/staclara.html", coordinateNote: "Ubicación de referencia de Santa Clara de San Carlos; no representa necesariamente el sensor exacto." },
+  { id: "imn-montana-sagrada", name: "Estación IMN · Montaña Sagrada", zone: "Zona Norte", lat: 10.3810, lon: -84.3450, url: "https://www.imn.ac.cr/especial/tablas/msagrada.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/msagrada.html", coordinateNote: "Ubicación de referencia de Aguas Zarcas; no representa necesariamente el sensor exacto." },
+  { id: "imn-sitio-mata", name: "Estación IMN · Sitio Mata", zone: "Caribe Sur", lat: 9.9900, lon: -83.6390, url: "https://www.imn.ac.cr/especial/tablas/sitiomata.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/sitiomata.html", coordinateNote: "Ubicación de referencia de Sitio Mata, Turrialba; no representa necesariamente el sensor exacto." },
+  { id: "imn-la-pastora", name: "Estación IMN · Escuela La Pastora", zone: "Caribe Sur", lat: 9.9400, lon: -83.7800, url: "https://www.imn.ac.cr/especial/tablas/lapastora.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/lapastora.html", coordinateNote: "Ubicación de referencia de La Pastora, Turrialba; no representa necesariamente el sensor exacto." },
+  { id: "imn-aeropuerto-sjo-07", name: "Estación IMN · Aeropuerto Juan Santamaría 07", zone: "Valle Central", lat: 9.9939, lon: -84.2088, url: "https://www.imn.ac.cr/especial/tablas/aijs07.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/aijs07.html", coordinateNote: "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto." },
+  { id: "imn-aeropuerto-liberia-07", name: "Estación IMN · Aeropuerto Daniel Oduber 07", zone: "Pacífico Norte", lat: 10.5933, lon: -85.5444, url: "https://www.imn.ac.cr/especial/tablas/lib07.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/lib07.html", coordinateNote: "Coordenada de referencia del aeropuerto; no representa necesariamente el sensor exacto." },
+  { id: "imn-sixaola", name: "Estación IMN · Sixaola", zone: "Caribe Sur", lat: 9.5300, lon: -82.6200, url: "https://www.imn.ac.cr/especial/tablas/sixaola.html", tableUrl: "https://www.imn.ac.cr/especial/tablas/sixaola.html", coordinateNote: "Ubicación de referencia de Sixaola, Talamanca; no representa necesariamente el sensor exacto." },
+  { id: "ppv-neojaco", name: "Estación NEOJACO · WeatherLink", zone: "Pacífico Central", lat: 9.6140, lon: -84.6290, url: "https://www.weatherlink.com/embeddablePage/show/893d2aa1a69d47928c05b4c1c8e1b6c0/slim", externalWidget: true }
+];
+
+let homeLocation = null;
+let locationRequestInProgress = false;
+let destinationLocation = null;
+let homeWeatherData = null;
+let destinationWeatherData = null;
+
+let map = null;
+let mapReady = false;
+let homeMarker = null;
+let destinationMarker = null;
+
+let radarMetadata = null;
+let radarFrames = [];
+const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
+let radarSourceKey = ["librewxr", "weatherapi"].includes(savedRadarSource)
+  ? savedRadarSource : "librewxr";
+const savedWeatherMapProduct = localStorage.getItem(WEATHER_MAP_PRODUCT_STORAGE_KEY);
+let weatherMapProductKey = Object.prototype.hasOwnProperty.call(WEATHER_MAP_PRODUCTS, savedWeatherMapProduct)
+  ? savedWeatherMapProduct : "precip";
+const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
+let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
+let radarFrameIndex = 0;
+let radarPlayTimer = null;
+let weatherRefreshTimer = null;
+let imnRefreshTimer = null;
+let cameraMarkers = [];
+let activeMapDetailMarker = null;
+let skylinePreviewRefreshTimer = null;
+let cameraMonitorData = null;
+let cameraMonitorTimer = null;
+const dismissedCameraAlertIds = new Set();
+
+let routeMode = "saved";
+let routeWorkLocation = null;
+let routeTemporaryDestination = null;
+let routePickMode = null;
+let routeStartMarker = null;
+let routeEndMarker = null;
+let routeIsVisible = false;
+
+try {
+  const savedWork = JSON.parse(localStorage.getItem(ROUTE_WORK_STORAGE_KEY) || "null");
+  if (savedWork && Number.isFinite(Number(savedWork.lat)) && Number.isFinite(Number(savedWork.lon))) {
+    routeWorkLocation = {
+      name: String(savedWork.name || "Trabajo"),
+      lat: Number(savedWork.lat),
+      lon: Number(savedWork.lon),
+      detail: String(savedWork.detail || "Destino laboral guardado")
+    };
+  }
+} catch (error) {
+  console.warn("No se pudo leer el destino laboral guardado:", error);
+}
+
+const $ = (id) => document.getElementById(id);
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  })[char]);
+}
+
+// Solo permite enlaces http(s); cualquier otro esquema (p. ej. javascript:) se descarta.
+function safeHttpUrl(value, fallback = "") {
+  try {
+    const url = new URL(String(value ?? ""), window.location.href);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function setSystemStatus(message, kind = "ok") {
+  const el = $("systemStatus");
+  el.innerHTML = '<span class="status-dot"></span> ' + escapeHtml(message);
+  el.style.color = kind === "error" ? "#fca5a5" : kind === "loading" ? "#7dd3fc" : "#4ade80";
+  el.style.background = kind === "error" ? "rgba(127,29,29,.35)" : kind === "loading" ? "rgba(7,89,133,.35)" : "rgba(22,60,54,.8)";
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return await response.json();
+}
+
+function formatLocalHour(isoString) {
+  if (!isoString) return "--";
+  const match = String(isoString).match(/T(\d{2}):(\d{2})/);
+  if (!match) return String(isoString);
+  const date = new Date(Date.UTC(2000, 0, 1, Number(match[1]), Number(match[2])));
+  return new Intl.DateTimeFormat("es-CR", {
+    hour: "numeric", minute: "2-digit", timeZone: "UTC"
+  }).format(date);
+}
+
+function formatClockFromTimestamp(seconds) {
+  return new Date(seconds * 1000).toLocaleTimeString("es-CR", {
+    hour: "numeric", minute: "2-digit", timeZone: "America/Costa_Rica"
+  });
+}
+
+function formatMillimeters(value) {
+  const n = Number(value);
+  return (Number.isFinite(n) ? n : 0).toFixed(1);
+}
+
+function formatDayLength(seconds) {
+  const totalMinutes = Math.round(Number(seconds || 0) / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours + " h " + String(minutes).padStart(2, "0") + " min";
+}
+
+function weatherInfo(code) {
+  const c = Number(code);
+  if (c === 0) return { icon: "☀️", text: "Despejado" };
+  if (c === 1) return { icon: "🌤️", text: "Mayormente despejado" };
+  if (c === 2) return { icon: "⛅", text: "Parcialmente nublado" };
+  if (c === 3) return { icon: "☁️", text: "Nublado" };
+  if (c === 45 || c === 48) return { icon: "🌫️", text: "Neblina" };
+  if ([51, 53, 55, 56, 57].includes(c)) return { icon: "🌦️", text: "Llovizna" };
+  if ([61, 63, 65, 66, 67].includes(c)) return { icon: "🌧️", text: "Lluvia" };
+  if ([71, 73, 75, 77].includes(c)) return { icon: "🌨️", text: "Nieve" };
+  if ([80, 81, 82].includes(c)) return { icon: "🌦️", text: "Chubascos" };
+  if ([85, 86].includes(c)) return { icon: "🌨️", text: "Chubascos de nieve" };
+  if ([95, 96, 99].includes(c)) return { icon: "⛈️", text: "Tormenta eléctrica" };
+  return { icon: "🌤️", text: "Condiciones variables" };
+}
+
+// ------------------------------------------------------------
+// ENFOQUE EXCLUSIVO EN COSTA RICA
+// ------------------------------------------------------------
+function signedRingArea(ring) {
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[i + 1];
+    area += (x1 * y2) - (x2 * y1);
+  }
+  return area / 2;
+}
+
+function orientGeoJsonRing(ring, counterClockwise) {
+  const copy = ring.map(point => [Number(point[0]), Number(point[1])]);
+  if (copy.length && (
+    copy[0][0] !== copy[copy.length - 1][0] ||
+    copy[0][1] !== copy[copy.length - 1][1]
+  )) {
+    copy.push([...copy[0]]);
+  }
+  const isCounterClockwise = signedRingArea(copy) > 0;
+  if (isCounterClockwise !== counterClockwise) copy.reverse();
+  return copy;
+}
+
+async function addCostaRicaFocusMask() {
+  // Se utiliza el polígono de Costa Rica para ocultar visualmente el
+  // resto del mapa. Si el servicio de límites no responde, los límites
+  // de navegación siguen activos como protección alternativa.
+  const boundary = await fetchJson(CR_BOUNDARY_URL);
+  const feature = boundary.type === "FeatureCollection"
+    ? boundary.features.find(item =>
+        item.properties && (
+          item.properties.adm0_a3 === "CRI" ||
+          item.properties.sov_a3 === "CRI" ||
+          item.properties.name === "Costa Rica"
+        )
+      )
+    : boundary.type === "Feature" ? boundary : null;
+
+  if (!feature || !feature.geometry) {
+    throw new Error("El servicio no devolvió el límite de Costa Rica.");
+  }
+
+  const geometry = feature.geometry;
+  const polygons = geometry.type === "Polygon"
+    ? [geometry.coordinates]
+    : geometry.type === "MultiPolygon"
+      ? geometry.coordinates
+      : [];
+
+  const countryOuterRings = polygons
+    .map(polygon => polygon && polygon[0])
+    .filter(ring => Array.isArray(ring) && ring.length >= 4)
+    .map(ring => orientGeoJsonRing(ring, false));
+
+  if (!countryOuterRings.length) {
+    throw new Error("No se pudo interpretar el polígono de Costa Rica.");
+  }
+
+  // El anillo exterior cubre el mundo y los anillos interiores dejan
+  // visible únicamente el territorio costarricense.
+  const worldRing = orientGeoJsonRing([
+    [-180, -85.051129],
+    [180, -85.051129],
+    [180, 85.051129],
+    [-180, 85.051129],
+    [-180, -85.051129]
+  ], true);
+
+  const maskFeature = {
+    type: "Feature",
+    properties: { name: "Fuera de Costa Rica" },
+    geometry: {
+      type: "Polygon",
+      coordinates: [worldRing, ...countryOuterRings]
+    }
+  };
+
+  map.addSource("raintrack-cr-mask-source", {
+    type: "geojson",
+    data: maskFeature
+  });
+
+  // Se agrega al final del estilo para cubrir carreteras y etiquetas
+  // de países vecinos. El hueco del polígono deja ver Costa Rica.
+  map.addLayer({
+    id: "raintrack-cr-outside-mask",
+    type: "fill",
+    source: "raintrack-cr-mask-source",
+    paint: {
+      "fill-color": CR_MASK_COLOR,
+      "fill-opacity": 0.985
+    }
+  });
+
+  map.addSource("raintrack-cr-boundary-source", {
+    type: "geojson",
+    data: feature
+  });
+
+  map.addLayer({
+    id: "raintrack-cr-boundary-line",
+    type: "line",
+    source: "raintrack-cr-boundary-source",
+    paint: {
+      "line-color": "#0284c7",
+      "line-width": 2,
+      "line-opacity": 0.9
+    }
+  });
+}
+
+function countryFitPadding() {
+  const width = map.getContainer().clientWidth || window.innerWidth;
+  // En pantallas anchas se reserva espacio lateral para que el país
+  // no quede diminuto dentro de un mapa panorámico.
+  const side = width > 1000
+    ? Math.round(width * 0.27)
+    : Math.round(width * 0.06);
+
+  return {
+    top: 22,
+    bottom: 22,
+    left: side,
+    right: side
+  };
+}
+
+function showCostaRicaOverview(animate = true) {
+  if (!map) return;
+  map.fitBounds(CR_MAINLAND_BOUNDS, {
+    padding: countryFitPadding(),
+    duration: animate ? 650 : 0,
+    maxZoom: 8.4
+  });
+}
+
+// ------------------------------------------------------------
+// MAPA OPENFREEMAP / MAPLIBRE
+// ------------------------------------------------------------
+function initMap() {
+  if (!window.maplibregl) {
+    $("mapStatusChip").textContent = "No se pudo cargar MapLibre. Comprueba tu conexión.";
+    return;
+  }
+
+  map = new maplibregl.Map({
+    container: "map",
+    style: MAP_STYLE,
+    center: [-84.10, 9.75],
+    zoom: 7.2,
+    minZoom: 6.7,
+    maxZoom: 16,
+    maxBounds: CR_NAVIGATION_BOUNDS,
+    maxBoundsViscosity: 1,
+    renderWorldCopies: false,
+    attributionControl: true,
+    // En móviles: permitir mover el mapa arrastrando con un solo dedo.
+    // El zoom con pellizco continúa funcionando con dos dedos.
+    dragPan: true,
+    touchZoomRotate: true,
+    cooperativeGestures: false
+  });
+
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+  map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 110 }), "bottom-left");
+
+  map.on("load", async () => {
+    mapReady = true;
+    $("mapStatusChip").textContent = "Preparando mapa de Costa Rica…";
+
+    try {
+      await addCostaRicaFocusMask();
+      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa limitado al país";
+    } catch (error) {
+      console.warn("No se pudo cargar el contorno de Costa Rica; se mantienen los límites de navegación:", error);
+      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Navegación limitada";
+    }
+
+    showCostaRicaOverview(false);
+    updateMapMarkers();
+
+    if (homeLocation) {
+      map.flyTo({
+        center: [homeLocation.lon, homeLocation.lat],
+        zoom: 12,
+        speed: 1.1
+      });
+    }
+
+    loadRadarSource();
+  });
+
+  map.on("zoomend", updateZoomHint);
+  map.on("error", (event) => {
+    console.warn("MapLibre:", event && event.error ? event.error : event);
+    if (event && event.sourceId === "raintrack-radar-source") {
+      $("radarStatus").textContent = "Error al cargar mosaicos";
+      $("radarStatus").className = "error-text";
+      $("radarTime").textContent = "Revisa tu conexión o la disponibilidad del proveedor del radar.";
+    }
+  });
+
+  map.on("click", (event) => {
+    if (!routePickMode) return;
+    const { lng, lat } = event.lngLat;
+    const [west, south] = CR_NAVIGATION_BOUNDS[0];
+    const [east, north] = CR_NAVIGATION_BOUNDS[1];
+    if (lng < west || lng > east || lat < south || lat > north) {
+      const hint = $("routePickHint");
+      hint.firstChild.textContent = "Selecciona un punto dentro de Costa Rica. ";
+      return;
+    }
+
+    const selected = {
+      name: routePickMode === "work" ? "Trabajo · punto seleccionado" : "Destino temporal",
+      lat,
+      lon: lng,
+      detail: "Coordenadas seleccionadas directamente en el mapa"
+    };
+
+    if (routeIsVisible) clearRouteLayers();
+    $("routeResult").hidden = true;
+    if (routePickMode === "work") {
+      saveWorkRouteDestination(selected);
+      $("routeWorkSearchInput").value = selected.name;
+    } else {
+      routeTemporaryDestination = selected;
+      $("routeTempSearchInput").value = selected.name;
+      $("routeTempSearchResults").innerHTML = '<p class="tiny success">Destino seleccionado en el mapa.</p>';
+    }
+
+    routePickMode = null;
+    map.getCanvas().style.cursor = "";
+    $("routePickHint").hidden = true;
+  });
+
+  // Si se rota el teléfono o cambia el tamaño de la ventana, se vuelve
+  // a encuadrar Costa Rica solo cuando el usuario aún no ha interactuado.
+  let userMovedMap = false;
+  map.on("dragstart", () => { userMovedMap = true; });
+  map.on("zoomstart", () => { userMovedMap = true; });
+  window.addEventListener("resize", () => {
+    if (mapReady && !userMovedMap) showCostaRicaOverview(false);
+  });
+}
+
+function makeMarker(color, label) {
+  const element = document.createElement("div");
+  element.style.width = "15px";
+  element.style.height = "15px";
+  element.style.borderRadius = "50%";
+  element.style.background = color;
+  element.style.border = "3px solid white";
+  element.style.boxShadow = "0 2px 9px rgba(0,0,0,.35)";
+  const marker = new maplibregl.Marker({ element, anchor: "center" });
+  marker.setPopup(new maplibregl.Popup({ offset: 12 }).setText(label));
+  return marker;
+}
+
+function updateMapMarkers() {
+  if (!mapReady) return;
+  if (homeMarker) { homeMarker.remove(); homeMarker = null; }
+  if (destinationMarker) { destinationMarker.remove(); destinationMarker = null; }
+
+  if (homeLocation) {
+    homeMarker = makeMarker("#16a34a", "Mi ubicación actual")
+      .setLngLat([homeLocation.lon, homeLocation.lat]).addTo(map);
+  }
+  if (destinationLocation) {
+    destinationMarker = makeMarker("#0284c7", destinationLocation.name)
+      .setLngLat([destinationLocation.lon, destinationLocation.lat]).addTo(map);
+  }
+}
+
+function startSkylinePreviewRefresh() {
+  if (skylinePreviewRefreshTimer) clearInterval(skylinePreviewRefreshTimer);
+  const images = document.querySelectorAll("#mapDetailContent img[data-skyline-preview]");
+  images.forEach(img => {
+    img.addEventListener("error", () => {
+      img.hidden = true;
+      const fallback = img.parentElement?.querySelector(".camera-popup-row-preview-offline");
+      if (fallback) {
+        fallback.hidden = false;
+        fallback.textContent = "La previsualización no está disponible ahora. Puedes abrir la cámara original en SkylineWebcams.";
+      }
+    }, { once: true });
+  });
+  if (!images.length) return;
+  skylinePreviewRefreshTimer = setInterval(() => {
+    document.querySelectorAll("#mapDetailContent img[data-skyline-preview]").forEach(img => {
+      const base = img.getAttribute("data-skyline-base");
+      if (base) {
+        img.hidden = false;
+        const fallback = img.parentElement?.querySelector(".camera-popup-row-preview-offline");
+        if (fallback) fallback.hidden = true;
+        img.src = base + (base.includes("?") ? "&" : "?") + "rt=" + Date.now();
+      }
+    });
+  }, 300000);
+}
+
+function showMapDetail({ eyebrow, title, subtitle, content, markerElement }) {
+  const sheet = $("mapDetailSheet");
+  if (skylinePreviewRefreshTimer) {
+    clearInterval(skylinePreviewRefreshTimer);
+    skylinePreviewRefreshTimer = null;
+  }
+  if (activeMapDetailMarker) activeMapDetailMarker.classList.remove("is-active");
+  activeMapDetailMarker = markerElement || null;
+  if (activeMapDetailMarker) activeMapDetailMarker.classList.add("is-active");
+
+  $("mapDetailEyebrow").textContent = eyebrow || "DETALLE DEL MAPA";
+  $("mapDetailTitle").textContent = title || "Información del sitio";
+  $("mapDetailSubtitle").textContent = subtitle || "";
+  $("mapDetailContent").innerHTML = content || "";
+  $("mapShell")?.classList.add("has-map-detail");
+  sheet.hidden = false;
+  sheet.classList.remove("is-open");
+  startSkylinePreviewRefresh();
+  requestAnimationFrame(() => sheet.classList.add("is-open"));
+}
+
+function closeMapDetail() {
+  const sheet = $("mapDetailSheet");
+  if (!sheet) return;
+  if (skylinePreviewRefreshTimer) {
+    clearInterval(skylinePreviewRefreshTimer);
+    skylinePreviewRefreshTimer = null;
+  }
+  sheet.classList.remove("is-open");
+  sheet.hidden = true;
+  $("mapShell")?.classList.remove("has-map-detail");
+  if (activeMapDetailMarker) activeMapDetailMarker.classList.remove("is-active");
+  activeMapDetailMarker = null;
+}
+
+$("mapDetailClose").addEventListener("click", closeMapDetail);
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !$("mapDetailSheet").hidden) closeMapDetail();
+});
+
+function clearCameraMarkers() {
+  closeMapDetail();
+  cameraMarkers.forEach(marker => marker.remove());
+  cameraMarkers = [];
+}
+
+function cameraDisplayName(item) {
+  const original = String(item.camera_name || "").trim();
+  const groupTitle = new RegExp("\\b(?:las?\\s+)?(?:\\d+\\s+)?c[aá]maras?\\s+de\\b", "i").test(original);
+  if (original && !groupTitle) return original;
+
+  let slug = String(item.id || "");
+  const sitePrefix = String(item.site_slug || "") + "-";
+  if (sitePrefix !== "-" && slug.startsWith(sitePrefix)) slug = slug.slice(sitePrefix.length);
+  if (sitePrefix !== "-" && slug.startsWith(sitePrefix)) slug = slug.slice(sitePrefix.length);
+  if (!slug || slug === "default") return "Vista general del sitio";
+
+  const aliases = { diria: "Diriá", witchsrock: "Witch's Rock", poas: "Poás", irazu: "Irazú" };
+  return slug.split("-").filter(Boolean).map(part => {
+    if (aliases[part.toLowerCase()]) return aliases[part.toLowerCase()];
+    if (/^\\d+$/.test(part)) return part;
+    return part.charAt(0).toUpperCase() + part.slice(1);
+  }).join(" ");
+}
+
+function cameraStatusText(status) {
+  return ({
+    rain: "Señal visual preliminar · requiere confirmación",
+    possible: "Dos análisis visuales detectan indicios · sin confirmar",
+    mixed: "Resultados distintos entre cámaras",
+    clear: "Sin lluvia visible en la captura",
+    weather_uncertain: "Lluvia no corroborada visualmente",
+    low_visibility: "No evaluable · poca visibilidad o interferencia",
+    offline: "Sin señal / cámara no disponible",
+    stale: "Imagen sin actualización por más de 1 hora",
+    delayed: "Imagen demorada (20 minutos a 1 hora)",
+    not_monitored: "Pendiente de evaluación del encuadre",
+    not_weather_view: "El encuadre no muestra entorno exterior suficiente",
+    scene_uncertain: "Imagen sin detalle suficiente para evaluar lluvia",
+    not_available: "Sin imagen analizable",
+    error: "Error de lectura",
+    pending: "Esperando análisis"
+  })[status] || "Esperando análisis";
+}
+
+function cameraAvailabilityText(status) {
+  return ({
+    online: "Imagen reciente",
+    delayed: "Imagen demorada",
+    stale: "Sin actualización",
+    offline: "Sin señal",
+    not_available: "Sin imagen",
+    unknown: "Antigüedad no verificable"
+  })[status] || "Disponibilidad pendiente";
+}
+
+function cameraStatusForSite(siteSlug) {
+  const rows = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
+    ? cameraMonitorData.cameras.filter(item => item.site_slug === siteSlug)
+    : [];
+  if (!rows.length) return "pending";
+
+  const skylineRows = rows.filter(item => item.source_type === "skylinewebcams");
+  if (skylineRows.length) {
+    const available = skylineRows.filter(item => item.availability_status === "online").length;
+    if (available === skylineRows.length) return "online";
+    if (available > 0) return "mixed";
+    if (skylineRows.every(item => ["offline", "not_available"].includes(item.availability_status))) return "offline";
+    return "pending";
+  }
+
+  const currentRows = rows.filter(item =>
+    item.availability_status === "online" &&
+    item.scene_assessment === "outdoor" &&
+    item.image_quality_status === "usable"
+  );
+  const hasVisualSignal = currentRows.some(item =>
+    ["rain", "possible"].includes(item.status) &&
+    item.rain_evidence_assessment === "rain_visible" &&
+    Number(item.rain_evidence_score) >= 0.82 &&
+    Number(item.scene_outdoor_score) >= 0.70
+  );
+  const hasClearView = currentRows.some(item => item.status === "clear");
+  if (hasVisualSignal && hasClearView) return "mixed";
+  if (hasVisualSignal) return "possible";
+  if (hasClearView) return "clear";
+  if (rows.some(item => item.availability_status === "delayed")) return "delayed";
+  if (rows.some(item => item.availability_status === "stale" || item.status === "stale")) return "stale";
+  if (rows.some(item => item.availability_status === "offline" || item.status === "offline")) return "offline";
+  if (rows.some(item => item.status === "low_visibility" || item.scene_assessment === "low_visibility")) return "low_visibility";
+  if (rows.some(item => item.status === "weather_uncertain")) return "weather_uncertain";
+  if (rows.some(item => item.status === "scene_uncertain")) return "scene_uncertain";
+  if (rows.some(item => item.status === "not_weather_view")) return "not_weather_view";
+  return "pending";
+}
+
+function cameraAlertKey(item) {
+  const kind = item.alert_type === "station" ? "station" : "camera";
+  const id = item.station_id || item.id || item.site_slug || item.site_name || item.camera_name || "alert";
+  return kind + ":" + id;
+}
+
+function renderCameraAlerts() {
+  const stack = $("cameraAlertStack");
+  if (!stack) return;
+  const generatedAt = cameraMonitorData && cameraMonitorData.generated_at
+    ? new Date(cameraMonitorData.generated_at)
+    : null;
+  const fresh = generatedAt && !Number.isNaN(generatedAt.getTime())
+    && (Date.now() - generatedAt.getTime()) <= 80 * 60 * 1000;
+  const cameraAlerts = fresh && cameraMonitorData && Array.isArray(cameraMonitorData.alerts)
+    ? cameraMonitorData.alerts.filter(item =>
+        item.status === "possible" &&
+        item.scene_assessment === "outdoor" &&
+        item.image_quality_status === "usable" &&
+        item.rain_evidence_assessment === "rain_visible" &&
+        Number(item.rain_evidence_score) >= 0.82 &&
+        Number(item.scene_outdoor_score) >= 0.70 &&
+        item.availability_status === "online"
+      )
+    : [];
+  const stationAlerts = fresh && cameraMonitorData && Array.isArray(cameraMonitorData.station_alerts)
+    ? cameraMonitorData.station_alerts.filter(item =>
+        item.rain_last_hour_mm > 0 &&
+        item.availability_status === "online"
+      )
+    : [];
+  const active = [...stationAlerts, ...cameraAlerts]
+    .filter(item => !dismissedCameraAlertIds.has(cameraAlertKey(item)));
+
+  if (!active.length) {
+    stack.hidden = true;
+    stack.innerHTML = "";
+    return;
+  }
+
+  stack.hidden = false;
+  stack.innerHTML = active.slice(0, 4).map(item => {
+    const isStation = item.alert_type === "station";
+    const isRain = isStation && item.status === "rain";
+    const label = isStation
+      ? "Lluvia medida por estación"
+      : "Señal visual preliminar · corroborada por dos análisis";
+    const detail = isStation
+      ? Number(item.rain_last_hour_mm).toFixed(1) + " mm en la última hora"
+      : "La cámara muestra indicios visibles; contrasta con el radar y las estaciones.";
+    const alertKey = cameraAlertKey(item);
+    return `<div class="camera-alert-item ${isRain ? "rain" : "possible"}">
+      <span class="camera-alert-icon">${isStation ? "🌧️" : "☔"}</span>
+      <div class="camera-alert-content">
+        <strong>${escapeHtml(label)} · ${escapeHtml(item.camera_name || item.station_name || item.site_name || "Cámara")}</strong>
+        <small>${escapeHtml(item.site_name || item.station_name || "")} · ${escapeHtml(detail)}</small>
+        <a href="${escapeHtml(safeHttpUrl(item.page_url, "https://webcamscostarica.com/"))}" target="_blank" rel="noopener">${isStation ? "Ver estación IMN ↗" : "Comprobar cámara ↗"}</a>
+      </div>
+      <button class="camera-alert-close" type="button" data-dismiss-camera-alert="${escapeHtml(alertKey)}" aria-label="Cerrar alerta" title="Cerrar alerta">×</button>
+    </div>`;
+  }).join("");
+}
+
+$("cameraAlertStack").addEventListener("click", event => {
+  const closeButton = event.target.closest("[data-dismiss-camera-alert]");
+  if (!closeButton) return;
+  dismissedCameraAlertIds.add(closeButton.getAttribute("data-dismiss-camera-alert"));
+  renderCameraAlerts();
+});
+
+async function loadCameraMonitoringData() {
+  try {
+    const response = await fetch("camera-alerts.json?rt=" + Date.now(), { cache: "no-store" });
+    if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
+    cameraMonitorData = await response.json();
+    renderCameraAlerts();
+    if (mapReady && $("camerasToggle").checked) addCameraMarkers();
+  } catch (error) {
+    console.info("Monitor visual de cámaras pendiente:", error.message);
+    renderCameraAlerts();
+  }
+}
+
+function addCameraMarkers() {
+  if (!mapReady) return;
+  clearCameraMarkers();
+  if (!$("camerasToggle").checked) return;
+
+  PUBLIC_CAMERAS.forEach(camera => {
+    const status = cameraStatusForSite(camera.slug);
+    const allSiteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
+      ? cameraMonitorData.cameras.filter(item => item.site_slug === camera.slug)
+      : [];
+    const hasIndividualCameras = allSiteCameras.some(item => !String(item.id || "").endsWith("-default"));
+    const siteCameras = hasIndividualCameras
+      ? allSiteCameras.filter(item => {
+          const isGenericDefault = String(item.id || "").endsWith("-default") &&
+            new RegExp("\\b(?:las?\\s+)?(?:\\d+\\s+)?c[aá]maras?\\s+de\\b", "i").test(String(item.camera_name || ""));
+          return !isGenericDefault;
+        })
+      : allSiteCameras;
+    const isSkylineSite = camera.slug.startsWith("skyline-");
+    const element = document.createElement("button");
+    element.type = "button";
+    element.className = "camera-marker " + status + (isSkylineSite ? " skyline-marker" : "");
+    element.textContent = isSkylineSite && siteCameras.length > 1
+      ? String(siteCameras.length)
+      : status === "mixed" ? "⚠️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : ["low_visibility", "weather_uncertain", "scene_uncertain"].includes(status) ? "?" : "📷";
+    element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
+
+    const recentCount = siteCameras.filter(item => item.availability_status === "online").length;
+    const evaluableCount = siteCameras.filter(item =>
+      item.availability_status === "online" &&
+      item.image_quality_status === "usable" &&
+      item.scene_assessment === "outdoor"
+    ).length;
+    const notEvaluableCount = siteCameras.filter(item =>
+      ["low_visibility", "weather_uncertain", "scene_uncertain"].includes(item.status) ||
+      item.image_quality_status === "low_visibility"
+    ).length;
+    const offlineCount = siteCameras.filter(item => ["offline", "not_available"].includes(item.availability_status)).length;
+    const delayedCount = siteCameras.filter(item => item.availability_status === "delayed").length;
+    const staleCount = siteCameras.filter(item => item.availability_status === "stale").length;
+    const skylineCount = siteCameras.filter(item => item.source_type === "skylinewebcams").length;
+    const skylineAvailableCount = siteCameras.filter(item =>
+      item.source_type === "skylinewebcams" && item.availability_status === "online"
+    ).length;
+    const cameraSummary = skylineCount === siteCameras.length && skylineCount
+      ? [
+          `${skylineCount} ${skylineCount === 1 ? "cámara SkylineWebcams" : "cámaras SkylineWebcams"}`,
+          `${skylineAvailableCount} disponibles`,
+          skylineCount - skylineAvailableCount ? `${skylineCount - skylineAvailableCount} sin conexión o sin verificar` : ""
+        ].filter(Boolean)
+      : siteCameras.length
+        ? [
+            `${siteCameras.length} ${siteCameras.length === 1 ? "cámara" : "cámaras"}`,
+            `${evaluableCount} evaluables`,
+            notEvaluableCount ? `${notEvaluableCount} no evaluables` : "",
+            offlineCount ? `${offlineCount} sin señal` : "",
+            delayedCount ? `${delayedCount} demoradas` : "",
+            staleCount ? `${staleCount} desactualizadas` : ""
+          ].filter(Boolean)
+        : ["Sin detalle individual disponible"];
+
+    const cameraRows = siteCameras.slice(0, 10).map(item => {
+      const availabilityStatus = item.availability_status || "unknown";
+      const availability = cameraAvailabilityText(availabilityStatus);
+      const isSkylineCamera = item.source_type === "skylinewebcams";
+      const hasVisualSignal = ["rain", "possible"].includes(item.status) &&
+        item.image_quality_status === "usable" &&
+        item.rain_evidence_assessment === "rain_visible" &&
+        Number(item.rain_evidence_score) >= 0.82 &&
+        Number(item.scene_outdoor_score) >= 0.70;
+      const statusLabel = isSkylineCamera
+        ? availabilityStatus === "online" ? "Imagen externa disponible" : availabilityStatus === "offline" ? "Fuera de línea en Skyline" : "Estado sin verificar"
+        : hasVisualSignal
+          ? "Indicios visuales · sin confirmar"
+          : item.status === "low_visibility" || item.image_quality_status === "low_visibility"
+            ? "No evaluable · poca visibilidad"
+            : item.status === "weather_uncertain" || item.status === "possible"
+              ? "Lluvia no corroborada"
+              : item.status === "scene_uncertain"
+                ? "Imagen sin detalle suficiente"
+                : item.status === "clear" ? "Sin lluvia visible" : availability;
+      const icon = isSkylineCamera
+        ? availabilityStatus === "online" ? "↗" : "×"
+        : hasVisualSignal ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" || availabilityStatus === "offline" ? "×" : item.status === "low_visibility" ? "?" : "•";
+      const age = item.image_age_minutes != null && Number.isFinite(Number(item.image_age_minutes))
+        ? Math.round(Number(item.image_age_minutes)) + " min"
+        : "";
+      const recovered = item.recovered ? " · Recuperada" : "";
+      const stateClass = ["low_visibility", "weather_uncertain"].includes(item.status)
+        ? item.status
+        : ["online", "offline", "delayed", "stale"].includes(availabilityStatus) ? availabilityStatus : "unknown";
+      const sourceLink = item.page_url
+        ? `<a href="${escapeHtml(safeHttpUrl(item.page_url, "#"))}" target="_blank" rel="noopener">${isSkylineCamera ? (item.live_video_page ? "Abrir video en vivo ↗" : "Abrir en SkylineWebcams ↗") : item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
+        : "";
+      const previewMarkup = isSkylineCamera
+        ? availabilityStatus === "online" && item.preview_url
+          ? `<div class="camera-popup-row-preview-wrap">
+              <img class="camera-popup-row-preview" data-skyline-preview data-skyline-base="${escapeHtml(item.preview_url)}" src="${escapeHtml(item.preview_url)}?rt=${Date.now()}" alt="Previsualización oficial de ${escapeHtml(cameraDisplayName(item))}" loading="lazy">
+              <span class="camera-popup-row-preview-offline" hidden>La previsualización no está disponible ahora. Puedes abrir la cámara original en SkylineWebcams.</span>
+            </div>`
+          : `<div class="camera-popup-row-preview-wrap"><span class="camera-popup-row-preview-offline">${availabilityStatus === "offline" ? "SkylineWebcams indica que esta cámara está fuera de línea. No se muestra una captura anterior." : "No se pudo verificar la cámara; no se muestra una imagen posiblemente desactualizada."}</span></div>`
+        : "";
+      return `<div class="camera-popup-row">
+        <div class="camera-popup-row-main">
+          <strong class="camera-popup-row-title">${escapeHtml(cameraDisplayName(item))}</strong>
+          <small class="camera-popup-row-detail">${escapeHtml(isSkylineCamera ? (item.live_video_page ? "Video en vivo en la fuente · miniatura en RainTrack" : "Vista previa externa · no analizada") : [age, recovered.trim()].filter(Boolean).join(" "))}</small>
+        </div>
+        <span class="camera-popup-row-state ${stateClass}">${icon} ${escapeHtml(statusLabel)}</span>
+        ${previewMarkup}
+        ${sourceLink}
+      </div>`;
+    }).join("");
+    const hasSkylineCameras = siteCameras.some(item => item.source_type === "skylinewebcams");
+    const hasLiveSkylineVideo = siteCameras.some(item => item.source_type === "skylinewebcams" && item.live_video_page === true);
+    const summary = hasLiveSkylineVideo
+      ? "La página original de SkylineWebcams ofrece video en vivo. RainTrack muestra una miniatura y verifica que la ficha esté disponible; todavía no reproduce ni analiza el flujo de video. Abre la cámara original para verla en directo."
+      : hasSkylineCameras
+        ? "RainTrack muestra una previsualización externa de SkylineWebcams y verifica la disponibilidad de la ficha. La imagen de previsualización no se analiza con IA ni genera alertas automáticas de lluvia."
+      : status === "mixed"
+        ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
+        : status === "rain"
+          ? "El clasificador asignó una señal visual elevada, pero no hay confirmación meteorológica independiente."
+          : status === "possible"
+            ? "Dos análisis visuales independientes detectan indicios, pero la lluvia no está confirmada."
+            : status === "weather_uncertain"
+              ? "El primer modelo sugirió lluvia, pero la segunda revisión no encontró evidencia visual suficiente. No se genera alerta."
+              : status === "low_visibility"
+                ? "La imagen está oscura, tiene interferencia o no ofrece detalle suficiente. No se toma en cuenta hasta que sea clara."
+                : status === "offline"
+                  ? "Las cámaras de este sitio no están proporcionando imágenes."
+                  : status === "stale"
+                    ? "Las imágenes disponibles no se han actualizado recientemente."
+                    : status === "delayed"
+                      ? "Hay imágenes demoradas; no se usan para alertas actuales."
+                      : status === "not_weather_view"
+                        ? "Los encuadres disponibles no muestran suficiente entorno exterior."
+                        : "No hay una alerta visual activa para este sitio.";
+    const popupHtml = `<div class="camera-popup">
+      <div class="camera-popup-summary">${cameraSummary.map(value => `<span>${escapeHtml(value)}</span>`).join("")}</div>
+      <div class="camera-popup-status">${escapeHtml(summary)}</div>
+      ${cameraRows ? `<div class="camera-popup-list">${cameraRows}</div>` : ""}
+      <small class="camera-popup-note">Las imágenes son evidencia visual, no una medición de lluvia. Contrasta siempre con radar y estaciones.</small>
+      <a class="camera-popup-site-link" href="${escapeHtml(safeHttpUrl(camera.url, "#"))}" target="_blank" rel="noopener">Abrir página del sitio ↗</a>
+    </div>`;
+    const marker = new maplibregl.Marker({ element, anchor: "center" })
+      .setLngLat([camera.lon, camera.lat])
+      .addTo(map);
+    element.addEventListener("click", () => showMapDetail({
+      eyebrow: "CÁMARAS PÚBLICAS",
+      title: camera.name,
+      subtitle: camera.zone + " · " + camera.detail,
+      content: popupHtml,
+      markerElement: element
+    }));
+    cameraMarkers.push(marker);
+  });
+
+  const stationRows = cameraMonitorData && Array.isArray(cameraMonitorData.stations)
+    ? cameraMonitorData.stations
+    : [];
+  PUBLIC_STATIONS.forEach(station => {
+    if (station.externalWidget) {
+      const element = document.createElement("button");
+      element.type = "button";
+      element.className = "camera-marker station-marker pending";
+      element.textContent = "🌡️";
+      element.setAttribute("aria-label", "Abrir panel meteorológico: " + station.name);
+      const popupHtml = `<div class="camera-popup">
+        <div class="camera-popup-status">Panel público enlazado desde Parapente Pura Vida. Es una referencia externa; RainTrack todavía no utiliza sus valores para generar alertas.</div>
+        <iframe class="weatherlink-frame" src="${escapeHtml(station.url)}" title="Condiciones actuales NEOJACO WeatherLink" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        <div class="camera-popup-links">
+          <a class="camera-popup-link" href="${escapeHtml(station.url)}" target="_blank" rel="noopener">Abrir panel WeatherLink ↗</a>
+        </div>
+      </div>`;
+      const marker = new maplibregl.Marker({ element, anchor: "center" })
+        .setLngLat([station.lon, station.lat])
+        .addTo(map);
+      element.addEventListener("click", () => showMapDetail({
+        eyebrow: "PANEL METEOROLÓGICO EXTERNO",
+        title: station.name,
+        subtitle: station.zone + " · Ubicación de referencia de Jacó",
+        content: popupHtml,
+        markerElement: element
+      }));
+      cameraMarkers.push(marker);
+      return;
+    }
+
+    const observation = stationRows.find(item => item.id === station.id);
+    const availability = observation ? observation.availability_status : "not_available";
+    const rainObserved = !!(observation && observation.rain_observed &&
+      availability === "online");
+    const element = document.createElement("button");
+    element.type = "button";
+    element.className = "camera-marker station-marker " + (rainObserved ? "rain" : availability);
+    element.textContent = rainObserved ? "🌧️" : "🌡️";
+    element.setAttribute("aria-label", "Abrir estación meteorológica: " + station.name);
+
+    const rainHour = observation && observation.rain_last_hour_mm != null && Number.isFinite(Number(observation.rain_last_hour_mm))
+      ? Number(observation.rain_last_hour_mm).toFixed(1) + " mm"
+      : "Sin lectura";
+    const rainDay = observation && observation.rain_since_7am_mm != null && Number.isFinite(Number(observation.rain_since_7am_mm))
+      ? Number(observation.rain_since_7am_mm).toFixed(1) + " mm"
+      : "Sin lectura";
+    const temperature = observation && observation.temperature_c != null && Number.isFinite(Number(observation.temperature_c))
+      ? Number(observation.temperature_c).toFixed(1) + " °C"
+      : "Sin lectura";
+    const wind = observation && observation.wind_speed_kmh != null && Number.isFinite(Number(observation.wind_speed_kmh))
+      ? Number(observation.wind_speed_kmh).toFixed(1) + " km/h"
+      : "Sin lectura";
+    const windDirection = observation && observation.wind_direction_deg != null && Number.isFinite(Number(observation.wind_direction_deg))
+      ? Number(observation.wind_direction_deg).toFixed(0) + "°"
+      : "Sin lectura";
+    const windGust = observation && observation.wind_gust_kmh != null && Number.isFinite(Number(observation.wind_gust_kmh))
+      ? Number(observation.wind_gust_kmh).toFixed(1) + " km/h"
+      : "Sin lectura";
+    const dewPoint = observation && observation.dew_point_c != null && Number.isFinite(Number(observation.dew_point_c))
+      ? Number(observation.dew_point_c).toFixed(1) + " °C"
+      : "Sin lectura";
+    const humidity = observation && observation.humidity_percent != null && Number.isFinite(Number(observation.humidity_percent))
+      ? Math.round(Number(observation.humidity_percent)) + "%"
+      : "Sin lectura";
+    const updated = observation && observation.image_timestamp
+      ? new Date(observation.image_timestamp).toLocaleString("es-CR")
+      : "Hora de observación no identificada";
+    const stationStatus = observation ? cameraAvailabilityText(availability) : "Esperando primera lectura";
+    const stationMessage = rainObserved
+      ? "La estación registró precipitación en la última hora."
+      : observation && availability === "stale"
+        ? "La tabla del IMN está desactualizada; no se usa para alertas actuales."
+        : observation && observation.data_source === "imn_html_table"
+          ? "Lectura instrumental obtenida directamente de la tabla HTML oficial del IMN."
+          : "Lectura del IMN pendiente de verificación.";
+    const popupHtml = `<div class="camera-popup">
+      <div class="camera-popup-status">${escapeHtml(stationMessage)}</div>
+      <div class="station-metrics">
+        <div class="station-metric"><span>Lluvia · última hora</span><strong>${escapeHtml(rainHour)}</strong></div>
+        <div class="station-metric"><span>Acumulada desde 7 a. m.</span><strong>${escapeHtml(rainDay)}</strong></div>
+        <div class="station-metric"><span>Temperatura</span><strong>${escapeHtml(temperature)}</strong></div>
+        <div class="station-metric"><span>Humedad</span><strong>${escapeHtml(humidity)}</strong></div>
+        <div class="station-metric"><span>Viento</span><strong>${escapeHtml(wind)}</strong></div>
+        <div class="station-metric"><span>Ráfaga máxima</span><strong>${escapeHtml(windGust)}</strong></div>
+        <div class="station-metric"><span>Dirección del viento</span><strong>${escapeHtml(windDirection)}</strong></div>
+        <div class="station-metric"><span>Punto de rocío</span><strong>${escapeHtml(dewPoint)}</strong></div>
+      </div>
+      <small class="camera-popup-meta">Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)} · Datos preliminares del IMN</small>
+      <div class="camera-popup-links">
+        <a class="camera-popup-link" href="${escapeHtml(station.tableUrl || station.url)}" target="_blank" rel="noopener">Consultar datos oficiales ↗</a>
+        ${station.url && station.url !== station.tableUrl ? '<a class="camera-popup-link" href="' + escapeHtml(station.url) + '" target="_blank" rel="noopener">Ver panel gráfico ↗</a>' : ""}
+      </div>
+    </div>`;
+    const marker = new maplibregl.Marker({ element, anchor: "center" })
+      .setLngLat([station.lon, station.lat])
+      .addTo(map);
+    element.addEventListener("click", () => showMapDetail({
+      eyebrow: "ESTACIÓN METEOROLÓGICA",
+      title: station.name,
+      subtitle: station.zone + " · Fuente oficial IMN" + (station.coordinateNote ? " · " + station.coordinateNote : ""),
+      content: popupHtml,
+      markerElement: element
+    }));
+    cameraMarkers.push(marker);
+  });
+}
+
+function refreshImnImage() {
+  const productKey = $('imnProduct').value;
+  const product = IMN_PRODUCTS[productKey];
+  if (!product) return;
+
+  const image = $('imnMapImage');
+  const status = $('imnMapStatus');
+  $('imnCardTitle').textContent = "IMN · " + product.label;
+  $('imnSourceLink').href = safeHttpUrl(product.source, "#");
+  image.hidden = true;
+  status.textContent = "Solicitando imagen al IMN…";
+  status.className = "imn-card-status loading";
+
+  image.onload = () => {
+    image.hidden = false;
+    const consulted = new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+    status.textContent = "Imagen recibida · Consultada a las " + consulted + ". Revisa la fecha/hora impresa dentro del producto para conocer su observación.";
+    status.className = "imn-card-status success";
+  };
+  image.onerror = () => {
+    image.hidden = true;
+    status.textContent = "No se pudo cargar esta imagen desde el IMN. Usa el enlace oficial para comprobar su disponibilidad.";
+    status.className = "imn-card-status error-text";
+  };
+
+  const separator = product.url.includes("?") ? "&" : "?";
+  image.src = product.url + separator + "raintrack=" + Date.now();
+}
+
+function setImnVisibility(visible) {
+  $('imnMapCard').hidden = !visible;
+  if (visible) refreshImnImage();
+}
+
+function updateZoomHint() {
+  if (!map || !mapReady) return;
+  const config = RADAR_SOURCES[radarSourceKey];
+  const zoom = map.getZoom();
+  if (zoom > config.maxZoom + 0.2) {
+    $("mapStatusChip").textContent = "Zoom " + zoom.toFixed(1) + " · La fuente " + config.label + " no aporta más detalle nativo al acercar.";
+  }
+}
+
+function removeRadarLayer() {
+  if (!mapReady) return;
+  if (map.getLayer("raintrack-radar-layer")) map.removeLayer("raintrack-radar-layer");
+  if (map.getSource("raintrack-radar-source")) map.removeSource("raintrack-radar-source");
+}
+
+function utcDateHourStamp(date) {
+  const pad = value => String(value).padStart(2, "0");
+  return String(date.getUTCFullYear()) +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    pad(date.getUTCHours());
+}
+
+function createWeatherApiFrames() {
+  const start = new Date();
+  start.setUTCMinutes(0, 0, 0);
+  return Array.from({ length: 72 }, (_, index) => {
+    const date = new Date(start.getTime() + index * 60 * 60 * 1000);
+    return {
+      time: Math.floor(date.getTime() / 1000),
+      frameType: "forecast",
+      provider: "weatherapi",
+      weatherApiStamp: utcDateHourStamp(date)
+    };
+  });
+}
+
+function setRadarTimeline(frames, allowAnimation = true) {
+  radarFrames = frames;
+  radarFrameIndex = 0;
+  $("frameSlider").disabled = radarFrames.length <= 1;
+  $("frameSlider").min = "0";
+  $("frameSlider").max = String(Math.max(0, radarFrames.length - 1));
+  $("frameSlider").value = "0";
+  $("playRadar").disabled = radarFrames.length <= 1 || !allowAnimation;
+  if (radarFrames.length <= 1 || !allowAnimation) stopRadarAnimation();
+}
+
+function radarTileUrl(frame, metadata, config) {
+  if (radarSourceKey === "weatherapi") {
+    const product = WEATHER_MAP_PRODUCTS[weatherMapProductKey] || WEATHER_MAP_PRODUCTS.precip;
+    return "https://weathermaps.weatherapi.com/" + product.path + "/tiles/" +
+      frame.weatherApiStamp + "/{z}/{x}/{y}.png";
+  }
+  const host = String(metadata.host || config.fallbackHost).replace(/\/$/, "");
+  const path = String(frame.path || "");
+  return host + path + "/256/{z}/{x}/{y}/" + librewxrColorScheme + "/" + config.smooth + "_" + config.snow + ".png";
+}
+
+async function loadRadarSource() {
+  if (!mapReady) return;
+  stopRadarAnimation();
+
+  const selectedSource = $("radarSource").value;
+  radarSourceKey = RADAR_SOURCES[selectedSource] ? selectedSource : "librewxr";
+  $("radarSource").value = radarSourceKey;
+  localStorage.setItem(SOURCE_STORAGE_KEY, radarSourceKey);
+
+  const config = RADAR_SOURCES[radarSourceKey];
+  $("weatherMapProductControl").hidden = radarSourceKey !== "weatherapi";
+  $("librewxrStyleControl").hidden = radarSourceKey !== "librewxr";
+  $("weatherMapProduct").value = weatherMapProductKey;
+  $("librewxrColorScheme").value = String(librewxrColorScheme);
+  $("radarStatus").textContent = "Consultando " + config.label + "…";
+  $("radarStatus").className = "loading";
+  $("radarTime").textContent = "Obteniendo imágenes recientes";
+  $("mapStatusChip").textContent = "Consultando fuente meteorológica…";
+  removeRadarLayer();
+
+  try {
+    if (radarSourceKey === "weatherapi") {
+      const product = WEATHER_MAP_PRODUCTS[weatherMapProductKey] || WEATHER_MAP_PRODUCTS.precip;
+      radarMetadata = { provider: "weatherapi" };
+      setRadarTimeline(createWeatherApiFrames());
+      $("mapStatusChip").textContent = "WeatherAPI · " + product.label + " · pronóstico horario";
+      $("weatherMapProductHint").textContent = product.note;
+      $("radarLegend").hidden = true;
+      $("radarSourceNote").innerHTML =
+        product.note + ' Fuente: <a href="https://www.weatherapi.com/docs/weather-maps/" target="_blank" rel="noopener">documentación de WeatherAPI</a>.';
+      $("radarTime").textContent = "Pronóstico horario de " + product.label + " · selecciona una hora";
+      showRadarFrame(0);
+      $("radarStatus").textContent = "Mosaicos horarios · WeatherAPI";
+      $("radarStatus").className = "muted";
+      updateZoomHint();
+      return;
+    }
+    $("radarLegend").hidden = false;
+
+    const metadata = await fetchJson(config.metadataUrl);
+    const past = Array.isArray(metadata.radar?.past) ? metadata.radar.past : [];
+    // RainViewer mantiene únicamente imágenes observadas; LibreWXR también puede aportar nowcast.
+    const future = radarSourceKey === "librewxr" && Array.isArray(metadata.radar?.nowcast)
+      ? metadata.radar.nowcast : [];
+
+    if (!past.length) throw new Error("La fuente no devolvió imágenes disponibles.");
+
+    radarMetadata = metadata;
+    radarFrames = [
+      ...past.map(frame => ({ ...frame, frameType: "observed" })),
+      ...future.map(frame => ({ ...frame, frameType: "forecast" }))
+    ];
+
+    radarFrameIndex = past.length - 1;
+    $("frameSlider").disabled = radarFrames.length <= 1;
+    $("frameSlider").min = "0";
+    $("frameSlider").max = String(Math.max(0, radarFrames.length - 1));
+    $("frameSlider").value = String(radarFrameIndex);
+    $("playRadar").disabled = radarFrames.length <= 1;
+    showRadarFrame(radarFrameIndex);
+
+    const lastObserved = past[past.length - 1];
+    $("radarStatus").textContent = "Catálogo de imágenes recibido · " + config.label;
+    $("radarStatus").className = "muted";
+    $("radarTime").textContent = "Último mosaico publicado: " + formatClockFromTimestamp(lastObserved.time);
+
+    $("mapStatusChip").textContent = "LibreWXR · precipitación global estimada por satélite";
+    $("radarSourceNote").innerHTML =
+      'En Costa Rica, LibreWXR utiliza principalmente NOAA RRQPE, una <strong>estimación satelital infrarroja de precipitación</strong>, no una medición directa de radar terrestre. Tiene una cadencia aproximada de 10 minutos y una latencia mediana cercana a 17 minutos; puede subestimar lluvias cálidas o estratiformes. Su cobertura geográfica es más amplia, pero debe contrastarse con estaciones y avisos oficiales. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.';
+
+    updateZoomHint();
+  } catch (error) {
+    console.error("Error al cargar fuente de precipitación:", error);
+    removeRadarLayer();
+    $("radarStatus").textContent = "Fuente no disponible";
+    $("radarStatus").className = "error-text";
+    $("radarTime").textContent = error && error.message
+      ? error.message
+      : "No se pudo obtener una imagen reciente.";
+    $("mapStatusChip").textContent = "El mapa base sigue funcionando; la capa de precipitación no está disponible.";
+    $("radarSourceNote").textContent = error && error.message
+      ? error.message + " Revisa la clave, los permisos, el límite de solicitudes o la disponibilidad del proveedor."
+      : "La fuente no respondió o no tiene mosaicos disponibles. La capa base del mapa sigue funcionando.";
+    $("frameLabel").textContent = "--";
+    $("frameSlider").disabled = true;
+    $("playRadar").disabled = true;
+  }
+}
+
+function showRadarFrame(index) {
+  if (!mapReady || !radarMetadata || !radarFrames.length) return;
+  const safeIndex = Math.max(0, Math.min(Number(index), radarFrames.length - 1));
+  radarFrameIndex = safeIndex;
+  const frame = radarFrames[safeIndex];
+  const config = RADAR_SOURCES[radarSourceKey];
+
+  removeRadarLayer();
+
+  const tileUrl = radarTileUrl(frame, radarMetadata, config);
+  map.addSource("raintrack-radar-source", {
+    type: "raster",
+    tiles: [tileUrl],
+    tileSize: 256,
+    minzoom: 0,
+    maxzoom: config.maxZoom,
+    attribution: ({
+      librewxr: "Precipitation data: LibreWXR / NOAA RRQPE",
+      weatherapi: "Precipitation forecast: WeatherAPI.com"
+    })[radarSourceKey] || "Precipitation data"
+  });
+
+  const firstSymbol = map.getStyle().layers.find(layer => layer.type === "symbol");
+  const layerDefinition = {
+    id: "raintrack-radar-layer",
+    type: "raster",
+    source: "raintrack-radar-source",
+    paint: {
+      "raster-opacity": radarSourceKey === "weatherapi" ? 0.56 : 0.76,
+      "raster-fade-duration": 0,
+      "raster-resampling": radarSourceKey === "weatherapi" ? "linear" : "nearest"
+    }
+  };
+
+  if (firstSymbol) map.addLayer(layerDefinition, firstSymbol.id);
+  else map.addLayer(layerDefinition);
+
+  // Si hay una ruta solicitada, mantenerla visible por encima de la capa de radar.
+  if (routeIsVisible) {
+    if (firstSymbol) {
+      if (map.getLayer("raintrack-route-casing")) map.moveLayer("raintrack-route-casing", firstSymbol.id);
+      if (map.getLayer("raintrack-route-line")) map.moveLayer("raintrack-route-line", firstSymbol.id);
+    } else {
+      if (map.getLayer("raintrack-route-casing")) map.moveLayer("raintrack-route-casing");
+      if (map.getLayer("raintrack-route-line")) map.moveLayer("raintrack-route-line");
+    }
+  }
+
+  $("frameSlider").value = String(safeIndex);
+  const latestObserved = radarFrames.filter(item => item.frameType === "observed").slice(-1)[0];
+  if (frame.frameType === "forecast" && latestObserved) {
+    const minutes = Math.max(0, Math.round((frame.time - latestObserved.time) / 60));
+    $("frameLabel").textContent = "Proyección +" + minutes + " min";
+    $("radarTime").textContent = "Proyección experimental · +" + minutes + " minutos";
+  } else if (frame.frameType === "forecast") {
+    const firstFrameTime = radarFrames[0] ? radarFrames[0].time : frame.time;
+    const hours = Math.max(0, Math.round((frame.time - firstFrameTime) / 3600));
+    $("frameLabel").textContent = hours === 0 ? "Pronóstico actual" : "Pronóstico +" + hours + " h";
+    const productLabel = WEATHER_MAP_PRODUCTS[weatherMapProductKey]?.label || "precipitación";
+    $("radarTime").textContent = "Pronóstico de " + productLabel + " · " + formatClockFromTimestamp(frame.time);
+  } else {
+    $("frameLabel").textContent = formatClockFromTimestamp(frame.time);
+    $("radarTime").textContent = "Imagen correspondiente a las " + formatClockFromTimestamp(frame.time);
+  }
+}
+
+function stopRadarAnimation() {
+  if (radarPlayTimer) {
+    clearInterval(radarPlayTimer);
+    radarPlayTimer = null;
+  }
+  const button = $("playRadar");
+  if (button) button.textContent = "▶ Reproducir";
+}
+
+function toggleRadarAnimation() {
+  if (radarPlayTimer) {
+    stopRadarAnimation();
+    return;
+  }
+  if (radarFrames.length < 2) return;
+  $("playRadar").textContent = "Ⅱ Pausar";
+  radarPlayTimer = setInterval(() => {
+    let next = radarFrameIndex + 1;
+    if (next >= radarFrames.length) next = 0;
+    showRadarFrame(next);
+  }, 750);
+}
+
+// ------------------------------------------------------------
+// BÚSQUEDA DE LOCALIDADES DE COSTA RICA
+// ------------------------------------------------------------
+async function searchLocations(query) {
+  const url = new URL(OPEN_METEO_GEOCODING);
+  url.search = new URLSearchParams({
+    name: query,
+    count: "10",
+    language: "es",
+    countryCode: "CR",
+    format: "json"
+  }).toString();
+
+  const data = await fetchJson(url.toString());
+  return (data.results || []).filter(item => item.country_code === "CR");
+}
+
+function renderSearchResults(results) {
+  const container = $("searchResults");
+  container.innerHTML = "";
+
+  if (!results.length) {
+    container.innerHTML = '<p class="tiny">No encontré coincidencias. Prueba con el nombre del cantón o de la provincia.</p>';
+    return;
+  }
+
+  results.forEach(result => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "search-result";
+
+    const primary = document.createElement("span");
+    const name = document.createElement("strong");
+    name.textContent = result.name || "Localidad";
+    const details = document.createElement("small");
+    details.textContent = [result.admin2, result.admin1, result.country].filter(Boolean).join(" · ");
+    primary.append(name, details);
+
+    const arrow = document.createElement("span");
+    arrow.textContent = "Consultar →";
+    arrow.className = "accent small";
+
+    button.append(primary, arrow);
+    button.addEventListener("click", () => {
+      const location = {
+        name: result.name || "Destino",
+        lat: Number(result.latitude),
+        lon: Number(result.longitude),
+        detail: [result.admin2, result.admin1, result.country].filter(Boolean).join(", ")
+      };
+      destinationLocation = location;
+      $("searchInput").value = location.name;
+      container.innerHTML = "";
+      loadWeatherForLocation(location, "destination");
+      if (mapReady) {
+        map.flyTo({ center: [location.lon, location.lat], zoom: 10.5, speed: 1.15 });
+        updateMapMarkers();
+      }
+      $("mapLocationChip").textContent = "📍 " + location.name;
+    });
+
+    container.appendChild(button);
+  });
+}
+
+$("searchForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const query = $("searchInput").value.trim();
+  if (query.length < 2) return;
+
+  $("searchButton").disabled = true;
+  $("searchButton").textContent = "Buscando…";
+  $("searchResults").innerHTML = '<p class="tiny loading">Buscando localidades de Costa Rica…</p>';
+
+  try {
+    const results = await searchLocations(query);
+    renderSearchResults(results);
+  } catch (error) {
+    console.error(error);
+    $("searchResults").innerHTML = '<p class="tiny error-text">No se pudo consultar el buscador. Revisa tu conexión e inténtalo de nuevo.</p>';
+  } finally {
+    $("searchButton").disabled = false;
+    $("searchButton").textContent = "Buscar";
+  }
+});
+
+// ------------------------------------------------------------
+// RUTAS METEOROLÓGICAS
+// ------------------------------------------------------------
+function setRouteMode(mode) {
+  if (routeIsVisible) clearRouteLayers();
+  $("routeResult").hidden = true;
+  routeMode = mode === "temporary" ? "temporary" : "saved";
+  $("routeSavedMode").classList.toggle("active", routeMode === "saved");
+  $("routeTempMode").classList.toggle("active", routeMode === "temporary");
+  $("routeSavedSection").hidden = routeMode !== "saved";
+  $("routeTempSection").hidden = routeMode !== "temporary";
+  $("routeResult").hidden = true;
+  updateSavedWorkStatus();
+}
+
+function updateSavedWorkStatus() {
+  const status = $("savedWorkStatus");
+  if (!status) return;
+  if (routeWorkLocation) {
+    status.innerHTML = `<strong>Trabajo guardado:</strong> ${escapeHtml(routeWorkLocation.name)}<br><span class="tiny">Este destino queda guardado en este teléfono.</span>`;
+  } else {
+    status.innerHTML = '<strong>Destino laboral sin configurar.</strong><br>Búscalo por localidad o marca el punto exacto en el mapa una sola vez.';
+  }
+}
+
+function saveWorkRouteDestination(location) {
+  routeWorkLocation = {
+    name: String(location.name || "Trabajo"),
+    lat: Number(location.lat),
+    lon: Number(location.lon),
+    detail: String(location.detail || "Destino laboral guardado")
+  };
+  localStorage.setItem(ROUTE_WORK_STORAGE_KEY, JSON.stringify(routeWorkLocation));
+  if (routeIsVisible) clearRouteLayers();
+  $("routeResult").hidden = true;
+  updateSavedWorkStatus();
+  $("routeWorkSearchResults").innerHTML = '<p class="tiny success">Destino laboral guardado en este teléfono.</p>';
+  $("mapStatusChip").textContent = "Destino laboral guardado · " + routeWorkLocation.name;
+}
+
+function beginRouteMapPick(mode) {
+  routePickMode = mode;
+  $("routePickHint").hidden = false;
+  $("routePickHint").innerHTML = `Toca el punto exacto en el mapa de Costa Rica. Puedes acercar el mapa para seleccionar mejor.<br><button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar selección</button>`;
+  $("routePickCancel").addEventListener("click", cancelRouteMapPick);
+  if (mapReady) map.getCanvas().style.cursor = "crosshair";
+  $("mapStatusChip").textContent = mode === "work"
+    ? "Selecciona en el mapa la ubicación exacta del trabajo"
+    : "Selecciona en el mapa tu destino temporal";
+  $("routePanel").hidden = false;
+  $("routeToggle").setAttribute("aria-expanded", "true");
+}
+
+function cancelRouteMapPick() {
+  routePickMode = null;
+  $("routePickHint").hidden = true;
+  if (mapReady) map.getCanvas().style.cursor = "";
+}
+
+async function searchRoutePlaces(query, resultContainerId, mode) {
+  const container = $(resultContainerId);
+  if (!query || query.trim().length < 2) {
+    container.innerHTML = '<p class="tiny">Escribe al menos dos caracteres.</p>';
+    return;
+  }
+  container.innerHTML = '<p class="tiny loading">Buscando localidades de Costa Rica…</p>';
+  try {
+    const results = await searchLocations(query.trim());
+    container.innerHTML = "";
+    if (!results.length) {
+      container.innerHTML = '<p class="tiny">No encontré esa localidad. Para un punto exacto, utiliza «Elegir punto en el mapa».</p>';
+      return;
+    }
+    results.forEach(result => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "route-search-result";
+      const name = document.createElement("span");
+      name.innerHTML = `<strong>${escapeHtml(result.name || "Localidad")}</strong><small>${escapeHtml([result.admin2, result.admin1, result.country].filter(Boolean).join(" · "))}</small>`;
+      const choose = document.createElement("span");
+      choose.className = "accent";
+      choose.textContent = "Elegir →";
+      button.append(name, choose);
+      button.addEventListener("click", () => {
+        const location = {
+          name: result.name || "Destino",
+          lat: Number(result.latitude),
+          lon: Number(result.longitude),
+          detail: [result.admin2, result.admin1, result.country].filter(Boolean).join(", ")
+        };
+        if (mode === "work") {
+          saveWorkRouteDestination(location);
+          $("routeWorkSearchInput").value = location.name;
+        } else {
+          routeTemporaryDestination = location;
+          if (routeIsVisible) clearRouteLayers();
+          $("routeResult").hidden = true;
+          $("routeTempSearchInput").value = location.name;
+          container.innerHTML = '<p class="tiny success">Destino seleccionado: ' + escapeHtml(location.name) + '.</p>';
+        }
+      });
+      container.appendChild(button);
+    });
+  } catch (error) {
+    console.error("Error al buscar destino de ruta:", error);
+    container.innerHTML = '<p class="tiny error-text">No se pudo consultar el buscador. Inténtalo de nuevo.</p>';
+  }
+}
+
+function clearRouteLayers() {
+  if (!mapReady) return;
+  ["raintrack-route-line", "raintrack-route-casing"].forEach(id => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource("raintrack-route-source")) map.removeSource("raintrack-route-source");
+  if (routeStartMarker) { routeStartMarker.remove(); routeStartMarker = null; }
+  if (routeEndMarker) { routeEndMarker.remove(); routeEndMarker = null; }
+  routeIsVisible = false;
+}
+
+function closeRouteAnalysis() {
+  clearRouteLayers();
+  $("routeResult").hidden = true;
+  $("routeResult").innerHTML = "";
+  $("routePanel").hidden = true;
+  $("routeToggle").setAttribute("aria-expanded", "false");
+  $("routeToggle").textContent = "🧭 Rutas";
+  cancelRouteMapPick();
+  if (mapReady) showCostaRicaOverview(true);
+  $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa normal";
+}
+
+function routeDistanceKm(a, b) {
+  const rad = value => value * Math.PI / 180;
+  const dLat = rad(b[1] - a[1]);
+  const dLon = rad(b[0] - a[0]);
+  const lat1 = rad(a[1]);
+  const lat2 = rad(b[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function sampleRouteLine(coordinates, distanceKm) {
+  const cumulative = [0];
+  for (let i = 1; i < coordinates.length; i++) {
+    cumulative.push(cumulative[i - 1] + routeDistanceKm(coordinates[i - 1], coordinates[i]));
+  }
+  const total = cumulative[cumulative.length - 1] || distanceKm;
+  const count = Math.min(ROUTE_WEATHER_SAMPLES_MAX, Math.max(3, Math.ceil(total / 12) + 1));
+  const samples = [];
+
+  for (let sampleIndex = 0; sampleIndex < count; sampleIndex++) {
+    const fraction = count === 1 ? 0 : sampleIndex / (count - 1);
+    const target = total * fraction;
+    let segment = 1;
+    while (segment < cumulative.length - 1 && cumulative[segment] < target) segment++;
+    const startDistance = cumulative[segment - 1] || 0;
+    const endDistance = cumulative[segment] || startDistance;
+    const segmentFraction = endDistance === startDistance ? 0 : (target - startDistance) / (endDistance - startDistance);
+    const start = coordinates[segment - 1] || coordinates[0];
+    const end = coordinates[segment] || coordinates[coordinates.length - 1];
+    samples.push({
+      fraction,
+      distanceAlongKm: total * fraction,
+      coordinate: [
+        start[0] + (end[0] - start[0]) * segmentFraction,
+        start[1] + (end[1] - start[1]) * segmentFraction
+      ]
+    });
+  }
+  return samples;
+}
+
+async function getFreshGpsForRoute() {
+  if (!navigator.geolocation) throw new Error("Este navegador no permite obtener ubicación GPS.");
+  return await new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      position => resolve({
+        name: "Mi ubicación actual",
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        detail: "GPS leído al solicitar la ruta"
+      }),
+      error => reject(new Error(error.code === 1
+        ? "Permite el acceso al GPS para analizar una ruta desde tu ubicación actual."
+        : "No se pudo obtener tu GPS. Comprueba la ubicación del teléfono e inténtalo de nuevo.")),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  });
+}
+
+async function getRouteWeather(location) {
+  const params = new URLSearchParams({
+    latitude: String(location.lat),
+    longitude: String(location.lon),
+    current: "precipitation,rain,showers,weather_code",
+    hourly: "precipitation_probability,precipitation,rain,showers,weather_code",
+    forecast_days: "2",
+    timezone: "America/Costa_Rica"
+  });
+  return await fetchJson(OPEN_METEO_FORECAST + "?" + params.toString());
+}
+
+function nearestHourlyForecast(data, eta) {
+  const times = data.hourly && data.hourly.time ? data.hourly.time : [];
+  if (!times.length) return null;
+  let bestIndex = 0;
+  let bestDifference = Infinity;
+  times.forEach((time, index) => {
+    // Open-Meteo devuelve hora local sin offset cuando se especifica zona horaria.
+    const date = new Date(time + "-06:00");
+    const difference = Math.abs(date.getTime() - eta.getTime());
+    if (difference < bestDifference) {
+      bestDifference = difference;
+      bestIndex = index;
+    }
+  });
+  return {
+    time: times[bestIndex],
+    probability: Number(data.hourly.precipitation_probability?.[bestIndex] ?? 0),
+    precipitation: Number(data.hourly.precipitation?.[bestIndex] ?? 0),
+    rain: Number(data.hourly.rain?.[bestIndex] ?? 0),
+    showers: Number(data.hourly.showers?.[bestIndex] ?? 0),
+    weatherCode: Number(data.hourly.weather_code?.[bestIndex] ?? 0)
+  };
+}
+
+function isRainWeatherCode(code) {
+  return [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(Number(code));
+}
+
+function getRouteCurrentPrecipitationMm(current) {
+  const values = ["precipitation", "rain", "showers"]
+    .map(key => current?.[key])
+    .filter(value => value !== null && value !== undefined && value !== "")
+    .map(Number)
+    .filter(value => Number.isFinite(value) && value >= 0);
+  return values.length ? Math.max(...values) : null;
+}
+
+function getRouteCurrentRainComponentMm(current) {
+  const values = ["rain", "showers"]
+    .map(key => current?.[key])
+    .filter(value => value !== null && value !== undefined && value !== "")
+    .map(Number)
+    .filter(value => Number.isFinite(value) && value >= 0);
+  return values.length ? Math.max(...values) : null;
+}
+
+function formatRouteMillimeters(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, number).toFixed(2) : "--";
+}
+
+function formatRouteDuration(seconds) {
+  const totalMinutes = Math.max(1, Math.round(Number(seconds || 0) / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours ? `${hours} h ${minutes} min` : `${minutes} min`;
+}
+
+function drawRouteOnMap(route, origin, destination) {
+  clearRouteLayers();
+  const feature = {
+    type: "Feature",
+    properties: {},
+    geometry: route.geometry
+  };
+  map.addSource("raintrack-route-source", {
+    type: "geojson",
+    data: feature,
+    lineMetrics: true
+  });
+  const firstSymbol = map.getStyle().layers.find(layer => layer.type === "symbol");
+  const casing = {
+    id: "raintrack-route-casing",
+    type: "line",
+    source: "raintrack-route-source",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#082f49", "line-width": 8, "line-opacity": 0.9 }
+  };
+  const line = {
+    id: "raintrack-route-line",
+    type: "line",
+    source: "raintrack-route-source",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#38bdf8", "line-width": 5, "line-opacity": 0.98 }
+  };
+  if (firstSymbol) {
+    map.addLayer(casing, firstSymbol.id);
+    map.addLayer(line, firstSymbol.id);
+  } else {
+    map.addLayer(casing);
+    map.addLayer(line);
+  }
+
+  const startElement = document.createElement("div");
+  startElement.className = "route-map-marker start";
+  startElement.textContent = "A";
+  routeStartMarker = new maplibregl.Marker({ element: startElement })
+    .setLngLat([origin.lon, origin.lat])
+    .setPopup(new maplibregl.Popup({ offset: 12 }).setText("Salida: " + origin.name))
+    .addTo(map);
+
+  const endElement = document.createElement("div");
+  endElement.className = "route-map-marker end";
+  endElement.textContent = "B";
+  routeEndMarker = new maplibregl.Marker({ element: endElement })
+    .setLngLat([destination.lon, destination.lat])
+    .setPopup(new maplibregl.Popup({ offset: 12 }).setText("Llegada: " + destination.name))
+    .addTo(map);
+
+  const bounds = new maplibregl.LngLatBounds();
+  route.geometry.coordinates.forEach(coordinate => bounds.extend(coordinate));
+  map.fitBounds(bounds, {
+    padding: { top: 70, bottom: 75, left: 45, right: 45 },
+    duration: 800,
+    maxZoom: 11.5
+  });
+  routeIsVisible = true;
+}
+
+function renderRouteAnalysis(route, samples, results, origin, destination, directionLabel) {
+  const totalRainNow = results.filter(item => item.currentRain).length;
+  const totalWeakSignals = results.filter(item => item.currentWeakSignal).length;
+  const totalRainEta = results.filter(item => item.etaRain).length;
+  const pointsWithoutData = results.filter(item => !item.data).length;
+
+  const sampleMarkup = results.map((item, index) => {
+    let label = "Sin precipitación estimada";
+    let className = "clear";
+    if (!item.data) {
+      label = "Sin datos";
+      className = "unknown";
+    } else if (item.currentRain) {
+      label = "Precipitación estimada ahora";
+      className = "rain";
+    } else if (item.etaRain) {
+      label = "Posible lluvia al llegar";
+      className = "possible";
+    } else if (item.currentWeakSignal) {
+      label = "Señal débil del modelo";
+      className = "possible";
+    }
+
+    const etaText = item.eta.toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+    const currentTimeText = item.currentTime ? formatLocalHour(item.currentTime) : "hora no disponible";
+    const currentAmountText = item.currentPrecipitationMm === null
+      ? "sin dato"
+      : formatRouteMillimeters(item.currentPrecipitationMm) + " mm";
+    const currentText = !item.data
+      ? "Sin datos actuales"
+      : item.currentRain
+        ? currentAmountText + " · señal cuantitativa coherente del modelo"
+        : item.currentWeakSignal
+          ? currentAmountText + " · señal débil o no corroborada"
+          : currentAmountText + " · sin precipitación cuantificable";
+    const codeText = item.data
+      ? item.currentCodeSuggestsRain && !item.currentRain
+        ? "Código actual del modelo: " + item.currentWeatherDescription + " (no basta para confirmar precipitación)."
+        : "Condición actual del modelo: " + item.currentWeatherDescription + "."
+      : "";
+    const forecastText = item.forecast
+      ? Math.round(item.forecast.probability) + "% de probabilidad · " +
+        formatRouteMillimeters(item.forecast.precipitation) + " mm previstos" +
+        (isRainWeatherCode(item.forecast.weatherCode)
+          ? " · código horario: " + weatherInfo(item.forecast.weatherCode).text
+          : "")
+      : "Pronóstico no disponible";
+
+    return `
+      <div class="route-sample">
+        <div>
+          <strong>Tramo ${index + 1} · ${escapeHtml(item.label)}</strong>
+          <small>
+            Km ${item.distanceAlongKm.toFixed(1)} desde la salida · Llegada estimada ${etaText}
+            <br>Ahora (modelo, ${escapeHtml(currentTimeText)}): ${escapeHtml(currentText)}
+            <br>${escapeHtml(codeText)}
+            <br>A la llegada: ${escapeHtml(forecastText)}
+          </small>
+        </div>
+        <span class="route-status-pill ${className}">${label}</span>
+      </div>
+    `;
+  }).join("");
+
+  let summary;
+  if (pointsWithoutData === results.length) {
+    summary = "No fue posible obtener datos meteorológicos de los puntos de esta ruta. No se puede concluir si lloverá.";
+  } else {
+    const summaryParts = [];
+    if (totalRainNow > 0) {
+      summaryParts.push(`El modelo muestra una señal cuantitativa coherente de precipitación actual (≥ 0,20 mm) en ${totalRainNow} de ${results.length} puntos. No es una observación directa de lluvia.`);
+    } else {
+      summaryParts.push("No hay una señal cuantitativa coherente suficiente para marcar precipitación actual en los puntos consultados.");
+    }
+    if (totalWeakSignals > 0) {
+      summaryParts.push(`${totalWeakSignals} puntos presentan señales débiles o contradictorias del modelo; no se cuentan como lluvia actual.`);
+    }
+    if (totalRainEta > 0) {
+      summaryParts.push(`Para la hora estimada de llegada, el pronóstico indica posibilidad de precipitación en ${totalRainEta} de ${results.length} puntos (probabilidad ≥ 50% o acumulación ≥ 0,10 mm).`);
+    } else {
+      summaryParts.push("El pronóstico no alcanza los umbrales definidos para señalar posibilidad de precipitación a la llegada.");
+    }
+    if (pointsWithoutData > 0) {
+      summaryParts.push(`No hubo datos en ${pointsWithoutData} puntos; no se puede descartar lluvia localizada allí.`);
+    }
+    summary = summaryParts.join(" ");
+  }
+
+  $("routeResult").innerHTML = `
+    <div class="route-result-head">
+      <div class="route-result-title">Análisis · ${escapeHtml(directionLabel)}</div>
+      <span class="tiny">${escapeHtml(origin.name)} → ${escapeHtml(destination.name)}</span>
+    </div>
+    <div class="route-result-metrics">
+      <div class="route-result-metric"><strong>${(route.distance / 1000).toFixed(1)} km</strong><span>Distancia estimada</span></div>
+      <div class="route-result-metric"><strong>${formatRouteDuration(route.duration)}</strong><span>Tiempo de conducción estimado</span></div>
+    </div>
+    <div class="route-result-summary">${escapeHtml(summary)}</div>
+    <div class="route-samples">${sampleMarkup}</div>
+    <p class="tiny" style="margin-top:10px">Fuente meteorológica: Open-Meteo. Se consultan ${results.length} puntos distribuidos a lo largo del recorrido. La etiqueta de precipitación actual requiere al menos 0,20 mm y coherencia entre variables del modelo; el código meteorológico por sí solo no activa lluvia. El pronóstico de llegada usa probabilidad ≥ 50% o acumulación ≥ 0,10 mm. Son estimaciones, no observaciones directas. El tiempo de viaje no incorpora tráfico en vivo.</p>
+  `;
+  $("routeResult").hidden = false;
+}
+
+async function analyzeRoute() {
+  if (!mapReady) {
+    $("routeResult").hidden = false;
+    $("routeResult").textContent = "El mapa todavía se está cargando. Inténtalo en unos segundos.";
+    return;
+  }
+
+  const button = $("routeAnalyzeBtn");
+  button.disabled = true;
+  button.textContent = "Analizando recorrido…";
+  $("routeResult").hidden = false;
+  $("routeResult").innerHTML = '<p class="tiny loading">Calculando carretera y consultando las condiciones meteorológicas de varios puntos del recorrido…</p>';
+
+  try {
+    let origin;
+    let destination;
+    let directionLabel;
+
+    if (routeMode === "saved") {
+      if (!routeWorkLocation) {
+        throw new Error("Primero configura el destino del trabajo: búscalo o selecciónalo directamente en el mapa.");
+      }
+      const direction = $("routeDirection").value;
+      if (direction === "outbound") {
+        origin = ROUTE_HOME;
+        destination = routeWorkLocation;
+        directionLabel = "Ida · Casa → trabajo";
+      } else {
+        origin = routeWorkLocation;
+        destination = ROUTE_HOME;
+        directionLabel = "Regreso · Trabajo → casa";
+      }
+    } else {
+      destination = routeTemporaryDestination;
+      if (!destination) {
+        throw new Error("Selecciona primero un destino temporal mediante el buscador o el mapa.");
+      }
+      origin = await getFreshGpsForRoute();
+      directionLabel = "Ruta temporal";
+    }
+
+    const [west, south] = CR_NAVIGATION_BOUNDS[0];
+    const [east, north] = CR_NAVIGATION_BOUNDS[1];
+    [origin, destination].forEach(point => {
+      if (point.lon < west || point.lon > east || point.lat < south || point.lat > north) {
+        throw new Error("Uno de los puntos está fuera de los límites de Costa Rica.");
+      }
+    });
+
+    $("routeResult").innerHTML = '<p class="tiny loading">Calculando ruta por carretera…</p>';
+    const routeUrl = `${OSRM_ROUTE_URL}/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&geometries=geojson&steps=false&alternatives=false`;
+    const routeResponse = await fetchJson(routeUrl);
+    if (routeResponse.code !== "Ok" || !routeResponse.routes || !routeResponse.routes.length) {
+      throw new Error("No se encontró una ruta por carretera entre esos puntos.");
+    }
+    const route = routeResponse.routes[0];
+    if (!route.geometry || !Array.isArray(route.geometry.coordinates) || route.geometry.coordinates.length < 2) {
+      throw new Error("El servicio de rutas no devolvió una geometría válida.");
+    }
+
+    drawRouteOnMap(route, origin, destination);
+    $("mapLocationChip").textContent = "🧭 " + directionLabel;
+
+    const samples = sampleRouteLine(route.geometry.coordinates, route.distance / 1000);
+    const departure = new Date();
+    const weatherPromises = samples.map(async (sample, index) => {
+      const eta = new Date(departure.getTime() + route.duration * sample.fraction * 1000);
+      const point = {
+        name: "Punto " + (index + 1),
+        lat: sample.coordinate[1],
+        lon: sample.coordinate[0]
+      };
+      try {
+        const data = await getRouteWeather(point);
+        const currentPrecipitationMm = getRouteCurrentPrecipitationMm(data.current);
+        const currentRainComponentMm = getRouteCurrentRainComponentMm(data.current);
+        const currentWeatherCode = Number(data.current?.weather_code);
+        const currentCodeSuggestsRain = isRainWeatherCode(currentWeatherCode);
+        // Para marcar precipitación actual se exige cantidad >= 0,20 mm y
+        // coherencia con el campo rain/showers o con el código meteorológico.
+        // El código WMO por sí solo nunca activa una alerta de lluvia actual.
+        const currentRain = currentPrecipitationMm !== null &&
+          currentPrecipitationMm >= 0.2 &&
+          ((currentRainComponentMm !== null && currentRainComponentMm >= 0.1) || currentCodeSuggestsRain);
+        const currentWeakSignal = !currentRain && (
+          (currentPrecipitationMm !== null && currentPrecipitationMm >= 0.05) ||
+          currentCodeSuggestsRain
+        );
+        const forecast = nearestHourlyForecast(data, eta);
+        // El código horario es descriptivo, pero no basta por sí solo para
+        // marcar lluvia futura: se exige probabilidad >= 50% o >= 0,10 mm.
+        const etaRain = forecast
+          ? forecast.probability >= 50 || forecast.precipitation >= 0.1
+          : false;
+        return {
+          data,
+          currentRain,
+          currentWeakSignal,
+          currentPrecipitationMm,
+          currentRainComponentMm,
+          currentWeatherCode,
+          currentWeatherDescription: weatherInfo(currentWeatherCode).text,
+          currentCodeSuggestsRain,
+          currentTime: data.current?.time || null,
+          etaRain,
+          forecast,
+          eta,
+          distanceAlongKm: sample.distanceAlongKm,
+          label: index === 0 ? "Salida" : index === samples.length - 1 ? "Llegada" : "Ruta intermedia"
+        };
+      } catch (error) {
+        console.warn("No se pudo consultar el punto de ruta", index, error);
+        return {
+          data: null,
+          currentRain: false,
+          currentWeakSignal: false,
+          currentPrecipitationMm: null,
+          currentRainComponentMm: null,
+          currentWeatherCode: null,
+          currentWeatherDescription: "Sin datos",
+          currentCodeSuggestsRain: false,
+          currentTime: null,
+          etaRain: false,
+          forecast: null,
+          eta,
+          distanceAlongKm: sample.distanceAlongKm,
+          label: index === 0 ? "Salida" : index === samples.length - 1 ? "Llegada" : "Ruta intermedia"
+        };
+      }
+    });
+
+    const results = await Promise.all(weatherPromises);
+    renderRouteAnalysis(route, samples, results, origin, destination, directionLabel);
+    $("mapStatusChip").textContent = "Ruta analizada · " + (route.distance / 1000).toFixed(1) + " km";
+  } catch (error) {
+    console.error("Error al analizar ruta:", error);
+    $("routeResult").innerHTML = `<p class="tiny error-text">${escapeHtml(error.message || "No se pudo analizar el recorrido.")}</p>`;
+    $("routeResult").hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "🌧️ Analizar ruta";
+  }
+}
+
+function closeRoutePanelOnly() {
+  $("routePanel").hidden = true;
+  $("routeToggle").setAttribute("aria-expanded", "false");
+  $("routeToggle").textContent = "🧭 Rutas";
+  cancelRouteMapPick();
+}
+
+// ------------------------------------------------------------
+// PRONÓSTICO OPEN-METEO
+// ------------------------------------------------------------
+async function getWeatherData(location) {
+  const params = new URLSearchParams({
+    latitude: String(location.lat),
+    longitude: String(location.lon),
+    current: [
+      "temperature_2m",
+      "relative_humidity_2m",
+      "apparent_temperature",
+      "precipitation",
+      "rain",
+      "showers",
+      "weather_code",
+      "wind_speed_10m"
+    ].join(","),
+    hourly: [
+      "temperature_2m",
+      "relative_humidity_2m",
+      "precipitation_probability",
+      "precipitation",
+      "rain",
+      "showers",
+      "weather_code",
+      "wind_speed_10m"
+    ].join(","),
+    daily: [
+      "sunrise",
+      "sunset",
+      "daylight_duration",
+      "precipitation_probability_max",
+      "precipitation_sum",
+      "weather_code",
+      "temperature_2m_max",
+      "temperature_2m_min"
+    ].join(","),
+    forecast_days: "2",
+    timezone: "auto"
+  });
+
+  const data = await fetchJson(OPEN_METEO_FORECAST + "?" + params.toString());
+  if (!data.current || !data.hourly || !data.daily) {
+    throw new Error("La respuesta meteorológica está incompleta.");
+  }
+  return data;
+}
+
+function formatCurrentPrecipitationPeriod(intervalSeconds) {
+  const seconds = Number(intervalSeconds);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "el intervalo reciente";
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes === 60) return "la última hora";
+  if (minutes > 60 && minutes % 60 === 0) return `las últimas ${minutes / 60} horas`;
+  return `los últimos ${minutes} min`;
+}
+
+function renderWeatherCard(containerId, location, data, isHome) {
+  const container = $(containerId);
+  const current = data.current;
+  const info = weatherInfo(current.weather_code);
+  const updated = formatLocalHour(current.time);
+  const rainNow = Number(current.precipitation || 0);
+  const rainPeriod = formatCurrentPrecipitationPeriod(current.interval);
+  const details = location.detail || (isHome ? "Ubicación GPS actual" : "Costa Rica");
+
+  container.innerHTML = `
+    <div class="weather-card-head">
+      <div>
+        <div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div>
+        <div class="place-subtitle">${escapeHtml(details)}</div>
+      </div>
+      <span class="tiny">Actualizado ${escapeHtml(updated)}</span>
+    </div>
+    <div class="current-main">
+      <div class="weather-emoji">${info.icon}</div><div>
+        <div class="current-temp">${Math.round(Number(current.temperature_2m))}°</div>
+        <div class="current-desc">${escapeHtml(info.text)} · estimación del modelo</div>
+        <div class="tiny">Sensación térmica ${Math.round(Number(current.apparent_temperature))} °C</div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><strong>${formatMillimeters(rainNow)} mm</strong><span>Precipitación · ${escapeHtml(rainPeriod)}</span></div>
+      <div class="metric"><strong>${Math.round(Number(current.relative_humidity_2m))}%</strong><span>Humedad</span></div>
+      <div class="metric"><strong>${Math.round(Number(current.wind_speed_10m))} km/h</strong><span>Viento</span></div>
+    </div>
+    <div class="card-footer">
+      <span class="tiny">${rainNow >= 0.1
+        ? `El modelo estima ${formatMillimeters(rainNow)} mm durante ${rainPeriod}; no es una medición en tu ubicación exacta.`
+        : `El modelo no estima precipitación medible durante ${rainPeriod}.`}</span>
+      ${isHome ? "" : '<button class="btn secondary small-btn" id="returnHomeButton" type="button">Volver a mi zona</button>'}
+    </div>
+  `;
+
+  if (!isHome) {
+    const button = $("returnHomeButton");
+    if (button) button.addEventListener("click", returnToHome);
+  }
+}
+
+function getNext24Hours(data) {
+  const hourly = data.hourly;
+  const currentTime = data.current.time;
+  let start = hourly.time.findIndex(time => time >= currentTime);
+  if (start < 0) start = 0;
+
+  const result = [];
+  for (let i = start; i < Math.min(start + 24, hourly.time.length); i++) {
+    result.push({
+      time: hourly.time[i],
+      probability: Number(hourly.precipitation_probability?.[i] ?? 0),
+      precipitation: Number(hourly.precipitation?.[i] ?? 0),
+      temperature: Number(hourly.temperature_2m?.[i] ?? 0),
+      weatherCode: Number(hourly.weather_code?.[i] ?? 0),
+      wind: Number(hourly.wind_speed_10m?.[i] ?? 0)
+    });
+  }
+  return result;
+}
+
+function buildRainWindows(hours) {
+  const windows = [];
+  let active = [];
+
+  function closeWindow() {
+    if (!active.length) return;
+    windows.push(active);
+    active = [];
+  }
+
+  hours.forEach(hour => {
+    const signal = hour.probability >= 30 || hour.precipitation >= 0.1;
+    if (signal) active.push(hour);
+    else closeWindow();
+  });
+  closeWindow();
+  return windows;
+}
+
+function renderForecast(location, data) {
+  const hours = getNext24Hours(data);
+  $("forecastTitle").textContent = "Pronóstico por hora · " + location.name;
+  const summary = $("rainSummary");
+  const windows = buildRainWindows(hours);
+
+  if (!hours.length) {
+    summary.innerHTML = '<div class="summary-title">Pronóstico no disponible</div><p class="summary-line muted">La fuente no devolvió horas de pronóstico.</p>';
+    $("hourlyGrid").innerHTML = "";
+    return;
+  }
+
+  if (!windows.length) {
+    const maxProb = Math.max(...hours.map(hour => hour.probability));
+    summary.innerHTML = `
+      <div class="summary-title">Lluvia prevista en ${escapeHtml(location.name)}</div>
+      <p class="summary-line">🌤️ No se observa una señal importante de precipitación en las próximas 24 horas.</p>
+      <p class="tiny">La probabilidad máxima indicada por el modelo es ${maxProb}% . Esto no garantiza que no pueda presentarse lluvia localizada.</p>
+    `;
+  } else {
+    const windowMarkup = windows.map(windowHours => {
+      const first = windowHours[0];
+      const last = windowHours[windowHours.length - 1];
+      const maxProb = Math.max(...windowHours.map(hour => hour.probability));
+      const totalMm = windowHours.reduce((sum, hour) => sum + hour.precipitation, 0);
+      const timeRange = windowHours.length === 1
+        ? formatLocalHour(first.time)
+        : formatLocalHour(first.time) + " – " + formatLocalHour(last.time);
+      return `<div class="rain-window"><strong>${escapeHtml(timeRange)}</strong><span>${maxProb}% de probabilidad máxima · ${formatMillimeters(totalMm)} mm estimados en el intervalo</span></div>`;
+    }).join("");
+
+    summary.innerHTML = `
+      <div class="summary-title">Lluvia prevista en ${escapeHtml(location.name)}</div>
+      <p class="summary-line">🌧️ Se estima posibilidad de precipitación en estos horarios:</p>
+      ${windowMarkup}
+    `;
+  }
+
+  $("hourlyGrid").innerHTML = hours.map(hour => {
+    const info = weatherInfo(hour.weatherCode);
+    return `
+      <article class="hour-card">
+        <div class="hour-time">${escapeHtml(formatLocalHour(hour.time))}</div>
+        <div class="hour-icon">${info.icon}</div>
+        <div class="hour-prob">${Math.round(hour.probability)}%</div>
+        <div class="hour-detail">Prob. de precipitación<br>${formatMillimeters(hour.precipitation)} mm</div>
+        <div class="hour-temp">${Math.round(hour.temperature)} °C</div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderSolarCard(containerId, location, data, isHome) {
+  const container = $(containerId);
+  const daily = data.daily;
+  const sunrise = daily.sunrise?.[0];
+  const sunset = daily.sunset?.[0];
+  const daylight = daily.daylight_duration?.[0];
+
+  if (!sunrise || !sunset) {
+    container.innerHTML = `<div class="solar-place">${escapeHtml(location.name)}</div><p class="subtitle">No se pudieron obtener los horarios solares.</p>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div>
+    <p class="tiny">Horarios calculados para hoy en la zona horaria de la localidad.</p>
+    <div class="solar-times">
+      <div class="solar-time">
+        <div class="symbol">🌄</div>
+        <strong>${escapeHtml(formatLocalHour(sunrise))}</strong>
+        <span>Amanecer</span>
+      </div>
+      <div class="solar-time">
+        <div class="symbol">🌇</div>
+        <strong>${escapeHtml(formatLocalHour(sunset))}</strong>
+        <span>Atardecer</span>
+      </div>
+    </div>
+    <div class="day-length">☀️ Duración del día: <strong>${escapeHtml(formatDayLength(daylight))}</strong></div>
+  `;
+}
+
+async function loadWeatherForLocation(location, type) {
+  const isHome = type === "home";
+  const cardId = isHome ? "homeWeatherCard" : "destinationWeatherCard";
+  const solarId = isHome ? "homeSolarCard" : "destinationSolarCard";
+
+  $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle loading">Consultando condiciones meteorológicas…</p>`;
+  $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle loading">Calculando amanecer y atardecer…</p>`;
+
+  try {
+    const data = await getWeatherData(location);
+    if (isHome) {
+      homeWeatherData = { location, data };
+    } else {
+      destinationWeatherData = { location, data };
+    }
+
+    renderWeatherCard(cardId, location, data, isHome);
+    renderSolarCard(solarId, location, data, isHome);
+
+    if (isHome && !destinationLocation) renderForecast(location, data);
+    if (!isHome) renderForecast(location, data);
+
+    setSystemStatus("Datos meteorológicos actualizados", "ok");
+  } catch (error) {
+    console.error("Error meteorológico:", error);
+    $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle error-text">No se pudieron consultar los datos meteorológicos. Inténtalo de nuevo.</p>`;
+    $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle error-text">No se pudieron calcular los horarios solares.</p>`;
+    setSystemStatus("Error al consultar el pronóstico", "error");
+  }
+}
+
+function returnToHome() {
+  destinationLocation = null;
+  destinationWeatherData = null;
+  $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
+  $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
+
+  if (homeLocation) {
+    $("mapLocationChip").textContent = "📍 Mi ubicación actual";
+    if (mapReady) {
+      const [west, south] = CR_NAVIGATION_BOUNDS[0];
+      const [east, north] = CR_NAVIGATION_BOUNDS[1];
+      const gpsInsideCostaRica = homeLocation.lon >= west && homeLocation.lon <= east &&
+        homeLocation.lat >= south && homeLocation.lat <= north;
+      if (gpsInsideCostaRica) {
+        map.flyTo({ center: [homeLocation.lon, homeLocation.lat], zoom: 12, speed: 1.1 });
+      } else {
+        showCostaRicaOverview(true);
+      }
+    }
+    updateMapMarkers();
+    if (homeWeatherData) renderForecast(homeWeatherData.location, homeWeatherData.data);
+    else loadWeatherForLocation(homeLocation, "home");
+  } else {
+    requestCurrentLocation();
+  }
+}
+
+// ------------------------------------------------------------
+// UBICACIÓN GPS ACTUAL Y CACHÉ LOCAL
+// Se reutiliza la última lectura durante 30 minutos.
+// El botón "Actualizar mi ubicación" siempre solicita una lectura GPS nueva.
+// ------------------------------------------------------------
+let automaticLocationRefreshAttempted = false;
+
+function formatLocationAge(savedAt) {
+  const minutes = Math.max(0, Math.floor((Date.now() - savedAt) / 60000));
+  if (minutes < 1) return "hace unos segundos";
+  if (minutes === 1) return "hace 1 minuto";
+  if (minutes < 60) return `hace ${minutes} minutos`;
+  const hours = Math.floor(minutes / 60);
+  return hours === 1 ? "hace 1 hora" : `hace ${hours} horas`;
+}
+
+function readSavedCurrentLocation() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCATION_CACHE_KEY) || "null");
+    if (!saved || !Number.isFinite(saved.lat) || !Number.isFinite(saved.lon) ||
+        !Number.isFinite(saved.savedAt) ||
+        saved.lat < -90 || saved.lat > 90 || saved.lon < -180 || saved.lon > 180) {
+      return null;
+    }
+    if (Date.now() - saved.savedAt > LOCATION_CACHE_MAX_STALE_MS) {
+      localStorage.removeItem(LOCATION_CACHE_KEY);
+      return null;
+    }
+    return saved;
+  } catch (error) {
+    console.warn("No se pudo leer la ubicación guardada:", error);
+    return null;
+  }
+}
+
+function saveCurrentLocation(latitude, longitude, accuracy) {
+  try {
+    localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({
+      lat: latitude,
+      lon: longitude,
+      accuracy: accuracy || 0,
+      savedAt: Date.now()
+    }));
+  } catch (error) {
+    console.warn("No se pudo guardar la ubicación localmente:", error);
+  }
+}
+
+function focusMapOnCurrentLocation() {
+  if (!homeLocation || !mapReady) return;
+  const [west, south] = CR_NAVIGATION_BOUNDS[0];
+  const [east, north] = CR_NAVIGATION_BOUNDS[1];
+  const insideCostaRica = homeLocation.lon >= west && homeLocation.lon <= east &&
+    homeLocation.lat >= south && homeLocation.lat <= north;
+
+  if (insideCostaRica) {
+    const accuracy = Number(homeLocation.accuracy || 0);
+    map.flyTo({
+      center: [homeLocation.lon, homeLocation.lat],
+      zoom: accuracy > 700 ? 10.5 : 12,
+      speed: 1.1
+    });
+    $("mapLocationChip").textContent = "📍 Mi ubicación actual";
+  } else {
+    showCostaRicaOverview(true);
+    $("mapLocationChip").textContent = "🇨🇷 Mapa enfocado en Costa Rica";
+  }
+  updateMapMarkers();
+}
+
+function restoreSavedCurrentLocation() {
+  const saved = readSavedCurrentLocation();
+  if (!saved) return null;
+
+  const age = Date.now() - saved.savedAt;
+  const fresh = age < LOCATION_CACHE_TTL_MS;
+  homeLocation = {
+    name: "Mi ubicación actual",
+    lat: saved.lat,
+    lon: saved.lon,
+    accuracy: saved.accuracy || 0,
+    detail: saved.accuracy
+      ? `Ubicación guardada · precisión aproximada ±${Math.round(saved.accuracy)} m`
+      : "Ubicación guardada en este dispositivo"
+  };
+  homeWeatherData = null;
+
+  $("homeLocationDescription").textContent = fresh
+    ? `Usando ubicación guardada ${formatLocationAge(saved.savedAt)}. Se actualizará automáticamente después de 30 minutos.`
+    : `Última ubicación guardada ${formatLocationAge(saved.savedAt)}. Actualizando GPS…`;
+  $("homeSetupNotice").hidden = true;
+  $("mapLocationChip").textContent = fresh
+    ? "📍 Mi ubicación · guardada"
+    : "📍 Actualizando ubicación…";
+
+  focusMapOnCurrentLocation();
+  loadWeatherForLocation(homeLocation, "home");
+  setSystemStatus(fresh ? "Usando ubicación guardada" : "Actualizando ubicación…", fresh ? "ok" : "loading");
+  return { fresh, savedAt: saved.savedAt };
+}
+
+function showLocationError(error, keepExistingLocation = false) {
+  console.warn("No se pudo obtener la ubicación GPS:", error);
+  locationRequestInProgress = false;
+
+  if (keepExistingLocation && homeLocation) {
+    const saved = readSavedCurrentLocation();
+    const ageText = saved ? formatLocationAge(saved.savedAt) : "anterior";
+    $("homeLocationDescription").textContent =
+      `No se pudo actualizar el GPS. Seguimos usando la última ubicación guardada (${ageText}).`;
+    $("locationNoticeTitle").textContent = "No se pudo actualizar la ubicación";
+    $("locationNoticeMessage").textContent =
+      "RainTrack seguirá usando la última ubicación disponible. Puedes volver a intentarlo con «Actualizar mi ubicación».";
+    $("homeSetupNotice").hidden = false;
+    $("retryLocation").hidden = false;
+    setSystemStatus("Usando ubicación guardada", "error");
+    return;
+  }
+
+  homeLocation = null;
+  homeWeatherData = null;
+  updateMapMarkers();
+  $("homeLocationDescription").textContent = "No se pudo detectar tu ubicación actual.";
+  $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
+  $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';
+  $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Ubicación pendiente";
+  $("forecastTitle").textContent = "Pronóstico por hora · Mi ubicación actual";
+  $("rainSummary").innerHTML = '<div class="summary-title">Resumen de lluvia</div><p class="summary-line muted">Permite el acceso al GPS o busca un destino para consultar el pronóstico.</p>';
+  $("hourlyGrid").innerHTML = "";
+
+  let message = "No se pudo obtener tu ubicación. Comprueba que el GPS esté activado e inténtalo de nuevo.";
+  if (error && error.code === 1) {
+    message = "El permiso de ubicación está bloqueado. En Chrome, abre la configuración del sitio, permite Ubicación para RainTrack CR y vuelve a intentarlo.";
+  } else if (error && error.code === 2) {
+    message = "El teléfono no pudo determinar tu ubicación. Activa la ubicación del dispositivo y comprueba que tengas señal.";
+  } else if (error && error.code === 3) {
+    message = "La solicitud GPS tardó demasiado. Comprueba la señal y toca «Intentar nuevamente».";
+  }
+
+  $("locationNoticeTitle").textContent = "No se pudo detectar tu ubicación";
+  $("locationNoticeMessage").textContent = message;
+  $("homeSetupNotice").hidden = false;
+  $("retryLocation").hidden = false;
+  setSystemStatus("Ubicación pendiente", "error");
+}
+
+function requestCurrentLocation(preserveDestination = false, automatic = false) {
+  if (locationRequestInProgress) return;
+  locationRequestInProgress = true;
+  const hadExistingLocation = !!homeLocation;
+
+  if (!navigator.geolocation) {
+    showLocationError({ code: 0, message: "Geolocalización no disponible" }, hadExistingLocation);
+    $("locationNoticeMessage").textContent = "Este navegador no permite obtener GPS. Puedes buscar una localidad manualmente.";
+    return;
+  }
+
+  $("homeSetupNotice").hidden = false;
+  $("locationNoticeTitle").textContent = automatic
+    ? "Actualizando tu ubicación automáticamente…"
+    : "Detectando tu ubicación actual…";
+  $("locationNoticeMessage").textContent = automatic
+    ? "La ubicación guardada cumplió 30 minutos. RainTrack está solicitando una lectura GPS nueva."
+    : "Solicitando una lectura GPS nueva. Esta acción reemplazará la ubicación guardada.";
+  $("retryLocation").hidden = true;
+  $("homeLocationDescription").textContent = "Solicitando ubicación GPS actual…";
+  $("mapLocationChip").textContent = "📍 Detectando ubicación actual…";
+  setSystemStatus("Solicitando ubicación GPS…", "loading");
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      const accuracy = Math.round(position.coords.accuracy || 0);
+
+      saveCurrentLocation(latitude, longitude, accuracy);
+      automaticLocationRefreshAttempted = false;
+      homeLocation = {
+        name: "Mi ubicación actual",
+        lat: latitude,
+        lon: longitude,
+        accuracy,
+        detail: accuracy
+          ? `GPS actualizado · precisión aproximada ±${accuracy} m`
+          : "Ubicación GPS actualizada"
+      };
+      locationRequestInProgress = false;
+      homeWeatherData = null;
+
+      if (!preserveDestination) {
+        destinationLocation = null;
+        destinationWeatherData = null;
+        $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
+        $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
+      }
+
+      $("homeLocationDescription").textContent = accuracy
+        ? `Ubicación actualizada · precisión aproximada ±${accuracy} m. Se guardará durante 30 minutos en este dispositivo.`
+        : "Ubicación actualizada y guardada durante 30 minutos en este dispositivo.";
+      $("locationNoticeTitle").textContent = "Ubicación actualizada correctamente";
+      $("locationNoticeMessage").textContent = "El mapa y los datos meteorológicos se están actualizando para el lugar donde estás.";
+      $("homeSetupNotice").hidden = true;
+      $("mapLocationChip").textContent = "📍 Mi ubicación actual";
+
+      focusMapOnCurrentLocation();
+      loadWeatherForLocation(homeLocation, "home");
+      setSystemStatus("Ubicación actualizada", "ok");
+    },
+    error => showLocationError(error, hadExistingLocation),
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+  );
+}
+
+function refreshLocationIfExpired() {
+  if (locationRequestInProgress || automaticLocationRefreshAttempted) return;
+  const saved = readSavedCurrentLocation();
+  if (saved && Date.now() - saved.savedAt >= LOCATION_CACHE_TTL_MS) {
+    automaticLocationRefreshAttempted = true;
+    requestCurrentLocation(true, true);
+  }
+}
+
+$("retryLocation").addEventListener("click", () => requestCurrentLocation(true, false));
+$("refreshCurrentLocation").addEventListener("click", () => requestCurrentLocation(true, false));
+$("goHomeMap").addEventListener("click", returnToHome);
+
+// Al volver a la pestaña solo se comprueba si vencieron los 30 minutos.
+// No se consulta el GPS en cada cambio de pestaña.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshLocationIfExpired();
+});
+setInterval(refreshLocationIfExpired, 60 * 1000);
+
+// ------------------------------------------------------------
+// CAPAS INTEGRADAS EN EL MISMO MAPA
+// ------------------------------------------------------------
+function closeLayersPanel() {
+  $('layersPanel').hidden = true;
+  $('layersToggle').setAttribute('aria-expanded', 'false');
+  $('layersToggle').textContent = '☷ Capas del mapa ▼';
+}
+
+$('layersToggle').addEventListener('click', () => {
+  const panel = $('layersPanel');
+  panel.hidden = !panel.hidden;
+  $('layersToggle').setAttribute('aria-expanded', String(!panel.hidden));
+  $('layersToggle').textContent = panel.hidden ? '☷ Capas del mapa ▼' : '☷ Capas del mapa ▲';
+});
+$('layersClose').addEventListener('click', closeLayersPanel);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    if (!$('layersPanel').hidden) closeLayersPanel();
+    else if (document.body.classList.contains('map-focus')) setMapFocusMode(false);
+  }
+});
+
+$('imnMapToggle').addEventListener('change', event => {
+  setImnVisibility(event.target.checked);
+});
+$('imnProduct').addEventListener('change', () => {
+  if ($('imnMapToggle').checked) refreshImnImage();
+});
+$('imnRefresh').addEventListener('click', () => {
+  if (!$('imnMapToggle').checked) $('imnMapToggle').checked = true;
+  setImnVisibility(true);
+});
+$('imnCardClose').addEventListener('click', () => {
+  $('imnMapToggle').checked = false;
+  setImnVisibility(false);
+});
+$('camerasToggle').addEventListener('change', addCameraMarkers);
+
+// ------------------------------------------------------------
+// EVENTOS DEL PLANIFICADOR DE RUTAS
+// ------------------------------------------------------------
+updateSavedWorkStatus();
+
+$("routeToggle").addEventListener("click", () => {
+  const panel = $("routePanel");
+  panel.hidden = !panel.hidden;
+  $("routeToggle").setAttribute("aria-expanded", String(!panel.hidden));
+  $("routeToggle").textContent = panel.hidden ? "🧭 Rutas" : "🧭 Rutas ▲";
+  if (!panel.hidden) updateSavedWorkStatus();
+});
+
+$("routePanelClose").addEventListener("click", closeRoutePanelOnly);
+$("routeSavedMode").addEventListener("click", () => setRouteMode("saved"));
+$("routeTempMode").addEventListener("click", () => setRouteMode("temporary"));
+
+$("routeWorkSearchBtn").addEventListener("click", () => {
+  searchRoutePlaces($("routeWorkSearchInput").value, "routeWorkSearchResults", "work");
+});
+$("routeWorkSearchInput").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    searchRoutePlaces($("routeWorkSearchInput").value, "routeWorkSearchResults", "work");
+  }
+});
+
+$("routeTempSearchBtn").addEventListener("click", () => {
+  searchRoutePlaces($("routeTempSearchInput").value, "routeTempSearchResults", "temporary");
+});
+$("routeTempSearchInput").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    searchRoutePlaces($("routeTempSearchInput").value, "routeTempSearchResults", "temporary");
+  }
+});
+
+$("routePickWorkBtn").addEventListener("click", () => beginRouteMapPick("work"));
+$("routePickTempBtn").addEventListener("click", () => beginRouteMapPick("temporary"));
+$("routePickCancel").addEventListener("click", cancelRouteMapPick);
+$("routeAnalyzeBtn").addEventListener("click", analyzeRoute);
+$("routeClearBtn").addEventListener("click", closeRouteAnalysis);
+
+// ------------------------------------------------------------
+// CONTROLES DESPLEGABLES Y ACTUALIZACIÓN AUTOMÁTICA
+// ------------------------------------------------------------
+$("forecastToggle").addEventListener("click", () => {
+  const panel = $("forecastPanel");
+  panel.hidden = !panel.hidden;
+  $("forecastToggle").setAttribute("aria-expanded", String(!panel.hidden));
+  $("forecastToggle").textContent = panel.hidden ? "Mostrar ▼" : "Ocultar ▲";
+});
+
+$("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
+$("weatherMapProduct").value = weatherMapProductKey;
+$("librewxrColorScheme").value = String(librewxrColorScheme);
+$("radarSource").addEventListener("change", loadRadarSource);
+$("weatherMapProduct").addEventListener("change", event => {
+  weatherMapProductKey = Object.prototype.hasOwnProperty.call(WEATHER_MAP_PRODUCTS, event.target.value)
+    ? event.target.value : "precip";
+  localStorage.setItem(WEATHER_MAP_PRODUCT_STORAGE_KEY, weatherMapProductKey);
+  loadRadarSource();
+});
+$("librewxrColorScheme").addEventListener("change", event => {
+  const nextColor = Number(event.target.value);
+  librewxrColorScheme = LIBREWXR_PALETTES.includes(nextColor) ? nextColor : 10;
+  localStorage.setItem(LIBREWXR_COLOR_STORAGE_KEY, String(librewxrColorScheme));
+  loadRadarSource();
+});
+$("radarSourceRefresh").addEventListener("click", loadRadarSource);
+$("frameSlider").addEventListener("input", event => showRadarFrame(Number(event.target.value)));
+$("playRadar").addEventListener("click", toggleRadarAnimation);
+
+function setMapFocusMode(enabled) {
+  document.body.classList.toggle("map-focus", enabled);
+  document.documentElement.style.overflow = enabled ? "hidden" : "";
+  $("mapExpandToggle").setAttribute("aria-pressed", String(enabled));
+  $("mapExpandToggle").textContent = enabled ? "↙ Salir del mapa" : "⛶ Ampliar mapa";
+  $("mapExpandToggle").setAttribute("aria-label", enabled ? "Salir de la pantalla completa del mapa" : "Ampliar mapa a pantalla completa");
+  if (enabled) closeLayersPanel();
+  requestAnimationFrame(() => {
+    if (map) map.resize();
+    requestAnimationFrame(() => { if (map) map.resize(); });
+  });
+}
+
+$("mapExpandToggle").addEventListener("click", () => {
+  setMapFocusMode(!document.body.classList.contains("map-focus"));
+});
+window.addEventListener("resize", () => {
+  if (map && document.body.classList.contains("map-focus")) map.resize();
+});
+
+function refreshWeatherData() {
+  if (homeLocation) loadWeatherForLocation(homeLocation, "home");
+  if (destinationLocation) loadWeatherForLocation(destinationLocation, "destination");
+}
+
+function startAutomaticUpdates() {
+  if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
+  weatherRefreshTimer = setInterval(refreshWeatherData, 30 * 60 * 1000);
+  loadCameraMonitoringData();
+  if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
+  cameraMonitorTimer = setInterval(loadCameraMonitoringData, 5 * 60 * 1000);
+  // Solo LibreWXR se actualiza automáticamente; los proveedores con KEY
+  // quedan bajo actualización manual para no consumir cuota por mosaicos.
+  setInterval(() => {
+    if (mapReady && radarSourceKey === "librewxr") loadRadarSource();
+  }, 5 * 60 * 1000);
+  if (imnRefreshTimer) clearInterval(imnRefreshTimer);
+  imnRefreshTimer = setInterval(() => {
+    if ($('imnMapToggle') && $('imnMapToggle').checked) refreshImnImage();
+  }, 10 * 60 * 1000);
+}
+
+// ------------------------------------------------------------
+// INICIO
+// ------------------------------------------------------------
+if ($("radarSource")) $("radarSource").value = radarSourceKey;
+initMap();
+const restoredLocation = restoreSavedCurrentLocation();
+if (!restoredLocation) {
+  automaticLocationRefreshAttempted = true;
+  requestCurrentLocation();
+} else if (!restoredLocation.fresh) {
+  automaticLocationRefreshAttempted = true;
+  requestCurrentLocation(true, true);
+}
+startAutomaticUpdates();
+  
+// ------------------------------------------------------------
+// INTELIGENCIA GLOBAL — eventos normalizados desde fuentes públicas
+// ------------------------------------------------------------
+let globalHazardEvents = [];
+let globalSourceHealth = [];
+const GLOBAL_EVENTS_URL = "./global-events.json";
+const globalHazardLabels = {
+  earthquake:"Terremoto / sismo", volcano:"Actividad volcánica",
+  tropical_cyclone:"Ciclón tropical", severe_storm:"Tormenta severa",
+  flood:"Inundación", landslide:"Deslizamiento", tsunami:"Tsunami",
+  wildfire:"Incendio forestal", drought:"Sequía", extreme_heat:"Calor extremo",
+  extreme_cold:"Frío extremo", air_quality:"Calidad del aire",
+  atmospheric_wave:"Onda atmosférica", front:"Frente", atmospheric_river:"Río atmosférico",
+  enso:"ENSO", space_weather:"Clima espacial", solar_flare:"Erupción solar",
+  geomagnetic_storm:"Tormenta geomagnética", near_earth_object:"Objeto cercano a la Tierra",
+  other:"Otro fenómeno"
+};
+function globalEscape(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+}
+function globalDate(value) {
+  if (!value) return "Hora no disponible";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Hora no disponible" : date.toLocaleString("es-CR",{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC";
+}
+function globalSeverity(value) {
+  return ({extreme:"Extremo",severe:"Severo",moderate:"Moderado",minor:"Menor",unknown:"Sin clasificar"})[value] || "Sin clasificar";
+}
+let globalWorldMap = null;
+let globalWorldMapReady = false;
+function initializeGlobalWorldMap() {
+  const container = document.getElementById("globalEventsMap");
+  if (!container || globalWorldMap || !window.maplibregl) return;
+  globalWorldMap = new maplibregl.Map({
+    container: "globalEventsMap",
+    style: MAP_STYLE,
+    center: [0, 18],
+    zoom: 1.15,
+    minZoom: 0.8,
+    maxZoom: 8,
+    renderWorldCopies: true,
+    attributionControl: true
+  });
+  globalWorldMap.addControl(new maplibregl.NavigationControl({showCompass:false}), "top-right");
+  globalWorldMap.on("load", () => {
+    globalWorldMap.addSource("raintrack-global-events", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
+    globalWorldMap.addLayer({
+      id:"raintrack-global-events-points",
+      type:"circle",
+      source:"raintrack-global-events",
+      paint:{
+        "circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8],
+        "circle-color":["match",["get","severity"],"extreme","#ef4444","severe","#f97316","moderate","#eab308","minor","#22c55e","#60a5fa"],
+        "circle-stroke-color":"#ffffff",
+        "circle-stroke-width":1.2,
+        "circle-opacity":0.88
+      }
+    });
+    globalWorldMap.on("click","raintrack-global-events-points",event => {
+      const feature = event.features && event.features[0];
+      if (!feature) return;
+      const p = feature.properties || {};
+      new maplibregl.Popup({closeButton:true, maxWidth:"280px"})
+        .setLngLat(event.lngLat)
+        .setHTML('<strong>'+globalEscape(p.title)+'</strong><br><span>'+globalEscape(p.type)+'</span><br><small>'+globalEscape(p.provider)+' · '+globalEscape(p.time)+' · '+globalEscape(p.status)+'</small>')
+        .addTo(globalWorldMap);
+    });
+    globalWorldMap.on("mouseenter","raintrack-global-events-points",()=>{globalWorldMap.getCanvas().style.cursor="pointer";});
+    globalWorldMap.on("mouseleave","raintrack-global-events-points",()=>{globalWorldMap.getCanvas().style.cursor="";});
+    globalWorldMapReady = true;
+    updateGlobalWorldMap();
+  });
+}
+function updateGlobalWorldMap() {
+  if (!globalWorldMap || !globalWorldMapReady) return;
+  const hazard = document.getElementById("globalHazardFilter")?.value || "all";
+  const region = document.getElementById("globalRegionFilter")?.value || "all";
+  const features = globalHazardEvents.filter(event =>
+    (hazard === "all" || event.hazard_type === hazard) &&
+    (region !== "priority" || event.region_priority === "costa_rica_central_america") &&
+    event.location && Number.isFinite(Number(event.location.longitude)) && Number.isFinite(Number(event.location.latitude))
+  ).slice(0,1500).map(event => ({
+    type:"Feature",
+    geometry:{type:"Point",coordinates:[Number(event.location.longitude),Number(event.location.latitude)]},
+    properties:{
+      title:event.title || "Evento reportado",
+      type:globalHazardLabels[event.hazard_type] || event.hazard_type,
+      provider:event.source?.provider || "Fuente no identificada",
+      time:globalDate(event.observed_at),
+      status:event.status || "unknown",
+      severity:event.severity || "unknown"
+    }
+  }));
+  globalWorldMap.getSource("raintrack-global-events")?.setData({type:"FeatureCollection",features});
+}
+function renderGlobalHazards() {
+  updateGlobalWorldMap();
+  const list = document.getElementById("globalEventsList");
+  if (!list) return;
+  const hazard = document.getElementById("globalHazardFilter")?.value || "all";
+  const region = document.getElementById("globalRegionFilter")?.value || "all";
+  const events = globalHazardEvents.filter(event =>
+    (hazard === "all" || event.hazard_type === hazard) &&
+    (region !== "priority" || event.region_priority === "costa_rica_central_america")
+  );
+  document.getElementById("globalEventsCount").textContent = globalHazardEvents.length+" eventos";
+  document.getElementById("globalSourcesCount").textContent = globalSourceHealth.length+" fuentes";
+  if (!events.length) {
+    list.innerHTML = '<div class="panel small muted">No hay eventos que coincidan con este filtro en el último conjunto publicado. Revisa el estado de las fuentes antes de interpretar este resultado.</div>';
+  } else {
+    list.innerHTML = events.slice(0,60).map(event => {
+      const severity = globalSeverity(event.severity);
+      const location = event.location?.place_name || (event.location ? Number(event.location.latitude).toFixed(2)+", "+Number(event.location.longitude).toFixed(2) : "Ubicación no disponible");
+      const magnitude = event.metrics?.magnitude != null ? " · Magnitud "+globalEscape(event.metrics.magnitude) : "";
+      const url = event.source?.url || event.official_advisory_url || "";
+      return '<article class="panel" style="padding:14px;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><strong style="font-size:13px;line-height:1.4">'+globalEscape(globalHazardLabels[event.hazard_type] || event.hazard_type)+'</strong><span class="tiny">'+globalEscape(severity)+'</span></div><div style="font-size:13px;font-weight:750;margin-top:8px;line-height:1.4">'+globalEscape(event.title)+'</div><div class="tiny" style="margin-top:7px">📍 '+globalEscape(location)+globalEscape(magnitude)+'</div><div class="tiny" style="margin-top:4px">🕒 '+globalEscape(globalDate(event.observed_at))+'</div><div class="tiny" style="margin-top:4px">Estado: '+globalEscape(event.status === "resolved" ? "Resuelto / histórico" : event.status === "active" ? "Activo según la fuente" : "Estado no confirmado")+(event.data_freshness === "carried_forward_source_unavailable" ? " · Último dato conservado; fuente sin conexión" : "")+'</div><div class="tiny" style="margin-top:4px">Fuente: '+globalEscape(event.source?.provider || "No identificada")+' · '+globalEscape(event.confidence_class || "Sin verificación")+'</div>'+(url ? '<a href="'+globalEscape(safeHttpUrl(url, "#"))+'" target="_blank" rel="noopener noreferrer" class="accent small" style="display:inline-block;margin-top:9px">Consultar fuente original ↗</a>' : '')+'</article>';
+    }).join("");
+  }
+  const health = document.getElementById("globalSourceHealth");
+  if (health) health.innerHTML = globalSourceHealth.map(source => '<span style="border:1px solid var(--border);border-radius:99px;padding:6px 9px;font-size:10px;color:'+(source.status==="ok"?"#4ade80":"#fbbf24")+'">'+globalEscape(source.provider)+': '+(source.status==="ok"?"Disponible":"Revisar fuente")+' ('+Number(source.event_count||0)+')</span>').join("") || '<span class="tiny">Aún no hay información del estado de las fuentes.</span>';
+}
+async function loadGlobalHazardEvents() {
+  const status = document.getElementById("globalEventsStatus");
+  const updated = document.getElementById("globalEventsUpdated");
+  if (status) status.textContent = "Actualizando fuentes globales…";
+  try {
+    const response = await fetch(GLOBAL_EVENTS_URL+"?t="+Date.now(), {cache:"no-store"});
+    if (!response.ok) throw new Error("HTTP "+response.status);
+    const payload = await response.json();
+    if (!payload || !Array.isArray(payload.events) || !Array.isArray(payload.source_health)) throw new Error("Formato de eventos no válido");
+    globalHazardEvents = payload.events;
+    globalSourceHealth = payload.source_health;
+    if (status) status.textContent = "Datos publicados · "+globalHazardEvents.length+" eventos";
+    if (updated) updated.textContent = "Última publicación: "+globalDate(payload.generated_at)+" · Alcance mundial";
+    renderGlobalHazards();
+  } catch (error) {
+    if (status) status.textContent = "No se pudo conectar con el conjunto global";
+    if (updated) updated.textContent = "La fuente puede no estar desplegada todavía o no responder. No se interpreta como ausencia de riesgos.";
+    const list = document.getElementById("globalEventsList");
+    if (list && !globalHazardEvents.length) list.innerHTML = '<div class="panel small warning">Datos globales temporalmente no disponibles. El radar y las cámaras de RainTrack continúan siendo módulos independientes.</div>';
+  }
+}
+document.getElementById("globalEventsRefresh")?.addEventListener("click", loadGlobalHazardEvents);
+document.getElementById("globalHazardFilter")?.addEventListener("change", renderGlobalHazards);
+document.getElementById("globalRegionFilter")?.addEventListener("change", renderGlobalHazards);
+initializeGlobalWorldMap();
+loadGlobalHazardEvents();
+setInterval(loadGlobalHazardEvents, 5*60*1000);
+

@@ -1,4 +1,4 @@
-name: RainTrack CR v1.8.6 - monitoreo meteorológico
+name: RainTrack CR - monitoreo de cámaras
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "scripts/monitor_cameras.py"
+      - "config/camera-sources.json"
       - "requirements-camera-monitor.txt"
       - ".github/workflows/camera-monitor.yml"
   schedule:
