@@ -1784,7 +1784,11 @@
           saveWorkRouteDestination(selected);
           $("routeWorkSearchInput").value = selected.name;
         } else if (routePickMode === "home") {
-          saveHomeRouteDestination(selected);
+          try {
+            saveHomeRouteDestination(selected);
+          } catch (error) {
+            $("savedHomeStatus").innerHTML = '<strong>No se pudo guardar la ubicación.</strong><br>' + escapeHtml(error.message);
+          }
         } else {
           routeTemporaryDestination = selected;
           $("routeTempSearchInput").value = selected.name;
