@@ -11,6 +11,7 @@ import logging
 import re
 import time
 import hashlib
+import html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -408,19 +409,35 @@ def parse_rsn_rss(source, fetched_at):
         magnitude = float(mag_match.group(1).replace(",", ".")) if mag_match else None
         magnitude_type = mag_match.group(2) if mag_match else None
         location = None
-        point = next((node.text.strip() for node in item.iter() if node.tag.rsplit("}", 1)[-1].lower() == "point" and node.text), None)
-        if point:
+        depth_km = None
+        plain_description = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", description or ""))).strip()
+        coordinates_match = re.search(r"Coordenadas:\s*(-?\d+(?:[.,]\d+)?)\s*(?:y|,)\s*(-?\d+(?:[.,]\d+)?)", plain_description, re.I)
+        if coordinates_match:
             try:
-                lat, lon = [float(v) for v in re.split(r"[ ,]+", point)[:2]]
-                location = {"latitude": lat, "longitude": lon, "depth_km": None, "place_name": None, "country_code": "CR"}
+                lat = float(coordinates_match.group(1).replace(",", "."))
+                lon = float(coordinates_match.group(2).replace(",", "."))
+                place_match = re.search(r"Localización:\s*(.*?)(?:\s+Coordenadas:|$)", plain_description, re.I)
+                depth_match = re.search(r"Profundidad:\s*(\d+(?:[.,]\d+)?)\s*km", plain_description, re.I)
+                depth_km = float(depth_match.group(1).replace(",", ".")) if depth_match else None
+                location = {"latitude": lat, "longitude": lon, "depth_km": depth_km,
+                            "place_name": place_match.group(1).strip(" .") if place_match else None,
+                            "country_code": "CR"}
             except (ValueError, TypeError):
-                pass
+                location = None
+        if location is None:
+            point = next((node.text.strip() for node in item.iter() if node.tag.rsplit("}", 1)[-1].lower() == "point" and node.text), None)
+            if point:
+                try:
+                    lat, lon = [float(v) for v in re.split(r"[ ,]+", point)[:2]]
+                    location = {"latitude": lat, "longitude": lon, "depth_km": None, "place_name": None, "country_code": "CR"}
+                except (ValueError, TypeError):
+                    pass
         output.append(event_record(
             provider=source["provider"], raw_id=raw_id, hazard_type="earthquake",
             title=title, description=description, url=link, observed_at=observed,
             issued_at=issued or observed, ingested_at=fetched_at, confidence="provider_reported",
             status="unknown", severity="unknown", location=location,
-            metrics={"magnitude": magnitude, "magnitude_type": magnitude_type,
+            metrics={"magnitude": magnitude, "magnitude_type": magnitude_type, "depth_km": depth_km,
                      "report_type": "RSN published felt-earthquake report"}))
     return output
 
