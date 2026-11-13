@@ -23,7 +23,7 @@ concurrency:
 jobs:
   monitor-cameras:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Descargar repositorio
@@ -36,31 +36,15 @@ jobs:
           cache: "pip"
           cache-dependency-path: requirements-camera-monitor.txt
 
-      - name: Restaurar modelo de IA en caché
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: raintrack-weather-scene-models-v2
-
       - name: Instalar motor OCR para leer fechas de las cámaras
         run: |
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr
 
-      - name: Instalar PyTorch CPU
-        run: |
-          python -m pip install --upgrade pip
-          pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
-
       - name: Instalar dependencias del monitor
         run: pip install -r requirements-camera-monitor.txt
 
-      - name: Consultar cámaras y analizar imágenes
-        env:
-          # Opcional: sin esta clave la detección de lluvia por cámara queda desactivada.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          VISION_JUDGE_DAILY_LIMIT: "300"
-          VISION_JUDGE_MAX_PER_RUN: "12"
+      - name: Consultar cámaras y estaciones
         run: python scripts/monitor_cameras.py
 
       - name: Publicar resultados para GitHub Pages

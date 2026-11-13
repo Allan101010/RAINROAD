@@ -18,7 +18,6 @@ import json
 import logging
 import re
 import statistics
-import sys
 import time
 import unicodedata
 from datetime import datetime, timezone, timedelta
@@ -30,12 +29,7 @@ import requests
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps, ImageStat
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from vision_judge import VisionJudge  # noqa: E402
-
 BASE_URL = "https://webcamscostarica.com/"
-MODEL_ID = "prithivMLmods/Weather-Image-Classification"
-SCENE_MODEL_ID = "openai/clip-vit-base-patch32"
 CATALOG_SCHEMA_VERSION = 4
 CATALOG_PATH = Path("camera-catalog.json")
 ALERTS_PATH = Path("camera-alerts.json")
@@ -715,155 +709,6 @@ def assess_image_quality(image: Image.Image) -> dict:
     }
 
 
-def load_scene_model():
-    import torch
-    from transformers import CLIPModel, CLIPProcessor
-
-    torch.set_num_threads(2)
-    processor = CLIPProcessor.from_pretrained(SCENE_MODEL_ID)
-    model = CLIPModel.from_pretrained(SCENE_MODEL_ID)
-    model.eval()
-    return torch, processor, model
-
-
-OUTDOOR_PROMPTS = [
-    "An outdoor live weather webcam showing a wide landscape with visible sky, clouds and weather.",
-    "An outdoor webcam showing a beach, coastline, ocean or open landscape under the sky.",
-    "An outdoor webcam showing a forest canopy, treetops, mountains and the open air.",
-    "An outdoor wildlife webcam showing an animal in its natural habitat with visible trees, sky or weather-exposed surroundings.",
-    "An outdoor animal feeder, open-air aviary or wildlife rehabilitation patio with visible branches, leaves, natural daylight or open sky, even when an animal fills most of the frame.",
-]
-INDOOR_PROMPTS = [
-    "A close-up wildlife webcam showing only an animal, with no visible foliage, sky, natural daylight or outdoor surroundings.",
-    "A fully enclosed indoor animal enclosure, nest box, cage, terrarium, aquarium or room with no visible exterior environment.",
-    "A close-up of an animal filling nearly the whole image, with no visible outdoor context or weather-exposed environment.",
-    "An indoor security camera view of a room or building.",
-    "A rescued animal resting on blankets inside a room, with no visible outdoor habitat or natural environment.",
-]
-LOW_VISIBILITY_PROMPTS = [
-    "A webcam frame filled with gray television static, digital noise or signal interference, with no recognizable scene.",
-    "A very dark outdoor night camera image where trees, sky and weather details cannot be distinguished.",
-    "A camera feed loading screen or spinner covering the image, with no usable weather information.",
-    "A blank, frozen, corrupted or severely blurred camera frame.",
-    "A low quality monochrome camera image with insufficient detail to tell whether rain is falling.",
-]
-RAIN_EVIDENCE_PROMPTS = [
-    "Clearly visible rain falling as distinct vertical streaks through the air in an outdoor camera view.",
-    "A rain shower visibly falling over a landscape, with a curtain of precipitation in the distance.",
-    "Many separate raindrops visibly falling in front of the camera, not leaves or branches.",
-    "Rain visibly falling across a beach, road or open landscape, with unmistakable precipitation streaks.",
-    "A strong shower with visible falling drops, not just wet surfaces, clouds, fog, reflections or illuminated foliage.",
-    "Fine vertical rain streaks can be clearly distinguished against the darker background of the scene.",
-]
-NO_RAIN_EVIDENCE_PROMPTS = [
-    "A dry outdoor night vision infrared image of tree branches and leaves, with no visible rainfall.",
-    "A clear black and white infrared night camera image of trees and foliage, with no rain falling.",
-    "A dry outdoor wildlife feeder seen through an infrared camera, with branches and leaves visible.",
-    "A night-vision infrared image of dense tree branches, leaves and foliage with no falling rain.",
-    "A black and white infrared wildlife camera looking through a tree canopy; leaves and branches are visible, but no rain.",
-    "Bright white highlights and grainy texture on leaves caused by infrared illumination, not precipitation.",
-    "An outdoor landscape with clouds, haze or dark skies but no visible falling rain.",
-    "A nighttime outdoor webcam image with lights and shadows but no visible precipitation.",
-    "A grayscale camera image with sensor noise, compression artifacts or reflections rather than rain.",
-]
-
-# Contextos exteriores confirmados en las fichas públicas y capturas de estas cámaras.
-# Se conservan como aptas aunque el animal ocupe gran parte del encuadre.
-CAMERA_OUTDOOR_CONTEXT_OVERRIDES = {
-    "punta-islita-default": "comedero exterior entre ramas y vegetación, con luz natural en el bosque de Punta Islita",
-    "punta-islita-lapas-rojas-copa": "comedero en la copa de los árboles, con ramas y bosque seco visibles",
-    "toucan-rescue-ranch-toucan-tv": "aviario con malla, ramas, plantas y luz natural del entorno exterior",
-    "toucan-rescue-ranch-toucan-sloth-playground": "patio al aire libre con árboles, ramas y césped",
-}
-
-
-def assess_weather_view(image: Image.Image, model_bundle) -> tuple[str, float, float, float]:
-    """Use CLIP to distinguish usable outdoor scenes from indoor or unusable frames."""
-    torch, processor, model = model_bundle
-    prompts = OUTDOOR_PROMPTS + INDOOR_PROMPTS + LOW_VISIBILITY_PROMPTS
-    inputs = processor(text=prompts, images=image, return_tensors="pt", padding=True)
-    with torch.no_grad():
-        scores = model(**inputs).logits_per_image[0]
-        probabilities = torch.softmax(scores, dim=0).cpu().tolist()
-
-    outdoor_end = len(OUTDOOR_PROMPTS)
-    indoor_end = outdoor_end + len(INDOOR_PROMPTS)
-    outdoor_score = float(sum(probabilities[:outdoor_end]))
-    indoor_score = float(sum(probabilities[outdoor_end:indoor_end]))
-    low_visibility_score = float(sum(probabilities[indoor_end:]))
-
-    if low_visibility_score >= 0.30 and low_visibility_score >= max(outdoor_score, indoor_score) + 0.05:
-        assessment = "low_visibility"
-    elif outdoor_score >= 0.62 and outdoor_score - indoor_score >= 0.18 and outdoor_score - low_visibility_score >= 0.10:
-        assessment = "outdoor"
-    elif indoor_score >= 0.55 and indoor_score - outdoor_score >= 0.12 and indoor_score - low_visibility_score >= 0.05:
-        assessment = "not_weather_view"
-    else:
-        assessment = "scene_uncertain"
-    return assessment, round(outdoor_score, 4), round(indoor_score, 4), round(low_visibility_score, 4)
-
-
-def load_weather_model():
-    import torch
-    from transformers import AutoImageProcessor, SiglipForImageClassification
-
-    torch.set_num_threads(2)
-
-    # Este repositorio publica un clasificador SigLIP2 de imágenes.
-    # Se carga el procesador visual y la arquitectura específica documentada
-    # por el modelo, sin intentar inicializar el tokenizador de texto.
-    processor = AutoImageProcessor.from_pretrained(MODEL_ID)
-    model = SiglipForImageClassification.from_pretrained(MODEL_ID)
-    model.eval()
-    return torch, processor, model
-
-
-def classify_image(image: Image.Image, model_bundle) -> tuple[float, str, float]:
-    torch, processor, model = model_bundle
-    inputs = processor(images=image, return_tensors="pt")
-    with torch.no_grad():
-        logits = model(**inputs).logits
-        probabilities = torch.softmax(logits, dim=-1)[0].cpu().tolist()
-
-    labels = model.config.id2label
-    if not isinstance(labels, dict):
-        labels = {str(i): label for i, label in enumerate(labels)}
-
-    label_pairs = []
-    for index, probability in enumerate(probabilities):
-        label = str(labels.get(str(index), labels.get(index, index))).lower()
-        label_pairs.append((label, float(probability)))
-
-    predicted_label, predicted_confidence = max(label_pairs, key=lambda item: item[1])
-    rain_probability = max(
-        (probability for label, probability in label_pairs if "rain" in label or "storm" in label),
-        default=0.0,
-    )
-    return rain_probability, predicted_label, predicted_confidence
-
-
-def assess_rain_evidence(image: Image.Image, model_bundle) -> tuple[str, float, float]:
-    """Require a second CLIP comparison to find visible falling rain, not just a rainy-looking scene."""
-    torch, processor, model = model_bundle
-    prompts = RAIN_EVIDENCE_PROMPTS + NO_RAIN_EVIDENCE_PROMPTS
-    inputs = processor(text=prompts, images=image, return_tensors="pt", padding=True)
-    with torch.no_grad():
-        logits = model(**inputs).logits_per_image[0]
-
-    rain_mean = logits[:len(RAIN_EVIDENCE_PROMPTS)].mean()
-    dry_mean = logits[len(RAIN_EVIDENCE_PROMPTS):].mean()
-    comparison = torch.softmax(torch.stack((rain_mean, dry_mean)), dim=0).cpu().tolist()
-    rain_score, dry_score = float(comparison[0]), float(comparison[1])
-
-    if rain_score >= 0.82 and rain_score - dry_score >= 0.30:
-        assessment = "rain_visible"
-    elif dry_score >= 0.65 and dry_score - rain_score >= 0.15:
-        assessment = "no_rain_visible"
-    else:
-        assessment = "uncertain"
-    return assessment, round(rain_score, 4), round(dry_score, 4)
-
-
 def read_previous_payload() -> dict:
     if not ALERTS_PATH.exists():
         return {}
@@ -1186,11 +1031,7 @@ def status_signature(payload: dict) -> tuple:
             item.get("id"),
             item.get("status"),
             item.get("availability_status"),
-            item.get("scene_assessment"),
             item.get("image_quality_status"),
-            item.get("rain_evidence_assessment"),
-            item.get("station_corroboration"),
-            (item.get("vision_judge") or {}).get("verdict"),
         )
         for item in rows
         if item.get("id")
@@ -1247,97 +1088,6 @@ def resolve_snapshot_url(session: requests.Session, camera: dict) -> tuple[str |
         return None, "offline"
 
 
-DETECTION_DISABLED_MESSAGE = (
-    "La detección de lluvia por cámara está desactivada: los modelos pequeños no son confiables "
-    "y todavía no se configuró la IA de visión. No se genera alerta por esta cámara."
-)
-
-
-def apply_vision_judge(result: dict, image: Image.Image, judge: VisionJudge, previous_row: dict | None,
-                       candidate: bool) -> None:
-    """Decide el estado final de la cámara con el juez de IA de visión.
-
-    - Sin juez activo: ninguna cámara puede quedar en 'possible' ni 'clear'.
-    - Con juez: solo las cámaras candidatas se envían a la IA; 'possible' exige veredicto 'rain'.
-    """
-    result["vision_judge"] = None
-    if not judge.enabled:
-        if result.get("status") in ("possible", "clear"):
-            result["status"] = "weather_uncertain"
-            result["signal_level"] = "unconfirmed"
-            result["message"] = DETECTION_DISABLED_MESSAGE
-        return
-    if not candidate:
-        return
-
-    label = result.get("camera_name") or result.get("site_name") or result.get("id", "cámara")
-    previous_judge = (previous_row or {}).get("vision_judge")
-    verdict = judge.assess(image, label, previous_judge)
-    result["vision_judge"] = verdict
-    if verdict["verdict"] == "rain":
-        result["status"] = "possible"
-        result["signal_level"] = "high"
-        result["message"] = "La IA de visión ve lluvia cayendo: " + verdict["evidence"]
-    elif verdict["verdict"] == "no_rain":
-        result["status"] = "clear"
-        result["signal_level"] = "low"
-        result["message"] = "La IA de visión no ve lluvia cayendo: " + verdict["evidence"]
-    else:
-        result["status"] = "weather_uncertain"
-        result["signal_level"] = "unconfirmed"
-        result["message"] = "La IA de visión no pudo decidir si llueve: " + verdict["evidence"]
-
-
-STATION_CORROBORATION_RADIUS_KM = 25.0
-
-
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    from math import asin, cos, radians, sin, sqrt
-    d_lat, d_lon = radians(lat2 - lat1), radians(lon2 - lon1)
-    a = sin(d_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(d_lon / 2) ** 2
-    return 6371.0 * 2 * asin(sqrt(a))
-
-
-def corroborate_with_stations(camera_alerts: list[dict], stations: list[dict],
-                              radius_km: float = STATION_CORROBORATION_RADIUS_KM) -> list[dict]:
-    """Cruza cada alerta visual de cámara con la estación IMN en línea más cercana.
-
-    - confirmed: la estación midió lluvia (la medición instrumental es la prueba).
-    - not_confirmed: hay estación cercana en línea pero no mide lluvia.
-    - no_nearby_station: ninguna estación en línea dentro del radio.
-    La alerta de cámara nunca se descarta: solo se etiqueta; la lluvia solo
-    se considera confirmada si una estación la mide.
-    """
-    usable = [
-        st for st in stations
-        if st.get("availability_status") == "online"
-        and st.get("lat") is not None and st.get("lon") is not None
-    ]
-    for alert in camera_alerts:
-        alert["station_corroboration"] = "no_nearby_station"
-        alert["corroborating_station_id"] = None
-        alert["corroborating_station_name"] = None
-        alert["station_distance_km"] = None
-        alert["station_rain_last_hour_mm"] = None
-        if alert.get("lat") is None or alert.get("lon") is None:
-            continue
-        nearby = sorted(
-            ((haversine_km(alert["lat"], alert["lon"], st["lat"], st["lon"]), st) for st in usable),
-            key=lambda pair: pair[0],
-        )
-        nearby = [pair for pair in nearby if pair[0] <= radius_km]
-        if not nearby:
-            continue
-        raining = [pair for pair in nearby if pair[1].get("rain_observed")]
-        distance, station = (raining or nearby)[0]
-        alert["station_corroboration"] = "confirmed" if raining else "not_confirmed"
-        alert["corroborating_station_id"] = station.get("id")
-        alert["corroborating_station_name"] = station.get("station_name")
-        alert["station_distance_km"] = round(distance, 1)
-        alert["station_rain_last_hour_mm"] = station.get("rain_last_hour_mm")
-    return camera_alerts
-
-
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     session = session_with_headers()
@@ -1350,7 +1100,6 @@ def main() -> int:
     }
 
     results: list[dict] = []
-    images_to_classify: list[tuple[dict, Image.Image, dict]] = []
 
     for camera in catalog:
         result = {
@@ -1368,22 +1117,11 @@ def main() -> int:
             "coordinate_note": camera.get("coordinate_note"),
             "status": "pending",
             "availability_status": "unknown",
-            "scene_assessment": "pending",
-            "scene_outdoor_score": None,
-            "scene_indoor_score": None,
-            "scene_low_visibility_score": None,
             "image_quality_status": "pending",
             "image_quality_reason": "not_evaluated",
             "image_mean_luma": None,
             "image_contrast": None,
             "image_tile_variation": None,
-            "scene_context_override": None,
-            "rain_evidence_assessment": "not_evaluated",
-            "rain_evidence_score": None,
-            "dry_evidence_score": None,
-            "rain_probability": None,
-            "predicted_label": None,
-            "confidence": None,
             "message": camera.get("reason", ""),
             "checked_at": iso_now(),
             "image_last_modified": None,
@@ -1399,7 +1137,6 @@ def main() -> int:
                 page_soup = BeautifulSoup(page_html, "html.parser")
                 result["page_url"] = resolved_url
                 result["checked_at"] = iso_now()
-                result["scene_assessment"] = "pending"
                 result["image_quality_status"] = "not_evaluated"
                 if skyline_page_is_offline(page_soup):
                     result["availability_status"] = "offline"
@@ -1452,7 +1189,6 @@ def main() -> int:
 
             if result["image_quality_status"] != "usable":
                 result["status"] = "low_visibility"
-                result["scene_assessment"] = "low_visibility"
                 if result["image_quality_reason"] == "low_light":
                     result["message"] = (
                         "La imagen está demasiado oscura para evaluar lluvia. "
@@ -1475,146 +1211,23 @@ def main() -> int:
                 results.append(result)
                 continue
 
-            images_to_classify.append((result, image, metadata))
+            availability = result.get("availability_status")
+            result["status"] = availability if availability in {"online", "delayed"} else "unknown"
+            if availability == "online":
+                result["message"] = (
+                    "Imagen reciente y legible. RainTrack no analiza la lluvia en las cámaras: "
+                    "la lluvia se informa solo con las estaciones del IMN."
+                )
+            elif availability == "delayed":
+                result["message"] = "La imagen está demorada (entre 20 minutos y 1 hora)."
+            else:
+                result["message"] = "La fuente no publica una marca de tiempo verificable para esta imagen."
+            results.append(result)
         except Exception as exc:
             result["availability_status"] = "offline"
             result["status"] = "offline"
             result["message"] = f"No se pudo obtener una imagen válida: {exc}"
             results.append(result)
-
-    scene_model_bundle = None
-    if images_to_classify:
-        try:
-            logging.info("Cargando modelo de evaluación de encuadre %s…", SCENE_MODEL_ID)
-            scene_model_bundle = load_scene_model()
-        except Exception as exc:
-            logging.exception("No se pudo cargar el modelo de evaluación de encuadre.")
-            for result, _, _ in images_to_classify:
-                result["status"] = "error"
-                result["scene_assessment"] = "error"
-                result["message"] = f"No se pudo evaluar si el encuadre es exterior: {exc}"
-                results.append(result)
-            images_to_classify = []
-
-    outdoor_images: list[tuple[dict, Image.Image, dict]] = []
-    for result, image, metadata in images_to_classify:
-        try:
-            assessment, outdoor_score, indoor_score, low_visibility_score = assess_weather_view(image, scene_model_bundle)
-            context_override = CAMERA_OUTDOOR_CONTEXT_OVERRIDES.get(result.get("id"))
-            if context_override and assessment != "low_visibility":
-                assessment = "outdoor"
-                result["scene_context_override"] = context_override
-                logging.info("Cámara %s: entorno exterior verificado; se conserva para análisis meteorológico.", result.get("id"))
-            result["scene_assessment"] = assessment
-            result["scene_outdoor_score"] = outdoor_score
-            result["scene_indoor_score"] = indoor_score
-            result["scene_low_visibility_score"] = low_visibility_score
-
-            if assessment == "low_visibility":
-                result["image_quality_status"] = "low_visibility"
-                result["image_quality_reason"] = "scene_not_clear"
-                result["status"] = "low_visibility"
-                result["message"] = (
-                    "La imagen no tiene suficiente visibilidad o detalle para distinguir lluvia. "
-                    "Se excluye del análisis hasta que la cámara entregue una captura más clara."
-                )
-                results.append(result)
-            elif assessment == "not_weather_view":
-                result["status"] = "not_weather_view"
-                result["message"] = (
-                    "La IA considera que el encuadre muestra principalmente un espacio interior o un primer plano "
-                    "sin suficiente entorno exterior para evaluar el tiempo."
-                )
-                results.append(result)
-            elif assessment == "scene_uncertain":
-                result["status"] = "scene_uncertain"
-                result["message"] = (
-                    "La imagen no ofrece suficiente detalle para evaluar las condiciones meteorológicas. "
-                    "No se toma en cuenta para alertas hasta que mejore la visibilidad."
-                )
-                results.append(result)
-            else:
-                outdoor_images.append((result, image, metadata))
-        except Exception as exc:
-            result["status"] = "error"
-            result["scene_assessment"] = "error"
-            result["message"] = f"No se pudo evaluar el encuadre: {exc}"
-            results.append(result)
-
-    weather_model_bundle = None
-    if outdoor_images:
-        try:
-            logging.info("Cargando modelo meteorológico %s…", MODEL_ID)
-            weather_model_bundle = load_weather_model()
-        except Exception as exc:
-            logging.exception("No se pudo cargar el modelo meteorológico.")
-            for result, _, _ in outdoor_images:
-                result["status"] = "error"
-                result["message"] = f"Modelo meteorológico no disponible: {exc}"
-                results.append(result)
-            outdoor_images = []
-
-    judge = VisionJudge.from_env(previous_payload.get("vision_judge"))
-    logging.info("IA de visión %s.", f"activa ({judge.model})" if judge.enabled else "desactivada (sin ANTHROPIC_API_KEY)")
-
-    for result, image, metadata in outdoor_images:
-        try:
-            rain_probability, predicted_label, predicted_confidence = classify_image(image, weather_model_bundle)
-            evidence_assessment, evidence_score, dry_score = assess_rain_evidence(image, scene_model_bundle)
-            model_score = round(rain_probability, 4)
-            result["model_score"] = model_score
-            # Campo heredado: la salida del clasificador no es probabilidad meteorológica calibrada.
-            result["rain_probability"] = model_score
-            result["predicted_label"] = predicted_label
-            result["confidence"] = round(predicted_confidence, 4)
-            result["rain_evidence_assessment"] = evidence_assessment
-            result["rain_evidence_score"] = evidence_score
-            result["dry_evidence_score"] = dry_score
-
-            if (
-                evidence_assessment == "rain_visible"
-                and evidence_score >= 0.82
-                and rain_probability >= 0.70
-                and result.get("scene_outdoor_score", 0.0) >= 0.70
-            ):
-                result["signal_level"] = "high" if rain_probability >= 0.82 else "moderate"
-                result["status"] = "possible"
-                result["message"] = (
-                    "Dos análisis visuales independientes encontraron indicios compatibles con lluvia. "
-                    "Sigue siendo una señal preliminar; debe contrastarse con radar o estaciones."
-                )
-            elif evidence_assessment == "no_rain_visible" and rain_probability < 0.82:
-                result["signal_level"] = "low"
-                result["status"] = "clear"
-                result["message"] = (
-                    "La revisión visual no encontró lluvia cayendo de forma visible. "
-                    "No se genera una alerta por nubes, sombras, vegetación o reflejos."
-                )
-            else:
-                result["signal_level"] = "unconfirmed"
-                result["status"] = "weather_uncertain"
-                result["message"] = (
-                    "El primer clasificador sugirió lluvia, pero la segunda revisión no encontró evidencia visual suficiente. "
-                    "La cámara no genera una alerta hasta que la lluvia sea claramente visible."
-                )
-
-            candidate = (
-                result.get("availability_status") == "online"
-                and result.get("image_quality_status") == "usable"
-                and (evidence_assessment == "rain_visible" or rain_probability >= 0.5)
-            )
-            apply_vision_judge(result, image, judge, previous_rows.get(result.get("id")), candidate)
-
-            if result.get("scene_context_override"):
-                result["message"] += " Contexto exterior verificado: " + result["scene_context_override"] + "."
-            if result.get("availability_status") == "delayed":
-                result["message"] += " La imagen está demorada; no se usa como alerta de lluvia actual."
-            elif result.get("availability_status") == "unknown":
-                result["message"] += " La fuente no publica una marca de tiempo verificable."
-        except Exception as exc:
-            result["status"] = "error"
-            result["message"] = f"No se pudo analizar la captura: {exc}"
-        results.append(result)
 
     # Marcar explícitamente cámaras que regresaron después de estar caídas o desactualizadas.
     for result in results:
@@ -1647,23 +1260,12 @@ def main() -> int:
         if station.get("rain_observed")
     ]
 
-    alerts = [
-        item for item in results
-        if item.get("status") == "possible"
-        and item.get("scene_assessment") == "outdoor"
-        and item.get("image_quality_status") == "usable"
-        and (item.get("vision_judge") or {}).get("verdict") == "rain"
-        and item.get("availability_status") == "online"
-    ]
-    corroborate_with_stations(alerts, stations)
+    # Las cámaras ya no generan alertas de lluvia: solo las estaciones del IMN (station_alerts).
+    alerts: list[dict] = []
     recovered_cameras = [item for item in results if item.get("recovered")]
     availability_counts = {
         state: sum(1 for item in results if item.get("availability_status") == state)
         for state in ("online", "delayed", "stale", "offline", "not_available", "unknown")
-    }
-    scene_counts = {
-        state: sum(1 for item in results if item.get("scene_assessment") == state)
-        for state in ("outdoor", "not_weather_view", "scene_uncertain", "low_visibility", "error", "pending")
     }
     payload = {
         "status": "ok",
@@ -1693,35 +1295,27 @@ def main() -> int:
                 "note": "Panel público visible desde el marcador de Jacó; no se ingieren sus valores para alertas automáticas porque la API de condiciones actuales requiere token de cuenta."
             },
         ],
-        "model": MODEL_ID,
-        "scene_model": SCENE_MODEL_ID,
+        "visual_rain_detection": "disabled",
         "model_note": (
-            "La evaluación de encuadre y la clasificación meteorológica son experimentales. "
-            "La puntuación model_score/rain_probability es una salida interna, no una probabilidad meteorológica calibrada. "
-            "Los modelos pequeños (clasificador y CLIP) solo sirven de filtro: una alerta visual solo se publica si la imagen tiene calidad suficiente y la IA de visión ve lluvia cayendo; sin esa IA configurada, las cámaras no generan alertas. "
-            "Las imágenes nocturnas oscuras, con interferencia o sin detalle se excluyen hasta que sean legibles. "
-            "Las mediciones instrumentales se muestran por separado. "
-            "Las cámaras SkylineWebcams son referencias visuales externas: se verifica su disponibilidad y se muestra una miniatura; aunque algunas fichas tienen video en vivo, el flujo todavía no se reproduce ni se analiza en RainTrack."
+            "Las cámaras muestran disponibilidad y frescura de la imagen; RainTrack no analiza la lluvia en ellas. "
+            "La lluvia se informa solo con las mediciones instrumentales de las estaciones del IMN. "
+            "Las imágenes oscuras, con interferencia o sin detalle se marcan como no legibles. "
+            "Las cámaras SkylineWebcams son referencias visuales externas: se verifica su disponibilidad y se muestra una miniatura."
         ),
         "directory_sites": len(SITES) + len({camera["site_slug"] for camera in SKYLINE_CAMERAS}),
         "camera_count": len(results),
         "station_count": len(stations),
         "evaluated_count": sum(
             1 for item in results
-            if item.get("scene_assessment") == "outdoor"
-            and item.get("image_quality_status") == "usable"
-            and item.get("status") in {"rain", "possible", "clear", "weather_uncertain"}
+            if item.get("image_quality_status") == "usable" and item.get("availability_status") == "online"
         ),
         "availability_counts": availability_counts,
-        "scene_counts": scene_counts,
         "station_availability_counts": {
             state: sum(1 for item in stations if item.get("availability_status") == state)
             for state in ("online", "delayed", "stale", "offline", "unknown", "not_available")
         },
         "alerts": alerts,
         "station_alerts": station_alerts,
-        "visual_rain_detection": "vision_judge" if judge.enabled else "disabled",
-        "vision_judge": judge.state(),
         "recovered_cameras": recovered_cameras,
         "cameras": results,
         "stations": stations,
@@ -1731,8 +1325,7 @@ def main() -> int:
     heartbeat_due = old_time is None or (utc_now() - old_time) >= timedelta(hours=1)
     state_changed = status_signature(payload) != status_signature(previous_payload)
 
-    # Si se llamó a la IA de visión se publica siempre: así el contador diario de llamadas queda guardado.
-    if state_changed or heartbeat_due or judge.calls_this_run > 0:
+    if state_changed or heartbeat_due:
         ALERTS_PATH.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -1742,12 +1335,11 @@ def main() -> int:
         logging.info("Sin cambios de estado; se conserva el último JSON publicado para evitar commits repetidos.")
 
     logging.info(
-        "Monitor terminado: %s cámaras catalogadas, %s evaluables, %s alertas; disponibilidad=%s; encuadres=%s.",
+        "Monitor terminado: %s cámaras catalogadas, %s con imagen reciente, %s alertas de estaciones; disponibilidad=%s.",
         len(results),
         payload["evaluated_count"],
-        len(alerts) + len(station_alerts),
+        len(station_alerts),
         availability_counts,
-        scene_counts,
     )
     return 0
 
@@ -1761,8 +1353,6 @@ if __name__ == "__main__":
             "generated_at": iso_now(),
             "interval_minutes": 10,
             "source_url": BASE_URL,
-            "model": MODEL_ID,
-            "scene_model": SCENE_MODEL_ID,
             "camera_count": 0,
             "station_count": 0,
             "evaluated_count": 0,
