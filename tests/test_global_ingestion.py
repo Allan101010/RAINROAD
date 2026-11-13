@@ -96,6 +96,47 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(rows[0]["status"], "resolved")
         self.assertEqual(rows[0]["severity"], "moderate")
 
+
+    @patch.object(monitor, "fetch_text")
+    def test_imn_cap_preserves_severity_area_and_expiry(self, fetch_text):
+        fetch_text.return_value = """<?xml version="1.0"?>
+        <rss><channel><item>
+          <title>Aviso por lluvias fuertes en Costa Rica</title>
+          <link>https://imn.ac.cr/aviso/123</link><guid>urn:imn:123</guid>
+          <cap:alert xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
+            <cap:identifier>urn:imn:123</cap:identifier><cap:sent>2026-11-13T06:00:00-06:00</cap:sent>
+            <cap:status>Actual</cap:status><cap:msgType>Alert</cap:msgType>
+            <cap:info><cap:event>Heavy Rain</cap:event><cap:severity>Severe</cap:severity>
+              <cap:urgency>Immediate</cap:urgency><cap:certainty>Likely</cap:certainty>
+              <cap:description>Lluvias fuertes en sectores vulnerables.</cap:description>
+              <cap:expires>2026-11-13T14:00:00-06:00</cap:expires>
+              <cap:area><cap:areaDesc>Alajuela</cap:areaDesc><cap:polygon>10.0,-84.2 10.2,-84.0 10.1,-83.9</cap:polygon></cap:area>
+            </cap:info>
+          </cap:alert>
+        </item></channel></rss>"""
+        rows = monitor.parse_imn_cap_rss({"provider": "IMN", "url": "https://example.test/cap.xml"}, "2026-11-13T12:00:00Z")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["hazard_type"], "severe_storm")
+        self.assertEqual(rows[0]["severity"], "severe")
+        self.assertEqual(rows[0]["status"], "active")
+        self.assertEqual(rows[0]["metrics"]["urgency"], "Immediate")
+        self.assertEqual(rows[0]["location"]["country_code"], "CR")
+        self.assertEqual(rows[0]["expires_at"], "2026-11-13T20:00:00Z")
+
+    @patch.object(monitor, "fetch_text")
+    def test_imn_cap_expired_alert_is_resolved(self, fetch_text):
+        fetch_text.return_value = """<rss><channel><item>
+          <title>Aviso anterior</title><link>https://imn.ac.cr/old</link>
+          <cap:alert xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
+            <cap:identifier>old</cap:identifier><cap:sent>2026-11-10T06:00:00Z</cap:sent>
+            <cap:status>Actual</cap:status><cap:msgType>Alert</cap:msgType>
+            <cap:info><cap:event>Rain</cap:event><cap:severity>Moderate</cap:severity>
+              <cap:expires>2026-11-11T06:00:00Z</cap:expires>
+            </cap:info>
+          </cap:alert></item></channel></rss>"""
+        rows = monitor.parse_imn_cap_rss({"provider": "IMN", "url": "https://example.test/cap.xml"}, "2026-11-13T12:00:00Z")
+        self.assertEqual(rows[0]["status"], "resolved")
+
     def test_spanish_feed_mojibake_is_repaired(self):
         self.assertEqual(monitor.repair_mojibake("PacÃ­fico Oriental"), "Pacífico Oriental")
         self.assertEqual(monitor.repair_mojibake("Texto normal"), "Texto normal")
