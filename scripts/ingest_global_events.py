@@ -382,26 +382,28 @@ def parse_rsn_rss(source, fetched_at):
         description = repair_mojibake(item.findtext("description"))
         link = item.findtext("link") or source["url"]
         raw_id = item.findtext("guid") or link or title
-        observed = None
+        issued = None
         published = item.findtext("pubDate")
         if published:
             try:
                 from email.utils import parsedate_to_datetime
                 parsed = parsedate_to_datetime(published)
-                observed = parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+                issued = parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
             except (TypeError, ValueError, OverflowError):
                 pass
-        if not observed:
-            match = re.search(r"(\d{1,2}) de ([a-záéíóú]+) del (\d{4}),?\s*(\d{1,2}):(\d{2})\s*(am|pm)", title, re.I)
-            if match and month_names.get(match.group(2).lower()):
-                day, month, year, hour, minute = int(match.group(1)), month_names[match.group(2).lower()], int(match.group(3)), int(match.group(4)), int(match.group(5))
-                if match.group(6).lower() == "pm" and hour != 12:
-                    hour += 12
-                elif match.group(6).lower() == "am" and hour == 12:
-                    hour = 0
-                local = datetime(year, month, day, hour, minute, tzinfo=timezone(timedelta(hours=-6)))
-                observed = local.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-        observed = observed or fetched_at
+        # The title contains the earthquake origin time; RSS pubDate is the
+        # publication time and must not replace the event's actual origin time.
+        observed = None
+        match = re.search(r"(\d{1,2}) de ([a-záéíóú]+) del (\d{4}),?\s*(\d{1,2}):(\d{2})\s*(am|pm)", title, re.I)
+        if match and month_names.get(match.group(2).lower()):
+            day, month, year, hour, minute = int(match.group(1)), month_names[match.group(2).lower()], int(match.group(3)), int(match.group(4)), int(match.group(5))
+            if match.group(6).lower() == "pm" and hour != 12:
+                hour += 12
+            elif match.group(6).lower() == "am" and hour == 12:
+                hour = 0
+            local = datetime(year, month, day, hour, minute, tzinfo=timezone(timedelta(hours=-6)))
+            observed = local.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        observed = observed or issued or fetched_at
         mag_match = re.search(r"Mag(?:nitud)?:?\s*(\d+(?:[.,]\d+)?)\s*(Mw|Ml|Mc)?", title + " " + (description or ""), re.I)
         magnitude = float(mag_match.group(1).replace(",", ".")) if mag_match else None
         magnitude_type = mag_match.group(2) if mag_match else None
@@ -416,7 +418,7 @@ def parse_rsn_rss(source, fetched_at):
         output.append(event_record(
             provider=source["provider"], raw_id=raw_id, hazard_type="earthquake",
             title=title, description=description, url=link, observed_at=observed,
-            issued_at=observed, ingested_at=fetched_at, confidence="provider_reported",
+            issued_at=issued or observed, ingested_at=fetched_at, confidence="provider_reported",
             status="unknown", severity="unknown", location=location,
             metrics={"magnitude": magnitude, "magnitude_type": magnitude_type,
                      "report_type": "RSN published felt-earthquake report"}))
