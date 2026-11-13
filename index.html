@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.10</title>
+  <title>RainTrack CR v1.8.11</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -179,17 +179,41 @@
       box-shadow: 0 4px 14px rgba(0,0,0,.2);
       pointer-events: none;
     }
-    .map-layer-control {
+    .map-top-actions {
       position: absolute;
       z-index: 20;
       top: 12px;
       right: 12px;
-      width: min(340px, calc(100% - 24px));
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      max-width: calc(100% - 24px);
+      pointer-events: auto;
+    }
+    .map-expand-toggle {
+      flex: 0 0 auto;
+      min-height: 42px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 10px;
+      padding: 9px 12px;
+      color: white;
+      background: rgba(16,24,39,.94);
+      box-shadow: 0 4px 14px rgba(0,0,0,.22);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .map-layer-control {
+      position: relative;
+      top: auto;
+      right: auto;
+      width: min(340px, calc(100vw - 190px));
       color: var(--text);
       pointer-events: auto;
     }
     .map-layer-toggle {
       display: block;
+      width: 100%;
       min-height: 42px;
       margin-left: auto;
       border: 1px solid rgba(255,255,255,.18);
@@ -1030,12 +1054,90 @@
       .rain-window { align-items: start; flex-direction: column; gap: 4px; }
       .rain-window span { text-align: left; }
     }
+
+    /* Vista de mapa ampliado: conserva solo el mapa y sus controles. */
+    body.map-focus { overflow: hidden; }
+    body.map-focus .topbar,
+    body.map-focus main > :not(#precipitationSection) { display: none !important; }
+    body.map-focus main {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+    body.map-focus #precipitationSection { display: block; margin: 0; }
+    body.map-focus #precipitationSection > .section-head { display: none !important; }
+    body.map-focus #mapShell {
+      position: fixed;
+      z-index: 9998;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      max-height: none;
+      border: 0;
+      border-radius: 0;
+    }
+    body.map-focus .map-top-actions {
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      right: 12px;
+    }
+    body.map-focus .map-chip { top: calc(12px + env(safe-area-inset-top, 0px)); }
+    body.map-focus .map-toolbar {
+      position: fixed;
+      z-index: 10000;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      max-height: min(36dvh, 250px);
+      overflow-y: auto;
+      margin: 0;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(16,24,39,.94);
+      backdrop-filter: blur(10px);
+    }
+    body.map-focus #mapStatusChip {
+      bottom: calc(min(36dvh, 250px) + 24px + env(safe-area-inset-bottom, 0px));
+      max-width: min(68%, 420px);
+    }
+    body.map-focus .maplibregl-ctrl-bottom-left,
+    body.map-focus .maplibregl-ctrl-bottom-right {
+      bottom: calc(min(36dvh, 250px) + 18px + env(safe-area-inset-bottom, 0px));
+    }
+    body.map-focus .maplibregl-ctrl-top-right {
+      top: calc(60px + env(safe-area-inset-top, 0px));
+    }
+    body.map-focus .route-panel { max-height: 22dvh; overflow-y: auto; }
+
+    @media (max-width: 650px) {
+      .map-top-actions {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+      .map-expand-toggle { padding: 9px 10px; font-size: 11px; }
+      .map-layer-control { width: min(230px, calc(100vw - 150px)); }
+      .map-chip {
+        max-width: min(40%, 190px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      body.map-focus .map-top-actions { left: 12px; right: 12px; }
+      body.map-focus .map-toolbar { max-height: min(39dvh, 280px); }
+      body.map-focus #mapStatusChip {
+        bottom: calc(min(39dvh, 280px) + 24px + env(safe-area-inset-bottom, 0px));
+      }
+    }
   </style>
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.10</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.11</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1051,7 +1153,7 @@
       <button class="btn secondary small-btn" id="retryLocation" type="button" style="margin-top:10px">Intentar nuevamente</button>
     </div>
 
-    <section class="section">
+    <section class="section" id="precipitationSection">
       <div class="section-head map-head">
         <div>
           <h2>Mapa de precipitaciones</h2>
@@ -1065,7 +1167,9 @@
         <div class="map-chip" id="mapLocationChip">🇨🇷 Costa Rica</div>
         <div class="map-status-chip" id="mapStatusChip">Preparando mapa y radar…</div>
 
-        <div class="map-layer-control">
+        <div class="map-top-actions">
+          <button class="map-expand-toggle" id="mapExpandToggle" type="button" aria-pressed="false" aria-label="Ampliar mapa a pantalla completa">⛶ Ampliar mapa</button>
+          <div class="map-layer-control">
           <button class="map-layer-toggle" id="layersToggle" type="button" aria-expanded="false">☷ Capas del mapa ▼</button>
           <div class="map-layer-panel" id="layersPanel" hidden>
             <div class="map-layer-panel-head">
@@ -1077,7 +1181,27 @@
               <option value="librewxr">LibreWXR · precipitación estimada por satélite (principal)</option>
               <option value="weatherapi">WeatherAPI · pronóstico horario de precipitación (experimental)</option>
             </select>
-            <p class="layer-hint">LibreWXR sigue siendo la fuente principal. WeatherAPI se incorpora como segunda referencia para comparar su pronóstico horario de precipitación. No es un radar observado: una zona transparente no confirma que esté despejado.</p>
+            <p class="layer-hint">LibreWXR ofrece imágenes de precipitación estimada y un nowcast corto. WeatherAPI ofrece mapas de pronóstico horario; no es radar observado.</p>
+            <div id="weatherMapProductControl" hidden>
+              <label for="weatherMapProduct">Producto WeatherAPI · sin API KEY</label>
+              <select class="source-select" id="weatherMapProduct">
+                <option value="precip">Precipitación</option>
+                <option value="tmp2m">Temperatura a 2 m</option>
+                <option value="wind">Velocidad del viento</option>
+                <option value="pressure">Presión atmosférica</option>
+              </select>
+              <p class="layer-hint" id="weatherMapProductHint">Pronóstico horario para los próximos tres días.</p>
+            </div>
+            <div id="librewxrStyleControl">
+              <label for="librewxrColorScheme">Estilo visual del radar LibreWXR</label>
+              <select class="source-select" id="librewxrColorScheme">
+                <option value="10">Viper HD · actual</option>
+                <option value="14">Windy</option>
+                <option value="4">The Weather Channel</option>
+                <option value="1">RainViewer Original</option>
+                <option value="8">Dark Sky</option>
+              </select>
+            </div>
             <button class="btn secondary small-btn" id="radarSourceRefresh" type="button" style="width:100%;margin:9px 0">↻ Actualizar fuente seleccionada</button>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
             <label for="imnProduct">Producto oficial IMN</label>
@@ -1092,6 +1216,7 @@
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
             <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos para Webcams Costa Rica y OVSICORI. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
             <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos. Algunas fichas, como el Aeropuerto de Cóbano, ofrecen video en vivo en su página original. RainTrack muestra una miniatura y verifica la disponibilidad; todavía no reproduce ni analiza el flujo de video.</p>
+          </div>
           </div>
         </div>
 
@@ -1203,7 +1328,7 @@
         </div>
       </div>
 
-      <div class="legend">
+      <div class="legend" id="radarLegend">
         <span class="legend-item"><span class="legend-gradient"></span> Intensidad estimada de precipitación</span>
         <span class="legend-item"><span class="legend-dot" style="background:#38bdf8"></span> Débil</span>
         <span class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> Moderada</span>
@@ -1331,6 +1456,8 @@
     // La última ubicación GPS se conserva localmente durante 30 minutos.
     // ------------------------------------------------------------
     const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v2";
+    const WEATHER_MAP_PRODUCT_STORAGE_KEY = "raintrackcr_weather_map_product_v1";
+    const LIBREWXR_COLOR_STORAGE_KEY = "raintrackcr_librewxr_color_v1";
     const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
     const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
     const LOCATION_CACHE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
@@ -1374,6 +1501,29 @@
         maxZoom: 12
       }
     };
+    const WEATHER_MAP_PRODUCTS = {
+      precip: {
+        label: "precipitación",
+        path: "precip",
+        note: "Pronóstico horario de precipitación para los próximos tres días. No es radar observado. WeatherAPI no publica en esta página una leyenda cuantitativa de colores; por eso los tonos no deben interpretarse como milímetros por hora."
+      },
+      tmp2m: {
+        label: "temperatura a 2 m",
+        path: "tmp2m",
+        note: "Pronóstico horario de temperatura del aire a dos metros de altura para los próximos tres días. Los colores son una escala visual del proveedor."
+      },
+      wind: {
+        label: "velocidad del viento",
+        path: "wind",
+        note: "Pronóstico horario de velocidad del viento para los próximos tres días. Los colores son una escala visual del proveedor."
+      },
+      pressure: {
+        label: "presión atmosférica",
+        path: "pressure",
+        note: "Pronóstico horario de presión atmosférica para los próximos tres días. Los colores son una escala visual del proveedor."
+      }
+    };
+    const LIBREWXR_PALETTES = [1, 4, 8, 10, 14];
 
     // Imágenes oficiales publicadas por el portal satelital del IMN.
     // Se muestran como una vista flotante dentro del mismo mapa, no como
@@ -1468,6 +1618,11 @@
     const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
     let radarSourceKey = ["librewxr", "weatherapi"].includes(savedRadarSource)
       ? savedRadarSource : "librewxr";
+    const savedWeatherMapProduct = localStorage.getItem(WEATHER_MAP_PRODUCT_STORAGE_KEY);
+    let weatherMapProductKey = Object.prototype.hasOwnProperty.call(WEATHER_MAP_PRODUCTS, savedWeatherMapProduct)
+      ? savedWeatherMapProduct : "precip";
+    const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
+    let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
     let radarFrameIndex = 0;
     let radarPlayTimer = null;
     let weatherRefreshTimer = null;
@@ -2438,12 +2593,13 @@
 
     function radarTileUrl(frame, metadata, config) {
       if (radarSourceKey === "weatherapi") {
-        return "https://weathermaps.weatherapi.com/precip/tiles/" +
+        const product = WEATHER_MAP_PRODUCTS[weatherMapProductKey] || WEATHER_MAP_PRODUCTS.precip;
+        return "https://weathermaps.weatherapi.com/" + product.path + "/tiles/" +
           frame.weatherApiStamp + "/{z}/{x}/{y}.png";
       }
       const host = String(metadata.host || config.fallbackHost).replace(/\/$/, "");
       const path = String(frame.path || "");
-      return host + path + "/256/{z}/{x}/{y}/" + config.color + "/" + config.smooth + "_" + config.snow + ".png";
+      return host + path + "/256/{z}/{x}/{y}/" + librewxrColorScheme + "/" + config.smooth + "_" + config.snow + ".png";
     }
 
     async function loadRadarSource() {
@@ -2456,26 +2612,34 @@
       localStorage.setItem(SOURCE_STORAGE_KEY, radarSourceKey);
 
       const config = RADAR_SOURCES[radarSourceKey];
+      $("weatherMapProductControl").hidden = radarSourceKey !== "weatherapi";
+      $("librewxrStyleControl").hidden = radarSourceKey !== "librewxr";
+      $("weatherMapProduct").value = weatherMapProductKey;
+      $("librewxrColorScheme").value = String(librewxrColorScheme);
       $("radarStatus").textContent = "Consultando " + config.label + "…";
       $("radarStatus").className = "loading";
       $("radarTime").textContent = "Obteniendo imágenes recientes";
-      $("mapStatusChip").textContent = "Consultando fuente de precipitación…";
+      $("mapStatusChip").textContent = "Consultando fuente meteorológica…";
       removeRadarLayer();
 
       try {
         if (radarSourceKey === "weatherapi") {
+          const product = WEATHER_MAP_PRODUCTS[weatherMapProductKey] || WEATHER_MAP_PRODUCTS.precip;
           radarMetadata = { provider: "weatherapi" };
           setRadarTimeline(createWeatherApiFrames());
-          $("mapStatusChip").textContent = "WeatherAPI · pronóstico horario de precipitación";
+          $("mapStatusChip").textContent = "WeatherAPI · " + product.label + " · pronóstico horario";
+          $("weatherMapProductHint").textContent = product.note;
+          $("radarLegend").hidden = true;
           $("radarSourceNote").innerHTML =
-            'WeatherAPI ofrece mosaicos de <strong>pronóstico horario</strong> para las próximas 72 horas, alineados en UTC. No es un radar observado y puede diferir de la lluvia real. No requiere API KEY. Fuente: <a href="https://www.weatherapi.com/docs/weather-maps/" target="_blank" rel="noopener">documentación de WeatherAPI</a>.';
-          $("radarTime").textContent = "Pronóstico horario · selecciona una hora en la línea de tiempo";
+            product.note + ' Fuente: <a href="https://www.weatherapi.com/docs/weather-maps/" target="_blank" rel="noopener">documentación de WeatherAPI</a>.';
+          $("radarTime").textContent = "Pronóstico horario de " + product.label + " · selecciona una hora";
           showRadarFrame(0);
-          $("radarStatus").textContent = "Fuente seleccionada · solicitando mosaicos";
+          $("radarStatus").textContent = "Mosaicos horarios · WeatherAPI";
           $("radarStatus").className = "muted";
           updateZoomHint();
           return;
         }
+        $("radarLegend").hidden = false;
 
         const metadata = await fetchJson(config.metadataUrl);
         const past = Array.isArray(metadata.radar?.past) ? metadata.radar.past : [];
@@ -2555,9 +2719,9 @@
         type: "raster",
         source: "raintrack-radar-source",
         paint: {
-          "raster-opacity": 0.76,
+          "raster-opacity": radarSourceKey === "weatherapi" ? 0.56 : 0.76,
           "raster-fade-duration": 0,
-          "raster-resampling": "nearest"
+          "raster-resampling": radarSourceKey === "weatherapi" ? "linear" : "nearest"
         }
       };
 
@@ -2585,7 +2749,8 @@
         const firstFrameTime = radarFrames[0] ? radarFrames[0].time : frame.time;
         const hours = Math.max(0, Math.round((frame.time - firstFrameTime) / 3600));
         $("frameLabel").textContent = hours === 0 ? "Pronóstico actual" : "Pronóstico +" + hours + " h";
-        $("radarTime").textContent = "Pronóstico de precipitación · " + formatClockFromTimestamp(frame.time);
+        const productLabel = WEATHER_MAP_PRODUCTS[weatherMapProductKey]?.label || "precipitación";
+        $("radarTime").textContent = "Pronóstico de " + productLabel + " · " + formatClockFromTimestamp(frame.time);
       } else {
         $("frameLabel").textContent = formatClockFromTimestamp(frame.time);
         $("radarTime").textContent = "Imagen correspondiente a las " + formatClockFromTimestamp(frame.time);
@@ -3808,7 +3973,10 @@
     });
     $('layersClose').addEventListener('click', closeLayersPanel);
     document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !$('layersPanel').hidden) closeLayersPanel();
+      if (event.key === 'Escape') {
+        if (!$('layersPanel').hidden) closeLayersPanel();
+        else if (document.body.classList.contains('map-focus')) setMapFocusMode(false);
+      }
     });
 
     $('imnMapToggle').addEventListener('change', event => {
@@ -3881,10 +4049,44 @@
     });
 
     $("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
+    $("weatherMapProduct").value = weatherMapProductKey;
+    $("librewxrColorScheme").value = String(librewxrColorScheme);
     $("radarSource").addEventListener("change", loadRadarSource);
+    $("weatherMapProduct").addEventListener("change", event => {
+      weatherMapProductKey = Object.prototype.hasOwnProperty.call(WEATHER_MAP_PRODUCTS, event.target.value)
+        ? event.target.value : "precip";
+      localStorage.setItem(WEATHER_MAP_PRODUCT_STORAGE_KEY, weatherMapProductKey);
+      loadRadarSource();
+    });
+    $("librewxrColorScheme").addEventListener("change", event => {
+      const nextColor = Number(event.target.value);
+      librewxrColorScheme = LIBREWXR_PALETTES.includes(nextColor) ? nextColor : 10;
+      localStorage.setItem(LIBREWXR_COLOR_STORAGE_KEY, String(librewxrColorScheme));
+      loadRadarSource();
+    });
     $("radarSourceRefresh").addEventListener("click", loadRadarSource);
     $("frameSlider").addEventListener("input", event => showRadarFrame(Number(event.target.value)));
     $("playRadar").addEventListener("click", toggleRadarAnimation);
+
+    function setMapFocusMode(enabled) {
+      document.body.classList.toggle("map-focus", enabled);
+      document.documentElement.style.overflow = enabled ? "hidden" : "";
+      $("mapExpandToggle").setAttribute("aria-pressed", String(enabled));
+      $("mapExpandToggle").textContent = enabled ? "↙ Salir del mapa" : "⛶ Ampliar mapa";
+      $("mapExpandToggle").setAttribute("aria-label", enabled ? "Salir de la pantalla completa del mapa" : "Ampliar mapa a pantalla completa");
+      if (enabled) closeLayersPanel();
+      requestAnimationFrame(() => {
+        if (map) map.resize();
+        requestAnimationFrame(() => { if (map) map.resize(); });
+      });
+    }
+
+    $("mapExpandToggle").addEventListener("click", () => {
+      setMapFocusMode(!document.body.classList.contains("map-focus"));
+    });
+    window.addEventListener("resize", () => {
+      if (map && document.body.classList.contains("map-focus")) map.resize();
+    });
 
     function refreshWeatherData() {
       if (homeLocation) loadWeatherForLocation(homeLocation, "home");
