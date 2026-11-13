@@ -1824,7 +1824,12 @@
       skylinePreviewRefreshTimer = setInterval(() => {
         document.querySelectorAll("#mapDetailContent img[data-skyline-preview]").forEach(img => {
           const base = img.getAttribute("data-skyline-base");
-          if (base) img.src = base + (base.includes("?") ? "&" : "?") + "rt=" + Date.now();
+          if (base) {
+            img.hidden = false;
+            const fallback = img.parentElement?.querySelector(".camera-popup-row-preview-offline");
+            if (fallback) fallback.hidden = true;
+            img.src = base + (base.includes("?") ? "&" : "?") + "rt=" + Date.now();
+          }
         });
       }, 120000);
     }
@@ -2094,7 +2099,7 @@
         ).length;
         const cameraSummary = skylineCount === siteCameras.length && skylineCount
           ? [
-              `${skylineCount} cámaras SkylineWebcams`,
+              `${skylineCount} ${skylineCount === 1 ? "cámara SkylineWebcams" : "cámaras SkylineWebcams"}`,
               `${skylineAvailableCount} disponibles`,
               skylineCount - skylineAvailableCount ? `${skylineCount - skylineAvailableCount} sin conexión o sin verificar` : ""
             ].filter(Boolean)
@@ -2145,7 +2150,7 @@
           const previewMarkup = isSkylineCamera
             ? availabilityStatus === "online" && item.preview_url
               ? `<div class="camera-popup-row-preview-wrap">
-                  <img class="camera-popup-row-preview" data-skyline-preview data-skyline-base="${escapeHtml(item.preview_url)}" src="${escapeHtml(item.preview_url)}?rt=${Date.now()}" alt="Previsualización oficial de ${escapeHtml(cameraDisplayName(item))}" loading="lazy" referrerpolicy="no-referrer">
+                  <img class="camera-popup-row-preview" data-skyline-preview data-skyline-base="${escapeHtml(item.preview_url)}" src="${escapeHtml(item.preview_url)}?rt=${Date.now()}" alt="Previsualización oficial de ${escapeHtml(cameraDisplayName(item))}" loading="lazy">
                   <span class="camera-popup-row-preview-offline" hidden>La previsualización no está disponible ahora. Puedes abrir la cámara original en SkylineWebcams.</span>
                 </div>`
               : `<div class="camera-popup-row-preview-wrap"><span class="camera-popup-row-preview-offline">${availabilityStatus === "offline" ? "SkylineWebcams indica que esta cámara está fuera de línea. No se muestra una captura anterior." : "No se pudo verificar la cámara; no se muestra una imagen posiblemente desactualizada."}</span></div>`
