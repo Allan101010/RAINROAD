@@ -53,21 +53,45 @@
       "confidence_class": "provider_reported",
       "coverage": "global",
       "notes": "Curated open natural events; not a complete real-time sensor feed."
+    },
+    {
+      "id": "noaa-nhc-atlantic-spanish",
+      "provider": "NOAA National Hurricane Center",
+      "domain": "atmosphere",
+      "kind": "rss",
+      "url": "https://www.nhc.noaa.gov/index-at-sp.xml",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "official",
+      "coverage": "Atlantic, Caribbean and Gulf",
+      "notes": "Official Spanish-language tropical cyclone updates and outlooks."
+    },
+    {
+      "id": "noaa-nhc-east-pacific-spanish",
+      "provider": "NOAA National Hurricane Center",
+      "domain": "atmosphere",
+      "kind": "rss",
+      "url": "https://www.nhc.noaa.gov/index-ep-sp.xml",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "official",
+      "coverage": "Eastern Pacific",
+      "notes": "Official Spanish-language tropical cyclone updates and outlooks."
+    },
+    {
+      "id": "noaa-swpc-alerts",
+      "provider": "NOAA Space Weather Prediction Center",
+      "domain": "space_weather",
+      "kind": "swpc_json",
+      "url": "https://services.swpc.noaa.gov/products/alerts.json",
+      "enabled": true,
+      "poll_minutes": 10,
+      "confidence_class": "official",
+      "coverage": "global",
+      "notes": "Official space-weather alerts, watches and warnings."
     }
   ],
   "planned_sources": [
-    {
-      "provider": "NOAA National Hurricane Center",
-      "domain": "atmosphere",
-      "status": "planned",
-      "reason": "Select official machine-readable advisory and track products by basin."
-    },
-    {
-      "provider": "NOAA Space Weather Prediction Center",
-      "domain": "space_weather",
-      "status": "planned",
-      "reason": "Integrate official observations, watches and warnings."
-    },
     {
       "provider": "IMN Costa Rica",
       "domain": "weather",
