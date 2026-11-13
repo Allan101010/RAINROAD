@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.3</title>
+  <title>RainTrack CR v1.8.4</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -829,7 +829,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.3</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.4</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1647,7 +1647,9 @@
       );
       const hasVisualSignal = currentRows.some(item =>
         ["rain", "possible"].includes(item.status) &&
-        item.rain_evidence_assessment === "rain_visible"
+        item.rain_evidence_assessment === "rain_visible" &&
+        Number(item.rain_evidence_score) >= 0.82 &&
+        Number(item.scene_outdoor_score) >= 0.70
       );
       const hasClearView = currentRows.some(item => item.status === "clear");
       if (hasVisualSignal && hasClearView) return "mixed";
@@ -1683,6 +1685,8 @@
             item.scene_assessment === "outdoor" &&
             item.image_quality_status === "usable" &&
             item.rain_evidence_assessment === "rain_visible" &&
+            Number(item.rain_evidence_score) >= 0.82 &&
+            Number(item.scene_outdoor_score) >= 0.70 &&
             item.availability_status === "online"
           )
         : [];
@@ -1798,7 +1802,9 @@
           const availability = cameraAvailabilityText(availabilityStatus);
           const hasVisualSignal = ["rain", "possible"].includes(item.status) &&
             item.image_quality_status === "usable" &&
-            item.rain_evidence_assessment === "rain_visible";
+            item.rain_evidence_assessment === "rain_visible" &&
+            Number(item.rain_evidence_score) >= 0.82 &&
+            Number(item.scene_outdoor_score) >= 0.70;
           const statusLabel = hasVisualSignal
             ? "Indicios visuales · sin confirmar"
             : item.status === "low_visibility" || item.image_quality_status === "low_visibility"

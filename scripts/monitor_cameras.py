@@ -967,16 +967,20 @@ LOW_VISIBILITY_PROMPTS = [
     "A low quality monochrome camera image with insufficient detail to tell whether rain is falling.",
 ]
 RAIN_EVIDENCE_PROMPTS = [
-    "Clearly visible rain falling as distinct streaks across an outdoor camera view.",
+    "Clearly visible rain falling as distinct vertical streaks through the air in an outdoor camera view.",
     "A rain shower visibly falling over a landscape, with a curtain of precipitation in the distance.",
-    "Many raindrops visibly falling in front of the camera and across the outdoor scene.",
-    "Rain visibly falling over trees, a beach or a road, with clear precipitation streaks.",
-    "A strong shower with visible falling drops, not just wet surfaces, clouds, fog or reflections.",
+    "Many separate raindrops visibly falling in front of the camera, not leaves or branches.",
+    "Rain visibly falling across a beach, road or open landscape, with unmistakable precipitation streaks.",
+    "A strong shower with visible falling drops, not just wet surfaces, clouds, fog, reflections or illuminated foliage.",
+    "Fine vertical rain streaks can be clearly distinguished against the darker background of the scene.",
 ]
 NO_RAIN_EVIDENCE_PROMPTS = [
     "A dry outdoor night vision infrared image of tree branches and leaves, with no visible rainfall.",
     "A clear black and white infrared night camera image of trees and foliage, with no rain falling.",
     "A dry outdoor wildlife feeder seen through an infrared camera, with branches and leaves visible.",
+    "A night-vision infrared image of dense tree branches, leaves and foliage with no falling rain.",
+    "A black and white infrared wildlife camera looking through a tree canopy; leaves and branches are visible, but no rain.",
+    "Bright white highlights and grainy texture on leaves caused by infrared illumination, not precipitation.",
     "An outdoor landscape with clouds, haze or dark skies but no visible falling rain.",
     "A nighttime outdoor webcam image with lights and shadows but no visible precipitation.",
     "A grayscale camera image with sensor noise, compression artifacts or reflections rather than rain.",
@@ -1070,7 +1074,7 @@ def assess_rain_evidence(image: Image.Image, model_bundle) -> tuple[str, float, 
     comparison = torch.softmax(torch.stack((rain_mean, dry_mean)), dim=0).cpu().tolist()
     rain_score, dry_score = float(comparison[0]), float(comparison[1])
 
-    if rain_score >= 0.72 and rain_score - dry_score >= 0.25:
+    if rain_score >= 0.82 and rain_score - dry_score >= 0.30:
         assessment = "rain_visible"
     elif dry_score >= 0.65 and dry_score - rain_score >= 0.15:
         assessment = "no_rain_visible"
@@ -1649,7 +1653,12 @@ def main() -> int:
             result["rain_evidence_score"] = evidence_score
             result["dry_evidence_score"] = dry_score
 
-            if evidence_assessment == "rain_visible" and rain_probability >= 0.70:
+            if (
+                evidence_assessment == "rain_visible"
+                and evidence_score >= 0.82
+                and rain_probability >= 0.70
+                and result.get("scene_outdoor_score", 0.0) >= 0.70
+            ):
                 result["signal_level"] = "high" if rain_probability >= 0.82 else "moderate"
                 result["status"] = "possible"
                 result["message"] = (
@@ -1719,6 +1728,8 @@ def main() -> int:
         and item.get("scene_assessment") == "outdoor"
         and item.get("image_quality_status") == "usable"
         and item.get("rain_evidence_assessment") == "rain_visible"
+        and item.get("rain_evidence_score", 0.0) >= 0.82
+        and item.get("scene_outdoor_score", 0.0) >= 0.70
         and item.get("availability_status") == "online"
     ]
     recovered_cameras = [item for item in results if item.get("recovered")]
