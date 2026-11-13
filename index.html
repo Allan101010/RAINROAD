@@ -1090,7 +1090,7 @@
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
             <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos para Webcams Costa Rica y OVSICORI. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
-            <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos del mapa. Sus imágenes oficiales se actualizan aproximadamente cada 2 minutos; se muestran como referencia visual y no generan alertas automáticas de lluvia.</p>
+            <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos del mapa. Sus imágenes oficiales se actualizan aproximadamente cada 5 minutos; se muestran como referencia visual y no generan alertas automáticas de lluvia.</p>
           </div>
         </div>
 
@@ -1831,7 +1831,7 @@
             img.src = base + (base.includes("?") ? "&" : "?") + "rt=" + Date.now();
           }
         });
-      }, 120000);
+      }, 300000);
     }
 
     function showMapDetail({ eyebrow, title, subtitle, content, markerElement }) {
@@ -2167,7 +2167,7 @@
         }).join("");
         const hasSkylineCameras = siteCameras.some(item => item.source_type === "skylinewebcams");
         const summary = hasSkylineCameras
-          ? "Previsualizaciones oficiales de SkylineWebcams. Son imágenes fijas que se actualizan aproximadamente cada 2 minutos; no son vídeo continuo y no se utilizan para generar alertas automáticas de lluvia."
+          ? "Previsualizaciones oficiales de SkylineWebcams. Son imágenes fijas que se actualizan aproximadamente cada 5 minutos; no son vídeo continuo y no se utilizan para generar alertas automáticas de lluvia."
           : status === "mixed"
             ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
             : status === "rain"
