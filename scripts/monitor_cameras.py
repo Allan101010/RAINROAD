@@ -33,7 +33,7 @@ from PIL import Image, ImageOps, ImageStat
 BASE_URL = "https://webcamscostarica.com/"
 MODEL_ID = "prithivMLmods/Weather-Image-Classification"
 SCENE_MODEL_ID = "openai/clip-vit-base-patch32"
-CATALOG_SCHEMA_VERSION = 3
+CATALOG_SCHEMA_VERSION = 4
 CATALOG_PATH = Path("camera-catalog.json")
 ALERTS_PATH = Path("camera-alerts.json")
 CATALOG_MAX_AGE = timedelta(hours=6)
@@ -340,9 +340,9 @@ OVSICORI_CAMERAS = [
 ]
 
 
-# Cámaras públicas de SkylineWebcams. Se muestran como previsualizaciones
-# oficiales (imagen fija, no vídeo continuo). Solo se verifica la disponibilidad
-# de la ficha; estas imágenes NO se descargan ni se usan para alertas de lluvia.
+# Cámaras públicas de SkylineWebcams. Algunas fichas ofrecen un reproductor
+# de vídeo en vivo, pero este monitor solo verifica la disponibilidad de la ficha
+# y conserva una miniatura de previsualización; no captura ni analiza el flujo.
 # Las coordenadas son referencias de localidad o punto de interés, no la
 # posición exacta del lente: SkylineWebcams no publica coordenadas precisas.
 SKYLINE_CAMERAS = [
@@ -433,6 +433,7 @@ SKYLINE_CAMERAS = [
         "lon": -85.09104,
         "camera_name": "Aeropuerto de Cóbano",
         "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/cobano.html",
+        "live_video_page": True,
         "snapshot_url": "https://embed.skylinewebcams.com/img/4652.jpg",
         "source_type": "skylinewebcams",
         "coordinate_note": "Coordenada de referencia del aeródromo de Cóbano; no es la posición exacta del lente."
@@ -765,7 +766,12 @@ def build_catalog(session: requests.Session) -> list[dict]:
         row = dict(camera)
         row.update({
             "weather_relevant": False,
-            "reason": "Previsualización oficial de SkylineWebcams. Se verifica disponibilidad, pero no se utiliza para alertas automáticas de lluvia.",
+            "reason": (
+                "La página original ofrece video en vivo, pero RainTrack solo muestra una miniatura "
+                "y verifica la disponibilidad; todavía no reproduce ni analiza el flujo de video."
+                if camera.get("live_video_page")
+                else "Previsualización oficial de SkylineWebcams. Se verifica disponibilidad, pero no se utiliza para alertas automáticas de lluvia."
+            ),
             "initial_status": "pending",
         })
         catalog.append(row)
@@ -1647,6 +1653,7 @@ def main() -> int:
             "camera_name": camera["camera_name"],
             "page_url": camera["page_url"],
             "preview_url": camera.get("snapshot_url") if camera.get("source_type") == "skylinewebcams" else None,
+            "live_video_page": bool(camera.get("live_video_page", False)),
             "source_type": camera.get("source_type", "webcamscostarica"),
             "coordinate_note": camera.get("coordinate_note"),
             "status": "pending",
@@ -1695,8 +1702,14 @@ def main() -> int:
                     result["availability_status"] = "online"
                     result["status"] = "external_preview"
                     result["message"] = (
-                        "La ficha de SkylineWebcams está disponible. Se muestra su imagen oficial "
-                        "de previsualización; esta fuente no se analiza con IA ni genera alertas automáticas."
+                        "La ficha de SkylineWebcams está disponible. "
+                        + (
+                            "La página original ofrece un reproductor de video en vivo; RainTrack solo "
+                            "muestra la miniatura y todavía no reproduce ni analiza el flujo."
+                            if camera.get("live_video_page")
+                            else "Se muestra su imagen oficial de previsualización; esta fuente no se analiza con IA."
+                        )
+                        + " No genera alertas automáticas de lluvia."
                     )
             except Exception as exc:
                 result["availability_status"] = "unknown"
@@ -1940,7 +1953,7 @@ def main() -> int:
         "source_url": BASE_URL,
         "sources": [
             {"name": "Webcams Costa Rica", "url": BASE_URL, "type": "public_webcams"},
-            {"name": "SkylineWebcams", "url": "https://www.skylinewebcams.com/es/webcam/costa-rica.html", "type": "external_webcam_previews", "note": "Nueve cámaras públicas. Se muestran las imágenes oficiales de previsualización y se verifica la disponibilidad de cada ficha. No se descargan ni se usan para alertas automáticas de lluvia."},
+            {"name": "SkylineWebcams", "url": "https://www.skylinewebcams.com/es/webcam/costa-rica.html", "type": "external_webcam_previews", "note": "Nueve cámaras públicas. Algunas fichas, como el Aeropuerto de Cóbano, ofrecen video en vivo en la página original. RainTrack verifica la ficha y muestra una miniatura; no reproduce ni analiza el flujo de video ni genera alertas a partir de SkylineWebcams."},
             {"name": "OVSICORI-UNA", "url": "https://www.ovsicori.una.ac.cr/index.php/camaras", "type": "official_volcano_cameras"},
             {
                 "name": "IMN · estaciones automáticas",
@@ -1969,7 +1982,7 @@ def main() -> int:
             "Una alerta visual solo se publica si la imagen tiene calidad suficiente y dos análisis independientes coinciden en que la lluvia es visible. "
             "Las imágenes nocturnas oscuras, con interferencia o sin detalle se excluyen hasta que sean legibles. "
             "Las mediciones instrumentales se muestran por separado. "
-            "Las cámaras SkylineWebcams son referencias visuales externas: solo se verifica su disponibilidad y no se usan para alertas automáticas."
+            "Las cámaras SkylineWebcams son referencias visuales externas: se verifica su disponibilidad y se muestra una miniatura; aunque algunas fichas tienen video en vivo, el flujo todavía no se reproduce ni se analiza en RainTrack."
         ),
         "directory_sites": len(SITES) + len({camera["site_slug"] for camera in SKYLINE_CAMERAS}),
         "camera_count": len(results),
