@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "generated_at": "2026-11-13T11:27:32Z",
   "cameras": [
     {
@@ -614,8 +614,9 @@
       "source_type": "skylinewebcams",
       "coordinate_note": "Coordenada de referencia del aeródromo de Cóbano; no es la posición exacta del lente.",
       "weather_relevant": false,
-      "reason": "Previsualización oficial de SkylineWebcams. Se verifica disponibilidad, pero no se utiliza para alertas automáticas de lluvia.",
-      "initial_status": "pending"
+      "reason": "La página original ofrece video en vivo. RainTrack solo muestra una miniatura y verifica la disponibilidad; todavía no reproduce ni analiza el flujo de video.",
+      "initial_status": "pending",
+      "live_video_page": true
     },
     {
       "id": "skyline-esterillos",
