@@ -56,6 +56,11 @@ jobs:
         run: pip install -r requirements-camera-monitor.txt
 
       - name: Consultar cámaras y analizar imágenes
+        env:
+          # Opcional: sin esta clave la detección de lluvia por cámara queda desactivada.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VISION_JUDGE_DAILY_LIMIT: "300"
+          VISION_JUDGE_MAX_PER_RUN: "12"
         run: python scripts/monitor_cameras.py
 
       - name: Publicar resultados para GitHub Pages

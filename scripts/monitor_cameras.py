@@ -30,6 +30,9 @@ import requests
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps, ImageStat
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from vision_judge import VisionJudge  # noqa: E402
+
 BASE_URL = "https://webcamscostarica.com/"
 MODEL_ID = "prithivMLmods/Weather-Image-Classification"
 SCENE_MODEL_ID = "openai/clip-vit-base-patch32"
@@ -1187,6 +1190,7 @@ def status_signature(payload: dict) -> tuple:
             item.get("image_quality_status"),
             item.get("rain_evidence_assessment"),
             item.get("station_corroboration"),
+            (item.get("vision_judge") or {}).get("verdict"),
         )
         for item in rows
         if item.get("id")
@@ -1241,6 +1245,47 @@ def resolve_snapshot_url(session: requests.Session, camera: dict) -> tuple[str |
     except Exception as exc:
         logging.info("No se pudo recuperar la ficha %s: %s", camera.get("id"), exc)
         return None, "offline"
+
+
+DETECTION_DISABLED_MESSAGE = (
+    "La detección de lluvia por cámara está desactivada: los modelos pequeños no son confiables "
+    "y todavía no se configuró la IA de visión. No se genera alerta por esta cámara."
+)
+
+
+def apply_vision_judge(result: dict, image: Image.Image, judge: VisionJudge, previous_row: dict | None,
+                       candidate: bool) -> None:
+    """Decide el estado final de la cámara con el juez de IA de visión.
+
+    - Sin juez activo: ninguna cámara puede quedar en 'possible' ni 'clear'.
+    - Con juez: solo las cámaras candidatas se envían a la IA; 'possible' exige veredicto 'rain'.
+    """
+    result["vision_judge"] = None
+    if not judge.enabled:
+        if result.get("status") in ("possible", "clear"):
+            result["status"] = "weather_uncertain"
+            result["signal_level"] = "unconfirmed"
+            result["message"] = DETECTION_DISABLED_MESSAGE
+        return
+    if not candidate:
+        return
+
+    label = result.get("camera_name") or result.get("site_name") or result.get("id", "cámara")
+    previous_judge = (previous_row or {}).get("vision_judge")
+    verdict = judge.assess(image, label, previous_judge)
+    result["vision_judge"] = verdict
+    if verdict["verdict"] == "rain":
+        result["status"] = "possible"
+        result["signal_level"] = "high"
+        result["message"] = "La IA de visión ve lluvia cayendo: " + verdict["evidence"]
+    elif verdict["verdict"] == "no_rain":
+        result["status"] = "clear"
+        result["signal_level"] = "low"
+        result["message"] = "La IA de visión no ve lluvia cayendo: " + verdict["evidence"]
+    else:
+        result["status"] = "weather_uncertain"
+        result["signal_level"] = "unconfirmed"
+        result["message"] = "La IA de visión no pudo decidir si llueve: " + verdict["evidence"]
 
 
 STATION_CORROBORATION_RADIUS_KM = 25.0
@@ -1509,6 +1554,9 @@ def main() -> int:
                 results.append(result)
             outdoor_images = []
 
+    judge = VisionJudge.from_env(previous_payload.get("vision_judge"))
+    logging.info("IA de visión %s.", f"activa ({judge.model})" if judge.enabled else "desactivada (sin ANTHROPIC_API_KEY)")
+
     for result, image, metadata in outdoor_images:
         try:
             rain_probability, predicted_label, predicted_confidence = classify_image(image, weather_model_bundle)
@@ -1549,6 +1597,13 @@ def main() -> int:
                     "El primer clasificador sugirió lluvia, pero la segunda revisión no encontró evidencia visual suficiente. "
                     "La cámara no genera una alerta hasta que la lluvia sea claramente visible."
                 )
+
+            candidate = (
+                result.get("availability_status") == "online"
+                and result.get("image_quality_status") == "usable"
+                and (evidence_assessment == "rain_visible" or rain_probability >= 0.5)
+            )
+            apply_vision_judge(result, image, judge, previous_rows.get(result.get("id")), candidate)
 
             if result.get("scene_context_override"):
                 result["message"] += " Contexto exterior verificado: " + result["scene_context_override"] + "."
@@ -1597,9 +1652,7 @@ def main() -> int:
         if item.get("status") == "possible"
         and item.get("scene_assessment") == "outdoor"
         and item.get("image_quality_status") == "usable"
-        and item.get("rain_evidence_assessment") == "rain_visible"
-        and item.get("rain_evidence_score", 0.0) >= 0.82
-        and item.get("scene_outdoor_score", 0.0) >= 0.70
+        and (item.get("vision_judge") or {}).get("verdict") == "rain"
         and item.get("availability_status") == "online"
     ]
     corroborate_with_stations(alerts, stations)
@@ -1645,7 +1698,7 @@ def main() -> int:
         "model_note": (
             "La evaluación de encuadre y la clasificación meteorológica son experimentales. "
             "La puntuación model_score/rain_probability es una salida interna, no una probabilidad meteorológica calibrada. "
-            "Una alerta visual solo se publica si la imagen tiene calidad suficiente y dos análisis independientes coinciden en que la lluvia es visible. "
+            "Los modelos pequeños (clasificador y CLIP) solo sirven de filtro: una alerta visual solo se publica si la imagen tiene calidad suficiente y la IA de visión ve lluvia cayendo; sin esa IA configurada, las cámaras no generan alertas. "
             "Las imágenes nocturnas oscuras, con interferencia o sin detalle se excluyen hasta que sean legibles. "
             "Las mediciones instrumentales se muestran por separado. "
             "Las cámaras SkylineWebcams son referencias visuales externas: se verifica su disponibilidad y se muestra una miniatura; aunque algunas fichas tienen video en vivo, el flujo todavía no se reproduce ni se analiza en RainTrack."
@@ -1667,6 +1720,8 @@ def main() -> int:
         },
         "alerts": alerts,
         "station_alerts": station_alerts,
+        "visual_rain_detection": "vision_judge" if judge.enabled else "disabled",
+        "vision_judge": judge.state(),
         "recovered_cameras": recovered_cameras,
         "cameras": results,
         "stations": stations,
@@ -1676,7 +1731,8 @@ def main() -> int:
     heartbeat_due = old_time is None or (utc_now() - old_time) >= timedelta(hours=1)
     state_changed = status_signature(payload) != status_signature(previous_payload)
 
-    if state_changed or heartbeat_due:
+    # Si se llamó a la IA de visión se publica siempre: así el contador diario de llamadas queda guardado.
+    if state_changed or heartbeat_due or judge.calls_this_run > 0:
         ALERTS_PATH.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",

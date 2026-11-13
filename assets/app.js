@@ -652,7 +652,7 @@ function cameraDisplayName(item) {
 function cameraStatusText(status) {
   return ({
     rain: "Señal visual preliminar · requiere confirmación",
-    possible: "Dos análisis visuales detectan indicios · sin confirmar",
+    possible: "La IA de visión ve lluvia · sin confirmar",
     mixed: "Resultados distintos entre cámaras",
     clear: "Sin lluvia visible en la captura",
     weather_uncertain: "Lluvia no corroborada visualmente",
@@ -700,12 +700,7 @@ function cameraStatusForSite(siteSlug) {
     item.scene_assessment === "outdoor" &&
     item.image_quality_status === "usable"
   );
-  const hasVisualSignal = currentRows.some(item =>
-    ["rain", "possible"].includes(item.status) &&
-    item.rain_evidence_assessment === "rain_visible" &&
-    Number(item.rain_evidence_score) >= 0.82 &&
-    Number(item.scene_outdoor_score) >= 0.70
-  );
+  const hasVisualSignal = currentRows.some(isVisualRainSignal);
   const hasClearView = currentRows.some(item => item.status === "clear");
   if (hasVisualSignal && hasClearView) return "mixed";
   if (hasVisualSignal) return "possible";
@@ -718,6 +713,11 @@ function cameraStatusForSite(siteSlug) {
   if (rows.some(item => item.status === "scene_uncertain")) return "scene_uncertain";
   if (rows.some(item => item.status === "not_weather_view")) return "not_weather_view";
   return "pending";
+}
+
+// Una cámara solo cuenta como "lluvia vista" si la IA de visión lo dijo (el monitor lo publica en vision_judge).
+function isVisualRainSignal(item) {
+  return item.status === "possible" && !!item.vision_judge && item.vision_judge.verdict === "rain";
 }
 
 function cameraAlertKey(item) {
@@ -737,12 +737,9 @@ function renderCameraAlerts() {
     && (Date.now() - generatedAt.getTime()) <= 80 * 60 * 1000;
   const cameraAlerts = fresh && cameraMonitorData && Array.isArray(cameraMonitorData.alerts)
     ? cameraMonitorData.alerts.filter(item =>
-        item.status === "possible" &&
+        isVisualRainSignal(item) &&
         item.scene_assessment === "outdoor" &&
         item.image_quality_status === "usable" &&
-        item.rain_evidence_assessment === "rain_visible" &&
-        Number(item.rain_evidence_score) >= 0.82 &&
-        Number(item.scene_outdoor_score) >= 0.70 &&
         item.availability_status === "online"
       )
     : [];
@@ -775,21 +772,22 @@ function renderCameraAlerts() {
       ? "Lluvia medida por estación"
       : isConfirmed
         ? "Lluvia confirmada"
-        : "Señal visual experimental · sin confirmar";
+        : "Lluvia vista por IA · sin confirmar";
     const detail = isStation
       ? Number(item.rain_last_hour_mm).toFixed(1) + " mm en la última hora"
       : isConfirmed
-        ? "La cámara ve lluvia y la " + (item.corroborating_station_name || "estación IMN") + stationDistance +
+        ? "La IA ve lluvia y la " + (item.corroborating_station_name || "estación IMN") + stationDistance +
           " midió " + Number(item.station_rain_last_hour_mm || 0).toFixed(1) + " mm en la última hora."
         : item.station_corroboration === "not_confirmed"
-          ? "La cámara muestra indicios, pero la estación IMN más cercana" + stationDistance + " no mide lluvia."
-          : "La cámara muestra indicios visibles; no hay estación IMN cercana para confirmar.";
+          ? "La IA ve lluvia, pero la estación IMN más cercana" + stationDistance + " no mide lluvia."
+          : "La IA ve lluvia; no hay estación IMN cercana para confirmar.";
+    const aiEvidence = !isStation && item.vision_judge && item.vision_judge.evidence ? " IA: " + item.vision_judge.evidence : "";
     const alertKey = cameraAlertKey(item);
     return `<div class="camera-alert-item ${isRain ? "rain" : "possible"}">
       <span class="camera-alert-icon">${isStation || isConfirmed ? "🌧️" : "☔"}</span>
       <div class="camera-alert-content">
         <strong>${escapeHtml(label)} · ${escapeHtml(item.camera_name || item.station_name || item.site_name || "Cámara")}</strong>
-        <small>${escapeHtml(item.site_name || item.station_name || "")} · ${escapeHtml(detail)}</small>
+        <small>${escapeHtml(item.site_name || item.station_name || "")} · ${escapeHtml(detail + aiEvidence)}</small>
         <a href="${escapeHtml(safeHttpUrl(item.page_url, "https://webcamscostarica.com/"))}" target="_blank" rel="noopener">${isStation ? "Ver estación IMN ↗" : "Comprobar cámara ↗"}</a>
       </div>
       <button class="camera-alert-close" type="button" data-dismiss-camera-alert="${escapeHtml(alertKey)}" aria-label="Cerrar alerta" title="Cerrar alerta">×</button>
@@ -809,6 +807,12 @@ async function loadCameraMonitoringData() {
     const response = await fetch("camera-alerts.json?rt=" + Date.now(), { cache: "no-store" });
     if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
     cameraMonitorData = await response.json();
+    const note = $("visualDetectionNote");
+    if (note) {
+      note.textContent = cameraMonitorData.visual_rain_detection === "vision_judge"
+        ? "Detección de lluvia por cámara: activa (IA de visión)."
+        : "Detección de lluvia por cámara: desactivada. Las cámaras no generan alertas hasta configurar la IA de visión; las estaciones del IMN siguen midiendo.";
+    }
     renderCameraAlerts();
     if (mapReady && $("camerasToggle").checked) addCameraMarkers();
   } catch (error) {
@@ -882,11 +886,7 @@ function addCameraMarkers() {
       const availabilityStatus = item.availability_status || "unknown";
       const availability = cameraAvailabilityText(availabilityStatus);
       const isSkylineCamera = item.source_type === "skylinewebcams";
-      const hasVisualSignal = ["rain", "possible"].includes(item.status) &&
-        item.image_quality_status === "usable" &&
-        item.rain_evidence_assessment === "rain_visible" &&
-        Number(item.rain_evidence_score) >= 0.82 &&
-        Number(item.scene_outdoor_score) >= 0.70;
+      const hasVisualSignal = isVisualRainSignal(item) && item.image_quality_status === "usable";
       const statusLabel = isSkylineCamera
         ? availabilityStatus === "online" ? "Imagen externa disponible" : availabilityStatus === "offline" ? "Fuera de línea en Skyline" : "Estado sin verificar"
         : hasVisualSignal
@@ -940,9 +940,9 @@ function addCameraMarkers() {
         : status === "rain"
           ? "El clasificador asignó una señal visual elevada, pero no hay confirmación meteorológica independiente."
           : status === "possible"
-            ? "Dos análisis visuales independientes detectan indicios, pero la lluvia no está confirmada."
+            ? "La IA de visión ve lluvia cayendo en esta cámara, pero no está confirmada por una estación."
             : status === "weather_uncertain"
-              ? "El primer modelo sugirió lluvia, pero la segunda revisión no encontró evidencia visual suficiente. No se genera alerta."
+              ? "Esta cámara no tiene un veredicto de lluvia de la IA de visión. No se genera alerta."
               : status === "low_visibility"
                 ? "La imagen está oscura, tiene interferencia o no ofrece detalle suficiente. No se toma en cuenta hasta que sea clara."
                 : status === "offline"
