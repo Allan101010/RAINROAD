@@ -1306,12 +1306,14 @@
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px">
         <select class="source-select" id="globalHazardFilter" aria-label="Filtrar por fenómeno">
-          <option value="all">Todos los fenómenos</option><option value="earthquake">Terremotos y sismos</option><option value="volcano">Volcanes</option><option value="tropical_cyclone">Ciclones y huracanes</option><option value="flood">Inundaciones</option><option value="wildfire">Incendios</option><option value="severe_storm">Tormentas</option><option value="other">Otros eventos</option>
+          <option value="all">Todos los fenómenos</option><option value="earthquake">Terremotos y sismos</option><option value="volcano">Volcanes</option><option value="tropical_cyclone">Ciclones y huracanes</option><option value="flood">Inundaciones</option><option value="wildfire">Incendios</option><option value="severe_storm">Tormentas</option><option value="space_weather">Clima espacial</option><option value="geomagnetic_storm">Tormentas geomagnéticas</option><option value="solar_flare">Erupciones solares</option><option value="other">Otros eventos</option>
         </select>
         <select class="source-select" id="globalRegionFilter" aria-label="Filtrar por región">
           <option value="all">Todo el mundo</option><option value="priority">Costa Rica y Centroamérica</option>
         </select>
       </div>
+      <div id="globalEventsMap" role="region" aria-label="Mapa mundial de fenómenos reportados" style="height:300px;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:0 0 12px;background:var(--panel)"></div>
+      <p class="tiny" style="margin:-4px 0 12px">El mapa muestra únicamente eventos con coordenadas publicadas por su fuente. Los avisos sin ubicación geográfica permanecen en el listado.</p>
       <div id="globalEventsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:11px">
         <div class="panel small muted">Cargando eventos publicados…</div>
       </div>
@@ -3889,7 +3891,74 @@
     function globalSeverity(value) {
       return ({extreme:"Extremo",severe:"Severo",moderate:"Moderado",minor:"Menor",unknown:"Sin clasificar"})[value] || "Sin clasificar";
     }
+    let globalWorldMap = null;
+    let globalWorldMapReady = false;
+    function initializeGlobalWorldMap() {
+      const container = document.getElementById("globalEventsMap");
+      if (!container || globalWorldMap || !window.maplibregl) return;
+      globalWorldMap = new maplibregl.Map({
+        container: "globalEventsMap",
+        style: MAP_STYLE,
+        center: [0, 18],
+        zoom: 1.15,
+        minZoom: 0.8,
+        maxZoom: 8,
+        renderWorldCopies: true,
+        attributionControl: true
+      });
+      globalWorldMap.addControl(new maplibregl.NavigationControl({showCompass:false}), "top-right");
+      globalWorldMap.on("load", () => {
+        globalWorldMap.addSource("raintrack-global-events", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
+        globalWorldMap.addLayer({
+          id:"raintrack-global-events-points",
+          type:"circle",
+          source:"raintrack-global-events",
+          paint:{
+            "circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8],
+            "circle-color":["match",["get","severity"],"extreme","#ef4444","severe","#f97316","moderate","#eab308","minor","#22c55e","#60a5fa"],
+            "circle-stroke-color":"#ffffff",
+            "circle-stroke-width":1.2,
+            "circle-opacity":0.88
+          }
+        });
+        globalWorldMap.on("click","raintrack-global-events-points",event => {
+          const feature = event.features && event.features[0];
+          if (!feature) return;
+          const p = feature.properties || {};
+          new maplibregl.Popup({closeButton:true, maxWidth:"280px"})
+            .setLngLat(event.lngLat)
+            .setHTML('<strong>'+globalEscape(p.title)+'</strong><br><span>'+globalEscape(p.type)+'</span><br><small>'+globalEscape(p.provider)+' · '+globalEscape(p.time)+'</small>')
+            .addTo(globalWorldMap);
+        });
+        globalWorldMap.on("mouseenter","raintrack-global-events-points",()=>{globalWorldMap.getCanvas().style.cursor="pointer";});
+        globalWorldMap.on("mouseleave","raintrack-global-events-points",()=>{globalWorldMap.getCanvas().style.cursor="";});
+        globalWorldMapReady = true;
+        updateGlobalWorldMap();
+      });
+    }
+    function updateGlobalWorldMap() {
+      if (!globalWorldMap || !globalWorldMapReady) return;
+      const hazard = document.getElementById("globalHazardFilter")?.value || "all";
+      const region = document.getElementById("globalRegionFilter")?.value || "all";
+      const features = globalHazardEvents.filter(event =>
+        (hazard === "all" || event.hazard_type === hazard) &&
+        (region !== "priority" || event.region_priority === "costa_rica_central_america") &&
+        event.location && Number.isFinite(Number(event.location.longitude)) && Number.isFinite(Number(event.location.latitude))
+      ).slice(0,1500).map(event => ({
+        type:"Feature",
+        geometry:{type:"Point",coordinates:[Number(event.location.longitude),Number(event.location.latitude)]},
+        properties:{
+          title:event.title || "Evento reportado",
+          type:globalHazardLabels[event.hazard_type] || event.hazard_type,
+          provider:event.source?.provider || "Fuente no identificada",
+          time:globalDate(event.observed_at),
+          severity:event.severity || "unknown"
+        }
+      }));
+      globalWorldMap.getSource("raintrack-global-events")?.setData({type:"FeatureCollection",features});
+    }
     function renderGlobalHazards() {
+      updateGlobalWorldMap();
       const list = document.getElementById("globalEventsList");
       if (!list) return;
       const hazard = document.getElementById("globalHazardFilter")?.value || "all";
@@ -3938,6 +4007,7 @@
     document.getElementById("globalEventsRefresh")?.addEventListener("click", loadGlobalHazardEvents);
     document.getElementById("globalHazardFilter")?.addEventListener("change", renderGlobalHazards);
     document.getElementById("globalRegionFilter")?.addEventListener("change", renderGlobalHazards);
+    initializeGlobalWorldMap();
     loadGlobalHazardEvents();
     setInterval(loadGlobalHazardEvents, 5*60*1000);
 
