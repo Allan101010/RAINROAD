@@ -1,5 +1,13 @@
 # RainTrack CR — Global Intelligence Architecture
 
+## Implementation status (13 November 2026)
+- Operational ingestion: USGS global earthquakes, GDACS, NASA EONET, NOAA NHC Atlantic/Eastern Pacific RSS, and NOAA SWPC alerts.
+- Scheduled publication: GitHub Actions polls the enabled public feeds and publishes the normalized `global-events.json` dataset.
+- Client: a separate world map plots events with coordinates, while the Costa Rica weather map remains locally focused; hazard and regional filters drive the global event list and map.
+- Event cards expose provider, observation time, confidence class, and active/resolved state. Stale records from unavailable sources are explicitly marked.
+- Automated ingestion tests and Python compilation checks pass. Source coverage remains dependent on each provider's public feed and latency.
+
+
 ## Product decision
 - Geographic scope: global.
 - Priority region: Costa Rica and Central America, without excluding events elsewhere.
@@ -9,11 +17,11 @@
 ## Architecture
 1. **Source adapters** fetch public feeds and APIs independently.
 2. **Normalization layer** converts provider records into the common event contract in `schemas/hazard-event.schema.json`.
-3. **Deduplication and correlation** link likely reports of the same physical event while retaining each source observation.
+3. **Deduplication and correlation** link likely reports of the same physical event while retaining each source observation. Cross-provider physical-event correlation remains a planned enhancement; current ingestion deduplicates stable provider IDs.
 4. **Validation and confidence** preserve provider, timestamp, freshness, uncertainty, and verification state.
 5. **Risk and relevance** calculate transparent display priority from severity, proximity, exposure, and source confidence. Never reinterpret a provider's alert as a confirmed impact.
-6. **Storage/API** serves normalized events to the existing web client.
-7. **Map, timeline, and alert center** show all events with filters and source attribution.
+6. **Storage/API** currently publishes a static normalized JSON dataset for the web client; a queryable event API is a later scaling step.
+7. **Map, timeline, and alert center** currently include a global point map, event list, filters, source attribution and source-health indicators. Push notifications and a full historical timeline remain planned.
 
 ## Domain modules
 - Atmosphere: weather, tropical waves, cyclones, severe storms, fronts, atmospheric rivers, ENSO and other climate patterns.
@@ -62,10 +70,10 @@ Alert severity and confidence are independent. A severe but uncertain signal mus
 ## Delivery phases
 1. Foundation: event contract, source registry, ingestion runner and validation tests.
 2. Live global feeds: USGS earthquakes, GDACS and NASA EONET; status/health for each feed.
-3. Official weather and cyclone feeds, then space-weather and wildfire products.
+3. Official cyclone and space-weather feeds are now connected for the Atlantic, Eastern Pacific and NOAA SWPC. Additional weather, wildfire and impact products remain to be integrated.
 4. Costa Rica regional integrations: IMN, RSN, OVSICORI and CNE public bulletins.
 5. Correlation, geospatial relevance, notifications and historical analytics.
-6. UI integration: global event map, timeline, filters, event detail and source health.
+6. UI integration: global event map, filters, event cards and source health are implemented; richer event detail and timeline are next.
 
 ## Non-goals for the first increment
 This foundation does not yet provide continuous worldwide sensor coverage, predictive earthquake warnings, tsunami prediction, or guaranteed instant notifications. Coverage depends on public data availability, licensing, latency and provider uptime.
