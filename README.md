@@ -9,7 +9,7 @@ Aplicación meteorológica y de inteligencia de fenómenos naturales con alcance
 - Mapa mundial interactivo de eventos con coordenadas.
 - Filtros por terremotos, ciclones tropicales, inundaciones, incendios, tormentas y clima espacial.
 - Estado de las fuentes, atribución, hora de observación y estado del evento.
-- Actualización automática del conjunto global cada 10 minutos; la interfaz consulta el conjunto publicado cada 5 minutos.
+- Actualización automática del conjunto global cada 10 minutos; la interfaz consulta el conjunto publicado cada 5 minutos. El conjunto es una instantánea actual, no un historial.
 
 ## Fuentes conectadas
 
@@ -29,6 +29,8 @@ RainTrack CR es una herramienta informativa y de apoyo a la conciencia situacion
 
 ## Desarrollo
 
+Pruebas locales: `pip install -r requirements-global-monitor.txt requests beautifulsoup4 Pillow pytesseract` y luego `python -m unittest discover -s tests -v`.
+
 - [Arquitectura global](docs/GLOBAL_INTELLIGENCE_ARCHITECTURE.md)
 - [Estado de las fuentes](global-events.json)
-- [Acciones y pruebas automatizadas](https://github.com/Allan101010/raintrack-cr/actions)
+- [Acciones y pruebas automatizadas](https://github.com/Allan101010/RAINROAD/actions)

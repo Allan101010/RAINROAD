@@ -1,18 +1,24 @@
-name: RainTrack global ingestion tests
+name: RainTrack tests and validation
 on:
   pull_request:
     paths:
-      - "scripts/ingest_global_events.py"
+      - "scripts/**"
       - "tests/**"
-      - "requirements-global-monitor.txt"
+      - "schemas/**"
+      - "config/**"
+      - "global-events.json"
+      - "requirements-*.txt"
       - ".github/workflows/global-hazard-tests.yml"
   push:
     branches: [main]
     paths:
-      - "scripts/ingest_global_events.py"
+      - "scripts/**"
       - "tests/**"
-      - "requirements-global-monitor.txt"
+      - "schemas/**"
+      - "config/**"
+      - "requirements-*.txt"
       - ".github/workflows/global-hazard-tests.yml"
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -23,6 +29,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements-global-monitor.txt
+            requirements-camera-monitor.txt
       - run: pip install -r requirements-global-monitor.txt
+      - run: pip install requests==2.32.3 beautifulsoup4==4.13.4 Pillow==11.2.1 pytesseract==0.3.13
+      - run: python -m py_compile scripts/ingest_global_events.py scripts/monitor_cameras.py
       - run: python -m unittest discover -s tests -v
-      - run: python -m py_compile scripts/ingest_global_events.py
+      - name: Validate JSON documents
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          for p in pathlib.Path('.').rglob('*.json'):
+              json.loads(p.read_text(encoding='utf-8'))
+          print('JSON files valid')
+          PY

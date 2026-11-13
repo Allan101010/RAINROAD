@@ -1,5 +1,12 @@
 # RainTrack CR — Global Intelligence Architecture
 
+## Repository layout
+- `index.html`, `assets/styles.css`, `assets/app.js` — static web client.
+- `scripts/ingest_global_events.py` + `config/global-sources.json` — global hazard ingestion (all enabled sources are polled on every run, every 10 minutes).
+- `scripts/monitor_cameras.py` + `config/camera-sources.json` — camera and IMN station monitor.
+- `schemas/hazard-event.schema.json` — event contract, checked against the published data by `tests/`.
+- `global-events.json`, `camera-alerts.json`, `camera-catalog.json` — generated data, committed by the scheduled workflows.
+
 ## Implementation status (13 November 2026)
 - Operational ingestion: USGS global earthquakes, GDACS, NASA EONET, NOAA NHC Atlantic/Eastern Pacific RSS, and NOAA SWPC alerts.
 - Scheduled publication: GitHub Actions polls the enabled public feeds and publishes the normalized `global-events.json` dataset.
@@ -17,9 +24,9 @@
 ## Architecture
 1. **Source adapters** fetch public feeds and APIs independently.
 2. **Normalization layer** converts provider records into the common event contract in `schemas/hazard-event.schema.json`.
-3. **Deduplication and correlation** link likely reports of the same physical event while retaining each source observation. Cross-provider physical-event correlation remains a planned enhancement; current ingestion deduplicates stable provider IDs.
+3. **Deduplication and correlation** link likely reports of the same physical event while retaining each source observation. Cross-provider physical-event correlation remains a planned enhancement; current ingestion deduplicates stable provider IDs. `correlation_group_id`, `confidence_score` and `geometry` are reserved in the contract and are currently always `null`.
 4. **Validation and confidence** preserve provider, timestamp, freshness, uncertainty, and verification state.
-5. **Risk and relevance** calculate transparent display priority from severity, proximity, exposure, and source confidence. Never reinterpret a provider's alert as a confirmed impact.
+5. **Risk and relevance** (planned) calculate transparent display priority from severity, proximity, exposure, and source confidence. Never reinterpret a provider's alert as a confirmed impact.
 6. **Storage/API** currently publishes a static normalized JSON dataset for the web client; a queryable event API is a later scaling step.
 7. **Map, timeline, and alert center** currently include a global point map, event list, filters, source attribution and source-health indicators. Push notifications and a full historical timeline remain planned.
 
@@ -44,9 +51,11 @@
 | Space weather | NOAA SWPC and NASA | Separate observed conditions from forecast watches. |
 
 ## Event lifecycle
-`discovered → normalized → validated → correlated → assessed → published → updated/resolved`
+Implemented today: `discovered → normalized → published`. Each run rebuilds the dataset from what the enabled feeds return at that moment, so the published file is a **current snapshot, not a historical archive** (for example, USGS only exposes a rolling 24-hour window). Providers may mark an event as `resolved` or `expired` and that state is preserved while the provider still lists it.
 
-Events are not deleted when resolved; their lifecycle status and timestamps are updated. Failed or stale feeds must show their last successful update and must never be represented as "no hazard".
+If a feed fails, its records from the previous run are kept for up to 24 hours (`CARRY_FORWARD_MAX_AGE`) and marked `data_freshness = carried_forward_source_unavailable`; after that they are dropped. A failed feed must never be represented as "no hazard".
+
+Planned (not implemented): `validated → correlated → assessed` stages and a persistent event history.
 
 ## Confidence and alert semantics
 - `official`: issued by the responsible authority.
@@ -58,6 +67,11 @@ Events are not deleted when resolved; their lifecycle status and timestamps are 
 Alert severity and confidence are independent. A severe but uncertain signal must be visible as uncertain, not silently upgraded to confirmed.
 
 ## Reliability and safety
+Implemented: UTC timestamps, per-source timeout, source isolation (one failing feed does not stop the others), per-source health, bounded carry-forward of data from failed feeds, and schema validation of the published events in the test suite.
+
+Planned (not implemented): retry/backoff, rate limits, circuit breakers, per-source polling intervals, and persistent history.
+
+Design principles:
 - Store UTC timestamps and original provider timestamps.
 - Record source URL, provider, fetch time, update time, and raw provider identifier.
 - Apply per-source timeouts, retry/backoff, rate limits and circuit breakers.

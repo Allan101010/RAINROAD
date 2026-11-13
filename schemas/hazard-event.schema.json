@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raintrack-cr.github.io/schemas/hazard-event.schema.json",
+  "$id": "https://allan101010.github.io/RAINROAD/schemas/hazard-event.schema.json",
   "title": "RainTrack Global Hazard Event",
   "description": "Normalized event record; source observations remain attributable and uncertainty is explicit.",
   "type": "object",

@@ -22,7 +22,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config" / "global-sources.json"
 OUTPUT = ROOT / "global-events.json"
 TIMEOUT = 20
-USER_AGENT = "RainTrackCR-GlobalMonitor/1.0 (+https://github.com/Allan101010/raintrack-cr)"
+# Los eventos de una fuente caída se conservan, pero solo este tiempo desde su
+# última ingesta correcta; después se descartan para no mostrar datos viejos.
+CARRY_FORWARD_MAX_AGE = timedelta(hours=24)
+USER_AGENT = "RainTrackCR-GlobalMonitor/1.0 (+https://github.com/Allan101010/RAINROAD)"
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": USER_AGENT, "Accept": "application/geo+json, application/json, application/rss+xml, application/xml, text/xml"})
 LOG = logging.getLogger("raintrack.global")
@@ -445,6 +448,38 @@ def parse_rsn_rss(source, fetched_at):
 PARSERS = {"geojson": parse_usgs, "json": parse_eonet, "rss": parse_gdacs_rss, "swpc_json": parse_swpc_alerts, "cap_rss": parse_imn_cap_rss, "rsn_rss": parse_rsn_rss}
 
 
+def parse_iso(value):
+    """Parse an ISO-8601 timestamp (with optional trailing Z) into an aware datetime."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def carry_forward(previous_events, events, health, now=None):
+    """Keep recent records from feeds that failed this run, marked as carried-forward.
+
+    An outage must never be read as "no hazard", but stale records must not live
+    forever either: anything last ingested more than CARRY_FORWARD_MAX_AGE ago is dropped.
+    """
+    now = now or datetime.now(timezone.utc)
+    failed_providers = {row["provider"] for row in health if row["status"] != "ok"}
+    for old in previous_events:
+        provider = (old.get("source") or {}).get("provider")
+        event_id = old.get("event_id")
+        if not provider or provider not in failed_providers or event_id in events:
+            continue
+        ingested = parse_iso(old.get("ingested_at")) or parse_iso(old.get("observed_at"))
+        if ingested is None or now - ingested > CARRY_FORWARD_MAX_AGE:
+            continue
+        old["data_freshness"] = "carried_forward_source_unavailable"
+        events[event_id] = old
+    return events
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
@@ -474,21 +509,14 @@ def main():
             previous = json.loads(OUTPUT.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             previous = {}
-    # Retain prior records from failed feeds, but mark them as carried-forward;
+    # Retain recent records from failed feeds, marked as carried-forward;
     # never interpret an outage as an empty hazard situation.
-    successful_ids = {row["source_id"] for row in health if row["status"] == "ok"}
-    for old in previous.get("events", []):
-        source_name = old.get("source", {}).get("provider")
-        if old.get("event_id") not in events and source_name and any(
-            row["status"] != "ok" and row["provider"] == source_name for row in health
-        ):
-            old["data_freshness"] = "carried_forward_source_unavailable"
-            events[old["event_id"]] = old
+    carry_forward(previous.get("events", []), events, health)
 
     payload = {"schema_version": 1, "generated_at": fetched_at,
                "scope": "global", "priority_region": "Costa Rica and Central America",
                "source_health": health, "events": sorted(events.values(), key=lambda e: e["observed_at"], reverse=True)}
-    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     LOG.info("Published %s events from %s feeds", len(events), len(health))
     # A partial outage should be visible in source_health but not discard good data.
     return 0 if any(row["status"] == "ok" for row in health) else 1

@@ -1,5 +1,7 @@
 import importlib.util
+import json
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -217,6 +219,60 @@ class NormalizationTests(unittest.TestCase):
 
     def test_epoch_milliseconds_are_converted(self):
         self.assertTrue(monitor.iso_from_epoch(1790000000000).endswith("Z"))
+
+
+class CarryForwardTests(unittest.TestCase):
+    NOW = datetime(2026, 11, 13, 12, 0, tzinfo=timezone.utc)
+
+    def old_event(self, event_id, provider, ingested_at):
+        return {"event_id": event_id, "source": {"provider": provider},
+                "ingested_at": ingested_at, "observed_at": ingested_at}
+
+    def test_recent_event_from_failed_source_is_kept_and_marked(self):
+        old = self.old_event("a", "Feed A", "2026-11-13T10:00:00Z")
+        health = [{"provider": "Feed A", "status": "error"}]
+        events = monitor.carry_forward([old], {}, health, now=self.NOW)
+        self.assertEqual(events["a"]["data_freshness"], "carried_forward_source_unavailable")
+
+    def test_old_event_from_failed_source_is_dropped(self):
+        old = self.old_event("a", "Feed A", "2026-11-11T10:00:00Z")
+        health = [{"provider": "Feed A", "status": "error"}]
+        self.assertEqual(monitor.carry_forward([old], {}, health, now=self.NOW), {})
+
+    def test_event_from_healthy_source_is_not_carried(self):
+        old = self.old_event("a", "Feed A", "2026-11-13T10:00:00Z")
+        health = [{"provider": "Feed A", "status": "ok"}]
+        self.assertEqual(monitor.carry_forward([old], {}, health, now=self.NOW), {})
+
+    def test_fresh_record_wins_over_previous_one(self):
+        old = self.old_event("a", "Feed A", "2026-11-13T10:00:00Z")
+        fresh = {"event_id": "a", "title": "fresh"}
+        health = [{"provider": "Feed A", "status": "error"}]
+        events = monitor.carry_forward([old], {"a": fresh}, health, now=self.NOW)
+        self.assertEqual(events["a"]["title"], "fresh")
+
+
+class ConfigTests(unittest.TestCase):
+    def test_every_source_kind_has_a_parser(self):
+        config = json.loads(monitor.CONFIG.read_text(encoding="utf-8"))
+        for source in config["sources"]:
+            self.assertIn(source["kind"], monitor.PARSERS, source["id"])
+
+    def test_source_ids_are_unique(self):
+        config = json.loads(monitor.CONFIG.read_text(encoding="utf-8"))
+        ids = [source["id"] for source in config["sources"]]
+        self.assertEqual(len(ids), len(set(ids)))
+
+    def test_published_events_match_schema(self):
+        import jsonschema
+        root = monitor.ROOT
+        schema = json.loads((root / "schemas" / "hazard-event.schema.json").read_text(encoding="utf-8"))
+        payload = json.loads((root / "global-events.json").read_text(encoding="utf-8"))
+        validator = jsonschema.Draft202012Validator(schema)
+        errors = []
+        for event in payload["events"][:200]:
+            errors.extend(e.message for e in validator.iter_errors(event))
+        self.assertEqual(errors[:5], [])
 
 
 if __name__ == "__main__":
