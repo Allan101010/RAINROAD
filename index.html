@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.8</title>
+  <title>RainTrack CR v1.8.9</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -1056,7 +1056,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.8</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.9</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1115,6 +1115,7 @@
               </div>
               <p class="layer-hint">Las claves se mantienen solo en la memoria de esta pestaña y no se guardan en GitHub ni en el almacenamiento local. Para estas pruebas el navegador las envía al proveedor en cada mosaico; no uses claves con permisos o límites de facturación abiertos. Para producción habrá que moverlas a un intermediario seguro.</p>
             </div>
+            <button class="btn secondary small-btn" id="radarSourceRefresh" type="button" style="width:100%;margin:9px 0">↻ Actualizar fuente seleccionada</button>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
             <label for="imnProduct">Producto oficial IMN</label>
             <select class="source-select" id="imnProduct">
@@ -2493,15 +2494,15 @@
       });
     }
 
-    function setRadarTimeline(frames) {
+    function setRadarTimeline(frames, allowAnimation = true) {
       radarFrames = frames;
       radarFrameIndex = 0;
       $("frameSlider").disabled = radarFrames.length <= 1;
       $("frameSlider").min = "0";
       $("frameSlider").max = String(Math.max(0, radarFrames.length - 1));
       $("frameSlider").value = "0";
-      $("playRadar").disabled = radarFrames.length <= 1;
-      if (radarFrames.length <= 1) stopRadarAnimation();
+      $("playRadar").disabled = radarFrames.length <= 1 || !allowAnimation;
+      if (radarFrames.length <= 1 || !allowAnimation) stopRadarAnimation();
     }
 
     function radarTileUrl(frame, metadata, config) {
@@ -2569,10 +2570,10 @@
               'Capa mundial <strong>precipitation_new</strong> de OpenWeather. Es una visualización de precipitación del proveedor, no debe interpretarse automáticamente como eco de radar local. Requiere API KEY y está sujeta a los límites y permisos de tu cuenta. Fuente: <a href="https://openweathermap.org/api/weathermaps" target="_blank" rel="noopener">Weather Maps 1.0</a>.';
             $("radarTime").textContent = "Capa de precipitación actual · OpenWeather";
           } else {
-            setRadarTimeline(createTomorrowFrames());
+            setRadarTimeline(createTomorrowFrames(), false);
             $("mapStatusChip").textContent = "Tomorrow.io · intensidad de precipitación";
             $("radarSourceNote").innerHTML =
-              'Mosaicos de <strong>precipitationIntensity</strong> de Tomorrow.io, con una ventana de prueba de hasta 6 horas. No es un radar terrestre observado. En el plan gratuito cada mosaico cuenta como una solicitud (500 al día y 25 por hora); se limita el zoom a 8 para controlar el consumo. Fuente: <a href="https://docs.tomorrow.io/reference/get-map-tile" target="_blank" rel="noopener">Weather Maps API</a>.';
+              'Mosaicos de <strong>precipitationIntensity</strong> de Tomorrow.io, con una ventana de prueba de hasta 6 horas. No es un radar terrestre observado. En el plan gratuito cada mosaico cuenta como una solicitud (500 al día y 25 por hora); se limita el zoom a 8, se desactiva la animación y no se actualiza automáticamente para proteger la cuota. Fuente: <a href="https://docs.tomorrow.io/reference/get-map-tile" target="_blank" rel="noopener">Weather Maps API</a>.';
             $("radarTime").textContent = "Intensidad pronosticada · selecciona una hora";
           }
 
@@ -4008,6 +4009,7 @@
       tomorrowApiKey = $("tomorrowApiKey").value.trim();
       loadRadarSource();
     });
+    $("radarSourceRefresh").addEventListener("click", loadRadarSource);
     $("providerKeysClear").addEventListener("click", () => {
       openWeatherApiKey = "";
       tomorrowApiKey = "";
@@ -4015,7 +4017,12 @@
       $("tomorrowApiKey").value = "";
       loadRadarSource();
     });
-    $("frameSlider").addEventListener("input", event => showRadarFrame(Number(event.target.value)));
+    $("frameSlider").addEventListener("input", event => {
+      if (radarSourceKey !== "tomorrow") showRadarFrame(Number(event.target.value));
+    });
+    $("frameSlider").addEventListener("change", event => {
+      if (radarSourceKey === "tomorrow") showRadarFrame(Number(event.target.value));
+    });
     $("playRadar").addEventListener("click", toggleRadarAnimation);
 
     function refreshWeatherData() {
@@ -4029,8 +4036,10 @@
       loadCameraMonitoringData();
       if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
       cameraMonitorTimer = setInterval(loadCameraMonitoringData, 5 * 60 * 1000);
+      // Solo LibreWXR se actualiza automáticamente; los proveedores con KEY
+      // quedan bajo actualización manual para no consumir cuota por mosaicos.
       setInterval(() => {
-        if (mapReady) loadRadarSource();
+        if (mapReady && radarSourceKey === "librewxr") loadRadarSource();
       }, 5 * 60 * 1000);
       if (imnRefreshTimer) clearInterval(imnRefreshTimer);
       imnRefreshTimer = setInterval(() => {
