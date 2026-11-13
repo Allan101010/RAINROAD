@@ -58,6 +58,31 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(events[0]["severity"], "unknown")
         self.assertEqual(events[0]["location"]["longitude"], -84.0)
 
+    @patch.object(monitor, "fetch_json")
+    def test_swpc_alert_parses_g_scale_and_timestamp(self, fetch_json):
+        fetch_json.return_value = [{
+            "product_id": "ALERT-1",
+            "issue_datetime": "2026 Nov 13 0600 UTC",
+            "message": "Geomagnetic Storm G3 Watch\\nWATCH: Geomagnetic storm level G3"
+        }]
+        source = {"provider": "NOAA SWPC", "url": "https://example.test/alerts.json"}
+        rows = monitor.parse_swpc_alerts(source, "2026-11-13T06:05:00Z")
+        self.assertEqual(rows[0]["hazard_type"], "geomagnetic_storm")
+        self.assertEqual(rows[0]["severity"], "severe")
+        self.assertEqual(rows[0]["status"], "active")
+        self.assertEqual(rows[0]["observed_at"], "2026-11-13T06:00:00Z")
+
+    @patch.object(monitor, "fetch_json")
+    def test_old_swpc_alert_is_not_marked_active(self, fetch_json):
+        fetch_json.return_value = [{
+            "product_id": "ALERT-OLD",
+            "issue_datetime": "2026 Nov 10 0600 UTC",
+            "message": "Solar flare report"
+        }]
+        source = {"provider": "NOAA SWPC", "url": "https://example.test/alerts.json"}
+        rows = monitor.parse_swpc_alerts(source, "2026-11-13T06:05:00Z")
+        self.assertEqual(rows[0]["status"], "resolved")
+
     def test_epoch_milliseconds_are_converted(self):
         self.assertTrue(monitor.iso_from_epoch(1790000000000).endswith("Z"))
 
