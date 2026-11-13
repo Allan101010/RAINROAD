@@ -2441,9 +2441,9 @@
         showRadarFrame(radarFrameIndex);
 
         const lastObserved = past[past.length - 1];
-        $("radarStatus").textContent = "● Datos de fuente recibidos · " + config.label;
-        $("radarStatus").className = "success";
-        $("radarTime").textContent = "Último mosaico generado: " + formatClockFromTimestamp(lastObserved.time);
+        $("radarStatus").textContent = "Catálogo de imágenes recibido · " + config.label;
+        $("radarStatus").className = "muted";
+        $("radarTime").textContent = "Último mosaico publicado: " + formatClockFromTimestamp(lastObserved.time);
 
         if (radarSourceKey === "rainviewer") {
           $("mapStatusChip").textContent = "RainViewer · radar terrestre IMN KSJC · cobertura limitada";
