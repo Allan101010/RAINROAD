@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.4</title>
+  <title>RainTrack CR v1.8.5</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -297,74 +297,192 @@
     .camera-marker.station-marker { border-radius: 9px; background: #0e7490; }
     .camera-marker.station-marker.rain { background: #dc2626; }
 
-    .maplibregl-popup.camera-site-popup {
-      max-width: min(340px, calc(100vw - 28px)) !important;
+    .camera-marker {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 2px solid rgba(255,255,255,.96);
+      border-radius: 50%;
+      color: #fff;
+      background: linear-gradient(145deg, #8b5cf6, #5b21b6);
+      box-shadow: 0 3px 12px rgba(0,0,0,.42), 0 0 0 1px rgba(15,23,42,.28);
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease;
     }
-    .maplibregl-popup.camera-site-popup .maplibregl-popup-content {
-      max-height: min(58svh, 460px);
+    .camera-marker:active { transform: scale(.94); }
+    .camera-marker.is-active {
+      transform: scale(1.14);
+      box-shadow: 0 0 0 5px rgba(56,189,248,.24), 0 4px 15px rgba(0,0,0,.48);
+    }
+    .camera-marker.rain { background: linear-gradient(145deg, #fb7185, #be123c); }
+    .camera-marker.possible, .camera-marker.mixed { background: linear-gradient(145deg, #fbbf24, #b45309); }
+    .camera-marker.clear { background: linear-gradient(145deg, #8b5cf6, #5b21b6); }
+    .camera-marker.offline { background: linear-gradient(145deg, #64748b, #334155); }
+    .camera-marker.stale, .camera-marker.delayed { background: linear-gradient(145deg, #94a3b8, #475569); }
+    .camera-marker.low_visibility, .camera-marker.weather_uncertain,
+    .camera-marker.scene_uncertain { background: linear-gradient(145deg, #94a3b8, #475569); }
+    .camera-marker.not_weather_view { background: linear-gradient(145deg, #64748b, #334155); }
+    .camera-marker.pending { background: linear-gradient(145deg, #2dd4bf, #0f766e); }
+    .camera-marker.station-marker { border-radius: 11px; background: linear-gradient(145deg, #22d3ee, #0e7490); }
+
+    .map-detail-sheet {
+      position: absolute;
+      z-index: 30;
+      right: 14px;
+      bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      width: min(390px, calc(100% - 28px));
+      max-height: min(74%, 560px);
+      overflow: hidden;
+      border: 1px solid rgba(148,163,184,.28);
+      border-radius: 19px;
+      color: #f8fafc;
+      background: linear-gradient(155deg, rgba(25,37,57,.98), rgba(10,17,30,.98));
+      box-shadow: 0 18px 46px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.07);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      opacity: 0;
+      transform: translateY(14px) scale(.985);
+      transition: opacity .2s ease, transform .22s cubic-bezier(.2,.8,.2,1);
+      pointer-events: auto;
+      touch-action: pan-y;
+    }
+    .map-detail-sheet[hidden] { display: none !important; }
+    .map-detail-sheet.is-open { opacity: 1; transform: translateY(0) scale(1); }
+    .map-detail-grabber {
+      display: none;
+      width: 38px;
+      height: 4px;
+      flex: 0 0 auto;
+      margin: 8px auto 0;
+      border-radius: 99px;
+      background: rgba(203,213,225,.48);
+    }
+    .map-detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 15px 12px;
+      border-bottom: 1px solid rgba(148,163,184,.16);
+      background: linear-gradient(110deg, rgba(30,64,91,.36), rgba(15,23,42,.1));
+    }
+    .map-detail-heading { min-width: 0; }
+    .map-detail-eyebrow {
+      display: block;
+      margin-bottom: 4px;
+      color: #7dd3fc;
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .map-detail-title {
+      display: block;
+      color: #f8fafc;
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.22;
+      overflow-wrap: anywhere;
+    }
+    .map-detail-subtitle {
+      display: block;
+      margin-top: 4px;
+      color: #a9bad0;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+    .map-detail-close {
+      display: grid;
+      place-items: center;
+      flex: 0 0 36px;
+      width: 36px;
+      height: 36px;
+      margin: -2px -2px 0 0;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 11px;
+      color: #f8fafc;
+      background: rgba(255,255,255,.08);
+      font-size: 23px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .map-detail-close:active { background: rgba(255,255,255,.17); }
+    .map-detail-content {
+      min-height: 0;
       overflow-y: auto;
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
-      padding: 12px;
-      border-radius: 13px;
+      padding: 12px 14px 14px;
     }
+    .map-shell.has-map-detail .camera-alert-stack { display: none; }
+
     .camera-popup {
       width: 100%;
       min-width: 0;
-      color: #172033;
-      font: 12px/1.45 Arial, sans-serif;
+      color: #e5edf7;
+      font: 12px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    .camera-popup-heading strong {
-      display: block;
-      margin-bottom: 3px;
-      font-size: 15px;
-      line-height: 1.25;
-    }
-    .camera-popup-heading > div { color: #526174; font-size: 11px; }
     .camera-popup-summary {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
-      margin-top: 9px;
+      gap: 6px;
+      margin: 0 0 10px;
     }
     .camera-popup-summary span {
       display: inline-flex;
       align-items: center;
       min-height: 25px;
-      padding: 4px 7px;
-      border-radius: 7px;
-      background: #e8eef5;
-      color: #26364a;
+      padding: 5px 8px;
+      border: 1px solid rgba(148,163,184,.17);
+      border-radius: 99px;
+      color: #dbeafe;
+      background: rgba(148,163,184,.10);
       font-size: 10px;
-      font-weight: 700;
+      font-weight: 750;
     }
     .camera-popup .camera-popup-status {
-      margin-top: 8px;
-      padding: 8px 9px;
-      border-radius: 8px;
-      background: #eef2f7;
-      color: #26364a;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 0 0 10px;
+      padding: 10px 11px;
+      border: 1px solid rgba(56,189,248,.17);
+      border-radius: 12px;
+      color: #dbeafe;
+      background: rgba(14,116,144,.15);
       font-size: 11px;
-      line-height: 1.4;
-      font-weight: 600;
+      line-height: 1.45;
+      font-weight: 550;
+    }
+    .camera-popup .camera-popup-status::before {
+      content: "ⓘ";
+      flex: 0 0 auto;
+      color: #7dd3fc;
+      font-size: 14px;
+      line-height: 1.1;
     }
     .camera-popup .camera-popup-list {
       display: grid;
       gap: 0;
-      max-height: min(28svh, 210px);
+      max-height: min(31svh, 230px);
       overflow-y: auto;
       overscroll-behavior: contain;
-      margin-top: 8px;
-      border-top: 1px solid #d7dee8;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      border-top: 1px solid rgba(148,163,184,.16);
     }
     .camera-popup .camera-popup-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0,1fr) auto;
       align-items: center;
-      gap: 3px 8px;
-      padding: 8px 1px;
-      border-bottom: 1px solid #e2e8f0;
+      gap: 5px 10px;
+      padding: 10px 2px;
+      border-bottom: 1px solid rgba(148,163,184,.13);
       font-size: 11px;
     }
     .camera-popup-row-main { min-width: 0; }
@@ -372,59 +490,119 @@
       display: block;
       margin: 0 !important;
       overflow-wrap: anywhere;
+      color: #f1f5f9;
       font-size: 11px !important;
+      font-weight: 750;
+      line-height: 1.3;
     }
     .camera-popup-row-detail {
       display: block;
-      margin-top: 2px;
-      color: #64748b;
-      font-size: 10px;
-      font-weight: 400;
+      margin-top: 3px;
+      color: #91a4bb;
+      font-size: 9px;
+      font-weight: 450;
     }
     .camera-popup-row-state {
-      align-self: center;
-      padding: 4px 6px;
-      border-radius: 7px;
-      background: #e2e8f0;
-      color: #334155;
-      font-size: 10px;
-      font-weight: 700;
-      white-space: nowrap;
+      justify-self: end;
+      max-width: 150px;
+      padding: 5px 8px;
+      border: 1px solid rgba(148,163,184,.12);
+      border-radius: 99px;
+      color: #dbeafe;
+      background: rgba(148,163,184,.12);
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1.25;
+      text-align: center;
+      white-space: normal;
     }
-    .camera-popup-row-state.online { background: #dcfce7; color: #166534; }
-    .camera-popup-row-state.offline { background: #fee2e2; color: #991b1b; }
+    .camera-popup-row-state.online { color: #bbf7d0; background: rgba(22,163,74,.15); border-color: rgba(74,222,128,.16); }
+    .camera-popup-row-state.offline { color: #fecaca; background: rgba(220,38,38,.15); border-color: rgba(248,113,113,.16); }
     .camera-popup-row-state.delayed, .camera-popup-row-state.stale,
     .camera-popup-row-state.low_visibility, .camera-popup-row-state.weather_uncertain {
-      background: #fef3c7; color: #92400e;
+      color: #fde68a; background: rgba(217,119,6,.15); border-color: rgba(251,191,36,.16);
     }
-    .camera-popup .camera-popup-row a {
-      grid-column: 1 / -1;
-      display: inline-block;
-      margin-top: 1px;
-      color: #0369a1;
+    .camera-popup .camera-popup-row a,
+    .camera-popup .camera-popup-site-link,
+    .camera-popup .camera-popup-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      min-height: 30px;
+      margin-top: 5px;
+      padding: 6px 9px;
+      border: 1px solid rgba(56,189,248,.2);
+      border-radius: 9px;
+      color: #7dd3fc;
+      background: rgba(14,116,144,.13);
       font-size: 10px;
-      font-weight: 700;
+      font-weight: 800;
+      text-decoration: none;
     }
-    .camera-popup .camera-popup-note {
+    .camera-popup .camera-popup-note,
+    .camera-popup .camera-popup-meta {
       display: block;
-      margin-top: 8px;
-      color: #64748b;
-      font-size: 10px;
-      line-height: 1.4;
+      margin-top: 10px;
+      color: #91a4bb;
+      font-size: 9px;
+      line-height: 1.45;
     }
-    .camera-popup .camera-popup-site-link {
-      display: inline-block;
-      margin-top: 8px;
-      color: #0369a1;
-      font-weight: 700;
+    .station-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 10px;
     }
+    .station-metric {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid rgba(148,163,184,.15);
+      border-radius: 12px;
+      background: rgba(148,163,184,.07);
+    }
+    .station-metric span {
+      display: block;
+      color: #9fb0c5;
+      font-size: 9px;
+      line-height: 1.3;
+    }
+    .station-metric strong {
+      display: block;
+      margin-top: 5px;
+      color: #f8fafc;
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+    .camera-popup .weatherlink-frame {
+      display: block;
+      width: 100%;
+      height: 220px;
+      margin-top: 10px;
+      border: 1px solid rgba(148,163,184,.18);
+      border-radius: 12px;
+      background: #0b1220;
+    }
+    .camera-popup-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
     @media (max-width: 650px) {
-      .maplibregl-popup.camera-site-popup .maplibregl-popup-content {
-        max-height: min(48svh, 360px);
-        padding: 11px;
+      .map-detail-sheet {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        width: auto;
+        max-height: min(59svh, 455px);
+        border-radius: 18px;
       }
-      .camera-popup .camera-popup-list { max-height: min(20svh, 145px); }
-      .camera-popup .camera-popup-row { padding: 9px 1px; }
+      .map-detail-grabber { display: block; }
+      .map-detail-head { padding: 10px 13px 10px; }
+      .map-detail-title { font-size: 15px; }
+      .map-detail-content { padding: 10px 13px calc(12px + env(safe-area-inset-bottom)); }
+      .camera-popup .camera-popup-list { max-height: min(26svh, 190px); }
+      .camera-popup .camera-popup-row { padding: 10px 1px; }
+      .station-metric { padding: 9px; }
+      .station-metric strong { font-size: 15px; }
     }
     .camera-alert-stack {
       position: absolute;
@@ -829,7 +1007,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.4</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.5</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -854,7 +1032,7 @@
         <p class="tiny">Activa las capas desde el botón «Capas» dentro del mapa.</p>
       </div>
 
-      <div class="map-shell">
+      <div class="map-shell" id="mapShell">
         <div id="map" aria-label="Mapa de precipitaciones de Costa Rica"></div>
         <div class="map-chip" id="mapLocationChip">🇨🇷 Costa Rica</div>
         <div class="map-status-chip" id="mapStatusChip">Preparando mapa y radar…</div>
@@ -899,6 +1077,19 @@
         </div>
 
         <div class="camera-alert-stack" id="cameraAlertStack" aria-live="polite" hidden></div>
+
+        <section class="map-detail-sheet" id="mapDetailSheet" hidden role="dialog" aria-labelledby="mapDetailTitle">
+          <div class="map-detail-grabber" aria-hidden="true"></div>
+          <div class="map-detail-head">
+            <div class="map-detail-heading">
+              <span class="map-detail-eyebrow" id="mapDetailEyebrow">DETALLE DEL MAPA</span>
+              <strong class="map-detail-title" id="mapDetailTitle">Información del sitio</strong>
+              <span class="map-detail-subtitle" id="mapDetailSubtitle"></span>
+            </div>
+            <button class="map-detail-close" id="mapDetailClose" type="button" aria-label="Cerrar ventana">×</button>
+          </div>
+          <div class="map-detail-content" id="mapDetailContent"></div>
+        </section>
       </div>
 
       <div class="map-toolbar">
@@ -1216,6 +1407,7 @@
     let weatherRefreshTimer = null;
     let imnRefreshTimer = null;
     let cameraMarkers = [];
+    let activeMapDetailMarker = null;
     let cameraMonitorData = null;
     let cameraMonitorTimer = null;
     const dismissedCameraAlertIds = new Set();
@@ -1579,7 +1771,39 @@
       }
     }
 
+    function showMapDetail({ eyebrow, title, subtitle, content, markerElement }) {
+      const sheet = $("mapDetailSheet");
+      if (activeMapDetailMarker) activeMapDetailMarker.classList.remove("is-active");
+      activeMapDetailMarker = markerElement || null;
+      if (activeMapDetailMarker) activeMapDetailMarker.classList.add("is-active");
+
+      $("mapDetailEyebrow").textContent = eyebrow || "DETALLE DEL MAPA";
+      $("mapDetailTitle").textContent = title || "Información del sitio";
+      $("mapDetailSubtitle").textContent = subtitle || "";
+      $("mapDetailContent").innerHTML = content || "";
+      $("mapShell")?.classList.add("has-map-detail");
+      sheet.hidden = false;
+      sheet.classList.remove("is-open");
+      requestAnimationFrame(() => sheet.classList.add("is-open"));
+    }
+
+    function closeMapDetail() {
+      const sheet = $("mapDetailSheet");
+      if (!sheet) return;
+      sheet.classList.remove("is-open");
+      sheet.hidden = true;
+      $("mapShell")?.classList.remove("has-map-detail");
+      if (activeMapDetailMarker) activeMapDetailMarker.classList.remove("is-active");
+      activeMapDetailMarker = null;
+    }
+
+    $("mapDetailClose").addEventListener("click", closeMapDetail);
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !$("mapDetailSheet").hidden) closeMapDetail();
+    });
+
     function clearCameraMarkers() {
+      closeMapDetail();
       cameraMarkers.forEach(marker => marker.remove());
       cameraMarkers = [];
     }
@@ -1854,20 +2078,22 @@
                     ? "Los encuadres disponibles no muestran suficiente entorno exterior."
                     : "No hay una alerta visual activa para este sitio.";
         const popupHtml = `<div class="camera-popup">
-          <div class="camera-popup-heading">
-            <strong>${escapeHtml(camera.name)}</strong>
-            <div>${escapeHtml(camera.zone)} · ${escapeHtml(camera.detail)}</div>
-          </div>
           <div class="camera-popup-summary">${cameraSummary.map(value => `<span>${escapeHtml(value)}</span>`).join("")}</div>
           <div class="camera-popup-status">${escapeHtml(summary)}</div>
           ${cameraRows ? `<div class="camera-popup-list">${cameraRows}</div>` : ""}
-          <small class="camera-popup-note">La IA analiza imágenes; no mide lluvia. Una señal visual no confirma precipitación. Contrasta con radar y estaciones.</small>
+          <small class="camera-popup-note">Las imágenes son evidencia visual, no una medición de lluvia. Contrasta siempre con radar y estaciones.</small>
           <a class="camera-popup-site-link" href="${escapeHtml(camera.url)}" target="_blank" rel="noopener">Abrir página del sitio ↗</a>
         </div>`;
         const marker = new maplibregl.Marker({ element, anchor: "center" })
           .setLngLat([camera.lon, camera.lat])
-          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "340px", className: "camera-site-popup" }).setHTML(popupHtml))
           .addTo(map);
+        element.addEventListener("click", () => showMapDetail({
+          eyebrow: "CÁMARAS PÚBLICAS",
+          title: camera.name,
+          subtitle: camera.zone + " · " + camera.detail,
+          content: popupHtml,
+          markerElement: element
+        }));
         cameraMarkers.push(marker);
       });
 
@@ -1882,16 +2108,22 @@
           element.textContent = "🌡️";
           element.setAttribute("aria-label", "Abrir panel meteorológico: " + station.name);
           const popupHtml = `<div class="camera-popup">
-            <strong>${escapeHtml(station.name)}</strong>
-            <div>${escapeHtml(station.zone)} · Ubicación de referencia de Jacó</div>
-            <div class="camera-popup-status">Panel público enlazado desde Parapente Pura Vida. Se muestra como referencia externa; RainTrack todavía no ingiere sus valores para generar alertas.</div>
-            <iframe src="${escapeHtml(station.url)}" title="Condiciones actuales NEOJACO WeatherLink" loading="lazy" style="width:100%;height:210px;border:0;margin-top:8px" referrerpolicy="no-referrer"></iframe>
-            <a href="${escapeHtml(station.url)}" target="_blank" rel="noopener">Abrir panel WeatherLink ↗</a>
+            <div class="camera-popup-status">Panel público enlazado desde Parapente Pura Vida. Es una referencia externa; RainTrack todavía no utiliza sus valores para generar alertas.</div>
+            <iframe class="weatherlink-frame" src="${escapeHtml(station.url)}" title="Condiciones actuales NEOJACO WeatherLink" loading="lazy" referrerpolicy="no-referrer"></iframe>
+            <div class="camera-popup-links">
+              <a class="camera-popup-link" href="${escapeHtml(station.url)}" target="_blank" rel="noopener">Abrir panel WeatherLink ↗</a>
+            </div>
           </div>`;
           const marker = new maplibregl.Marker({ element, anchor: "center" })
             .setLngLat([station.lon, station.lat])
-            .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "330px" }).setHTML(popupHtml))
             .addTo(map);
+          element.addEventListener("click", () => showMapDetail({
+            eyebrow: "PANEL METEOROLÓGICO EXTERNO",
+            title: station.name,
+            subtitle: station.zone + " · Ubicación de referencia de Jacó",
+            content: popupHtml,
+            markerElement: element
+          }));
           cameraMarkers.push(marker);
           return;
         }
@@ -1942,27 +2174,33 @@
               ? "Lectura instrumental obtenida directamente de la tabla HTML oficial del IMN."
               : "Lectura del IMN pendiente de verificación.";
         const popupHtml = `<div class="camera-popup">
-          <strong>${escapeHtml(station.name)}</strong>
-          <div>${escapeHtml(station.zone)} · Fuente oficial IMN${station.coordinateNote ? " · " + escapeHtml(station.coordinateNote) : ""}</div>
           <div class="camera-popup-status">${escapeHtml(stationMessage)}</div>
-          <div class="camera-popup-list">
-            <div class="camera-popup-row"><span>Lluvia última hora</span><span>${escapeHtml(rainHour)}</span></div>
-            <div class="camera-popup-row"><span>Acumulada desde 7 a. m.</span><span>${escapeHtml(rainDay)}</span></div>
-            <div class="camera-popup-row"><span>Temperatura</span><span>${escapeHtml(temperature)}</span></div>
-            <div class="camera-popup-row"><span>Viento</span><span>${escapeHtml(wind)}</span></div>
-            <div class="camera-popup-row"><span>Dirección del viento</span><span>${escapeHtml(windDirection)}</span></div>
-            <div class="camera-popup-row"><span>Ráfaga máxima</span><span>${escapeHtml(windGust)}</span></div>
-            <div class="camera-popup-row"><span>Punto de rocío</span><span>${escapeHtml(dewPoint)}</span></div>
-            <div class="camera-popup-row"><span>Humedad</span><span>${escapeHtml(humidity)}</span></div>
+          <div class="station-metrics">
+            <div class="station-metric"><span>Lluvia · última hora</span><strong>${escapeHtml(rainHour)}</strong></div>
+            <div class="station-metric"><span>Acumulada desde 7 a. m.</span><strong>${escapeHtml(rainDay)}</strong></div>
+            <div class="station-metric"><span>Temperatura</span><strong>${escapeHtml(temperature)}</strong></div>
+            <div class="station-metric"><span>Humedad</span><strong>${escapeHtml(humidity)}</strong></div>
+            <div class="station-metric"><span>Viento</span><strong>${escapeHtml(wind)}</strong></div>
+            <div class="station-metric"><span>Ráfaga máxima</span><strong>${escapeHtml(windGust)}</strong></div>
+            <div class="station-metric"><span>Dirección del viento</span><strong>${escapeHtml(windDirection)}</strong></div>
+            <div class="station-metric"><span>Punto de rocío</span><strong>${escapeHtml(dewPoint)}</strong></div>
           </div>
-          <small>Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)} · Datos preliminares del IMN</small>
-          <a href="${escapeHtml(station.tableUrl || station.url)}" target="_blank" rel="noopener">Consultar datos oficiales del IMN ↗</a>
-          ${station.url && station.url !== station.tableUrl ? '<a href="' + escapeHtml(station.url) + '" target="_blank" rel="noopener">Ver panel gráfico del IMN ↗</a>' : ""}
+          <small class="camera-popup-meta">Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)} · Datos preliminares del IMN</small>
+          <div class="camera-popup-links">
+            <a class="camera-popup-link" href="${escapeHtml(station.tableUrl || station.url)}" target="_blank" rel="noopener">Consultar datos oficiales ↗</a>
+            ${station.url && station.url !== station.tableUrl ? '<a class="camera-popup-link" href="' + escapeHtml(station.url) + '" target="_blank" rel="noopener">Ver panel gráfico ↗</a>' : ""}
+          </div>
         </div>`;
         const marker = new maplibregl.Marker({ element, anchor: "center" })
           .setLngLat([station.lon, station.lat])
-          .setPopup(new maplibregl.Popup({ offset: 18, maxWidth: "310px" }).setHTML(popupHtml))
           .addTo(map);
+        element.addEventListener("click", () => showMapDetail({
+          eyebrow: "ESTACIÓN METEOROLÓGICA",
+          title: station.name,
+          subtitle: station.zone + " · Fuente oficial IMN" + (station.coordinateNote ? " · " + station.coordinateNote : ""),
+          content: popupHtml,
+          markerElement: element
+        }));
         cameraMarkers.push(marker);
       });
     }
