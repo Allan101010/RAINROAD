@@ -96,6 +96,10 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(rows[0]["status"], "resolved")
         self.assertEqual(rows[0]["severity"], "moderate")
 
+    def test_spanish_feed_mojibake_is_repaired(self):
+        self.assertEqual(monitor.repair_mojibake("PacÃ­fico Oriental"), "Pacífico Oriental")
+        self.assertEqual(monitor.repair_mojibake("Texto normal"), "Texto normal")
+
     def test_epoch_milliseconds_are_converted(self):
         self.assertTrue(monitor.iso_from_epoch(1790000000000).endswith("Z"))
 
