@@ -8,14 +8,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import time
 import hashlib
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlparse
 
 import requests
 
@@ -133,7 +131,7 @@ def parse_eonet(source, fetched_at):
             url=item.get("link") or source["url"], observed_at=latest.get("date") or fetched_at,
             ingested_at=fetched_at, confidence="provider_reported",
             status="resolved" if item.get("closed") else "active", location=location,
-            metrics={"categories": cats, "geometry_type": latest.get("type")}))
+            metrics={"categories": ", ".join(cats), "geometry_type": latest.get("type") or "unknown"}))
     return output
 
 
@@ -161,11 +159,18 @@ def parse_gdacs_rss(source, fetched_at):
             except ValueError:
                 pass
         lower = title.lower()
-        hazard = "tropical_cyclone" if "cyclone" in lower or "hurricane" in lower or "typhoon" in lower else "earthquake" if "earthquake" in lower else "flood" if "flood" in lower else "wildfire" if "fire" in lower else "other"
-        severity = "extreme" if "red" in lower else "severe" if "orange" in lower else "moderate" if "green" in lower else "unknown"
+        hazard = "tropical_cyclone" if any(word in lower for word in ("cyclone", "hurricane", "typhoon")) else "earthquake" if "earthquake" in lower else "flood" if "flood" in lower else "wildfire" if any(word in lower for word in ("wildfire", "fire")) else "other"
+        # Do not infer severity from title wording. Preserve uncertainty unless
+        # a structured provider field is parsed and mapped explicitly.
+        published = item.findtext("pubDate") or item.findtext("date")
+        try:
+            from email.utils import parsedate_to_datetime
+            observed_at = parsedate_to_datetime(published).astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z") if published else fetched_at
+        except (TypeError, ValueError, OverflowError):
+            observed_at = fetched_at
         output.append(event_record(provider=source["provider"], raw_id=guid, hazard_type=hazard,
-            title=title, description=description, url=link, observed_at=fetched_at,
-            ingested_at=fetched_at, confidence="provider_reported", severity=severity,
+            title=title, description=description, url=link, observed_at=observed_at,
+            ingested_at=fetched_at, confidence="provider_reported", severity="unknown",
             location=location, metrics={"feed_type": source["kind"]}))
     return output
 
