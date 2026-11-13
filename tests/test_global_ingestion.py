@@ -98,6 +98,32 @@ class NormalizationTests(unittest.TestCase):
 
 
     @patch.object(monitor, "fetch_text")
+    def test_imn_rss_fetches_linked_cap_xml(self, fetch_text):
+        rss = """<rss><channel><item>
+          <title>Alerta IMN por lluvias</title>
+          <link>https://cap-sources.s3.amazonaws.com/cr-imn-es/alert-1.xml</link>
+          <guid>alert-1</guid><pubDate>Fri, 13 Nov 2026 06:00:00 GMT</pubDate>
+        </item></channel></rss>"""
+        cap = """<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+          <identifier>alert-1</identifier><sent>2026-11-13T06:00:00Z</sent>
+          <status>Actual</status><msgType>Alert</msgType>
+          <info><event>Flood</event><severity>Moderate</severity><urgency>Expected</urgency>
+            <certainty>Likely</certainty><description>Riesgo de inundación.</description>
+            <expires>2026-11-14T06:00:00Z</expires>
+            <area><areaDesc>Limón</areaDesc><polygon>9.9,-83.1 10.0,-83.0 10.1,-83.1</polygon></area>
+          </info>
+        </alert>"""
+        fetch_text.side_effect = [rss, cap]
+        rows = monitor.parse_imn_cap_rss({"provider":"IMN","url":"https://example.test/rss.xml"}, "2026-11-13T07:00:00Z")
+        self.assertEqual(fetch_text.call_count, 2)
+        self.assertEqual(rows[0]["hazard_type"], "flood")
+        self.assertEqual(rows[0]["severity"], "moderate")
+        self.assertEqual(rows[0]["status"], "active")
+        self.assertEqual(rows[0]["metrics"]["area"], "Limón")
+        self.assertEqual(rows[0]["location"]["country_code"], "CR")
+        self.assertEqual(rows[0]["expires_at"], "2026-11-14T06:00:00Z")
+
+    @patch.object(monitor, "fetch_text")
     def test_imn_rss_without_cap_lifecycle_is_not_claimed_active(self, fetch_text):
         fetch_text.return_value = """<rss><channel><item>
           <title>Fin de Semana Lluvioso por Sistema de Baja Presión</title>
