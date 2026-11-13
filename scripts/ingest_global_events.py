@@ -271,7 +271,7 @@ def _classify_cap_hazard(event_text, category_text=""):
         (("cyclone", "hurricane", "huracán", "tormenta tropical"), "tropical_cyclone"),
         (("thunderstorm", "tormenta eléctrica", "tormenta electrica", "rayo"), "severe_storm"),
         (("wind", "viento", "ráfaga", "rafaga"), "severe_storm"),
-        (("rain", "lluvia", "precipitación", "precipitacion", "onda tropical"), "severe_storm"),
+        (("rain", "lluvia", "lluvioso", "aguacero", "precipitación", "precipitacion", "onda tropical", "baja presión", "baja presion", "inestabilidad", "vaguada", "zcit", "temporal"), "severe_storm"),
         (("volcano", "volcán", "volcan", "ashfall", "ceniza"), "volcano"),
         (("earthquake", "sismo", "terremoto"), "earthquake")
     ]
@@ -295,19 +295,31 @@ def parse_imn_cap_rss(source, fetched_at):
         raw_id = raw_id or item.findtext("guid") or link or title
         event_text = _xml_text(info, "event") or title
         categories = " ".join(node.text or "" for node in info.iter() if node.tag.rsplit("}", 1)[-1].lower() == "category") if info is not None else ""
-        hazard = _classify_cap_hazard(event_text, categories)
+        hazard = _classify_cap_hazard(event_text + " " + (description or ""), categories)
         cap_severity = (_xml_text(info, "severity") or "unknown").lower()
         severity = severity_map.get(cap_severity, "unknown")
         urgency = _xml_text(info, "urgency") or "Unknown"
         certainty = _xml_text(info, "certainty") or "Unknown"
         effective = _cap_datetime(_xml_text(info, "effective") or _xml_text(info, "onset"))
         expires = _cap_datetime(_xml_text(info, "expires"))
-        sent = _cap_datetime(_xml_text(cap_alert, "sent")) or fetched_at
-        status_value = (_xml_text(cap_alert, "status") or "Actual").lower()
-        msg_type = (_xml_text(cap_alert, "msgType") or "Alert").lower()
+        sent = _cap_datetime(_xml_text(cap_alert, "sent"))
+        if not sent:
+            published = item.findtext("pubDate")
+            try:
+                from email.utils import parsedate_to_datetime
+                parsed = parsedate_to_datetime(published) if published else None
+                sent = parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z") if parsed else fetched_at
+            except (TypeError, ValueError, OverflowError):
+                sent = fetched_at
+        status_value = (_xml_text(cap_alert, "status") or "").lower()
+        msg_type = (_xml_text(cap_alert, "msgType") or "").lower()
         now_dt = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
         expires_dt = datetime.fromisoformat(expires.replace("Z", "+00:00")) if expires else None
-        if msg_type in ("cancel", "ack") or (expires_dt and expires_dt <= now_dt):
+        if cap_alert is None:
+            # RSS-only fallback has no CAP lifecycle fields: do not assert that
+            # an advisory is currently active or resolved.
+            status = "unknown"
+        elif msg_type in ("cancel", "ack") or (expires_dt and expires_dt <= now_dt):
             status = "resolved"
         elif status_value in ("test", "exercise", "system"):
             status = "unknown"
@@ -337,7 +349,8 @@ def parse_imn_cap_rss(source, fetched_at):
             issued_at=sent, ingested_at=fetched_at, confidence="official",
             status=status, severity=severity, location=location,
             metrics={"cap_event": event_text, "urgency": urgency, "certainty": certainty,
-                     "area": area_desc or "Costa Rica", "message_type": msg_type, "cap_status": status_value})
+                     "area": area_desc or "Costa Rica", "message_type": msg_type or "RSS-only",
+                     "cap_status": status_value or "Unavailable", "lifecycle_metadata": "CAP" if cap_alert is not None else "RSS-only"})
         event["expires_at"] = expires
         event["region_priority"] = "costa_rica_central_america"
         output.append(event)
