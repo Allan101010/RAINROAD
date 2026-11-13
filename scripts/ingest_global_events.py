@@ -286,11 +286,20 @@ def parse_imn_cap_rss(source, fetched_at):
     output = []
     severity_map = {"extreme":"extreme", "severe":"severe", "moderate":"moderate", "minor":"minor", "unknown":"unknown"}
     for item in root.findall(".//item"):
+        link = item.findtext("link") or source["url"]
         cap_alert = next((node for node in item.iter() if node.tag.rsplit("}", 1)[-1].lower() == "alert"), None)
+        # IMN's CAP RSS feed points each item to its individual CAP XML file.
+        # Fetch that document so CAP lifecycle, severity and area metadata are retained.
+        if cap_alert is None and link.lower().endswith(".xml") and "cap-sources.s3.amazonaws.com" in link:
+            try:
+                cap_document = ET.fromstring(fetch_text(link))
+                cap_alert = cap_document if cap_document.tag.rsplit("}", 1)[-1].lower() == "alert" else next(
+                    (node for node in cap_document.iter() if node.tag.rsplit("}", 1)[-1].lower() == "alert"), None)
+            except (requests.RequestException, ET.ParseError, ValueError):
+                cap_alert = None
         info = next((node for node in cap_alert.iter() if node.tag.rsplit("}", 1)[-1].lower() == "info"), None) if cap_alert is not None else None
         title = item.findtext("title") or _xml_text(info, "event") or "Aviso meteorológico del IMN"
         description = _xml_text(info, "description") or item.findtext("description")
-        link = item.findtext("link") or source["url"]
         raw_id = _xml_text(cap_alert, "identifier") if cap_alert is not None else None
         raw_id = raw_id or item.findtext("guid") or link or title
         event_text = _xml_text(info, "event") or title
