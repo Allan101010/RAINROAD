@@ -1,0 +1,28 @@
+name: RainTrack global ingestion tests
+on:
+  pull_request:
+    paths:
+      - "scripts/ingest_global_events.py"
+      - "tests/**"
+      - "requirements-global-monitor.txt"
+      - ".github/workflows/global-hazard-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/ingest_global_events.py"
+      - "tests/**"
+      - "requirements-global-monitor.txt"
+      - ".github/workflows/global-hazard-tests.yml"
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-global-monitor.txt
+      - run: python -m unittest discover -s tests -v
+      - run: python -m py_compile scripts/ingest_global_events.py
