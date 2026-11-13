@@ -70,7 +70,7 @@ Alert severity and confidence are independent. A severe but uncertain signal mus
 ## Delivery phases
 1. Foundation: event contract, source registry, ingestion runner and validation tests.
 2. Live global feeds: USGS earthquakes, GDACS and NASA EONET; status/health for each feed.
-3. Official cyclone and space-weather feeds are now connected for the Atlantic, Eastern Pacific and NOAA SWPC. Additional weather, wildfire and impact products remain to be integrated.
+3. Official cyclone and space-weather feeds are now connected for the Atlantic, Eastern Pacific and NOAA SWPC. Additional OVSICORI volcano-state and camera metadata, CNE advisories, and other impact products remain to be integrated.
 4. Costa Rica regional integrations: IMN, RSN, OVSICORI and CNE public bulletins.
 5. Correlation, geospatial relevance, notifications and historical analytics.
 6. UI integration: global event map, filters, event cards and source health are implemented; richer event detail and timeline are next.
