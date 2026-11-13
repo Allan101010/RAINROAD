@@ -42,13 +42,6 @@ const RADAR_SOURCES = {
     color: 10,
     smooth: 0,
     snow: 0
-  },
-  nasa: {
-    type: "satellite",
-    label: "NASA IMERG",
-    maxZoom: 6,
-    frameCount: 12,
-    stepMinutes: 30
   }
 };
 const LIBREWXR_PALETTES = [1, 4, 8, 10, 14];
@@ -144,7 +137,7 @@ let destinationMarker = null;
 let radarMetadata = null;
 let radarFrames = [];
 const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
-let radarSourceKey = ["librewxr", "nasa"].includes(savedRadarSource)
+let radarSourceKey = savedRadarSource === "librewxr"
   ? savedRadarSource : "librewxr";
 const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
 let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
@@ -1015,40 +1008,6 @@ function removeRadarLayer() {
   if (map.getSource("raintrack-radar-source")) map.removeSource("raintrack-radar-source");
 }
 
-function gibsTimeStamp(date) {
-  return date.toISOString().slice(0, 19) + "Z";
-}
-
-const GIBS_TILE_BASE = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/IMERG_Precipitation_Rate_30min/default/";
-const GIBS_PROBE_TILE = "/GoogleMapsCompatible_Level6/6/31/17.png"; // tile sobre Costa Rica
-
-// IMERG se publica con unas horas de retraso: se busca la imagen más reciente disponible.
-async function createNasaFrames(config) {
-  const stepMs = config.stepMinutes * 60 * 1000;
-  let candidate = Math.floor((Date.now() - 2 * 3600 * 1000) / stepMs) * stepMs;
-  const limit = candidate - 14 * 3600 * 1000;
-  while (candidate >= limit) {
-    try {
-      const response = await fetch(GIBS_TILE_BASE + gibsTimeStamp(new Date(candidate)) + GIBS_PROBE_TILE);
-      if (response.ok) {
-        return Array.from({ length: config.frameCount }, (_, index) => {
-          const time = candidate - (config.frameCount - 1 - index) * stepMs;
-          return {
-            time: Math.floor(time / 1000),
-            frameType: "observed",
-            provider: "nasa",
-            gibsStamp: gibsTimeStamp(new Date(time))
-          };
-        });
-      }
-    } catch (error) {
-      throw new Error("No se pudo consultar NASA GIBS.");
-    }
-    candidate -= stepMs;
-  }
-  throw new Error("NASA GIBS no tiene imágenes recientes.");
-}
-
 function setRadarTimeline(frames, allowAnimation = true) {
   radarFrames = frames;
   radarFrameIndex = 0;
@@ -1061,9 +1020,6 @@ function setRadarTimeline(frames, allowAnimation = true) {
 }
 
 function radarTileUrl(frame, metadata, config) {
-  if (radarSourceKey === "nasa") {
-    return GIBS_TILE_BASE + frame.gibsStamp + "/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png";
-  }
   const host = String(metadata.host || config.fallbackHost).replace(/\/$/, "");
   const path = String(frame.path || "");
   return host + path + "/256/{z}/{x}/{y}/" + librewxrColorScheme + "/" + config.smooth + "_" + config.snow + ".png";
@@ -1088,22 +1044,6 @@ async function loadRadarSource() {
   removeRadarLayer();
 
   try {
-    if (radarSourceKey === "nasa") {
-      const frames = await createNasaFrames(config);
-      radarMetadata = { provider: "nasa" };
-      setRadarTimeline(frames);
-      radarFrameIndex = frames.length - 1;
-      $("frameSlider").value = String(radarFrameIndex);
-      $("mapStatusChip").textContent = "NASA IMERG · precipitación observada por satélite";
-      $("radarLegend").hidden = false;
-      $("radarSourceNote").innerHTML =
-        'NASA IMERG combina datos de satélites de microondas e infrarrojo para estimar la precipitación cada 30 minutos. Es una medición real, pero se publica con <strong>varias horas de retraso</strong>; úsala para ver por dónde llovió, no para saber si llueve ahora (para eso usa LibreWXR y las estaciones del IMN). Fuente: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a>.';
-      showRadarFrame(radarFrameIndex);
-      $("radarStatus").textContent = "Imágenes recibidas · NASA IMERG";
-      $("radarStatus").className = "muted";
-      updateZoomHint();
-      return;
-    }
     $("radarLegend").hidden = false;
 
     const metadata = await fetchJson(config.metadataUrl);
@@ -1173,8 +1113,7 @@ function showRadarFrame(index) {
     minzoom: 0,
     maxzoom: config.maxZoom,
     attribution: ({
-      librewxr: "Precipitation data: LibreWXR / NOAA RRQPE",
-      nasa: "Precipitation data: NASA GIBS / GPM IMERG"
+      librewxr: "Precipitation data: LibreWXR / NOAA RRQPE"
     })[radarSourceKey] || "Precipitation data"
   });
 
@@ -1184,9 +1123,9 @@ function showRadarFrame(index) {
     type: "raster",
     source: "raintrack-radar-source",
     paint: {
-      "raster-opacity": radarSourceKey === "nasa" ? 0.7 : 0.76,
+      "raster-opacity": 0.76,
       "raster-fade-duration": 0,
-      "raster-resampling": radarSourceKey === "nasa" ? "linear" : "nearest"
+      "raster-resampling": "nearest"
     }
   };
 

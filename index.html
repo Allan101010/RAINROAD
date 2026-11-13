@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.19</title>
+  <title>RainTrack CR v1.8.20</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.19">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.20">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.19</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.20</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -55,9 +55,8 @@
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
               <option value="librewxr">LibreWXR · precipitación estimada por satélite (principal)</option>
-              <option value="nasa">NASA IMERG · precipitación observada por satélite (con retraso de horas)</option>
             </select>
-            <p class="layer-hint">LibreWXR muestra la lluvia casi en tiempo real. NASA IMERG es una medición satelital más precisa, pero llega con varias horas de retraso.</p>
+            <p class="layer-hint">LibreWXR muestra la precipitación estimada por satélite con pocos minutos de retraso.</p>
             <div id="librewxrStyleControl">
               <label for="librewxrColorScheme">Estilo visual del radar LibreWXR</label>
               <select class="source-select" id="librewxrColorScheme">
@@ -202,7 +201,7 @@
         <span class="legend-item"><span class="legend-dot" style="background:#facc15"></span> Fuerte</span>
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Intensa</span>
       </div>
-      <p class="source-note" id="radarSourceNote">LibreWXR es la fuente principal. NASA IMERG es observación satelital con retraso de horas; revisa la hora de la imagen antes de interpretarla.</p>
+      <p class="source-note" id="radarSourceNote">LibreWXR es la fuente principal. Revisa la hora de la imagen antes de interpretar la precipitación.</p>
     </section>
 
     <section class="section">
@@ -278,12 +277,12 @@
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.19"></script>
+  <script src="assets/app.js?v=1.8.20"></script>
 </body>
 </html>
