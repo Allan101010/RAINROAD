@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.6</title>
+  <title>RainTrack CR v1.8.7</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -1035,7 +1035,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.6</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.7</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1074,10 +1074,10 @@
             </div>
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
-              <option value="rainviewer">Radar IMN / RainViewer · 10 min</option>
-              <option value="librewxr">LibreWXR · satélite NOAA</option>
+              <option value="librewxr">LibreWXR · estimación satelital global (principal)</option>
+              <option value="rainviewer">Radar IMN / RainViewer · KSJC San José (cobertura limitada)</option>
             </select>
-            <p class="layer-hint">La opción principal usa el radar del IMN distribuido por RainViewer. En Costa Rica hay una estación integrada (KSJC, San José), por lo que la cobertura puede disminuir lejos de ella y en zonas montañosas. LibreWXR queda como referencia satelital.</p>
+            <p class="layer-hint">LibreWXR queda como vista principal por su cobertura satelital global de precipitación. RainViewer se conserva como contraste de radar terrestre del IMN (estación KSJC, San José); su alcance es limitado por distancia y relieve. Una zona transparente no confirma que esté despejado.</p>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
             <label for="imnProduct">Producto oficial IMN</label>
             <select class="source-select" id="imnProduct">
@@ -1329,7 +1329,7 @@
     // CONFIGURACIÓN GENERAL
     // La última ubicación GPS se conserva localmente durante 30 minutos.
     // ------------------------------------------------------------
-    const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v1";
+    const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v2";
     const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
     const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
     const LOCATION_CACHE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
@@ -1467,7 +1467,7 @@
 
     let radarMetadata = null;
     let radarFrames = [];
-    let radarSourceKey = localStorage.getItem(SOURCE_STORAGE_KEY) === "librewxr" ? "librewxr" : "rainviewer";
+    let radarSourceKey = localStorage.getItem(SOURCE_STORAGE_KEY) === "rainviewer" ? "rainviewer" : "librewxr";
     let radarFrameIndex = 0;
     let radarPlayTimer = null;
     let weatherRefreshTimer = null;
@@ -2406,7 +2406,7 @@
       stopRadarAnimation();
 
       const selectedSource = $("radarSource").value;
-      radarSourceKey = RADAR_SOURCES[selectedSource] ? selectedSource : "rainviewer";
+      radarSourceKey = RADAR_SOURCES[selectedSource] ? selectedSource : "librewxr";
       $("radarSource").value = radarSourceKey;
       localStorage.setItem(SOURCE_STORAGE_KEY, radarSourceKey);
 
@@ -2441,22 +2441,20 @@
         showRadarFrame(radarFrameIndex);
 
         const lastObserved = past[past.length - 1];
-        $("radarStatus").textContent = "● " + config.label + " conectado";
+        $("radarStatus").textContent = "● Datos de fuente recibidos · " + config.label;
         $("radarStatus").className = "success";
-        $("radarTime").textContent = "Última imagen radar: " + formatClockFromTimestamp(lastObserved.time);
+        $("radarTime").textContent = "Último mosaico generado: " + formatClockFromTimestamp(lastObserved.time);
 
         if (radarSourceKey === "rainviewer") {
-          $("mapStatusChip").textContent = "Radar terrestre IMN · estación KSJC San José · imágenes recientes";
+          $("mapStatusChip").textContent = "RainViewer · radar terrestre IMN KSJC · cobertura limitada";
           $("radarSourceNote").innerHTML =
-            'Esta capa usa el radar terrestre del <strong>IMN de Costa Rica</strong>, distribuido por RainViewer. ' +
-            'La estación integrada aparece identificada como KSJC (San José). La API se actualiza aproximadamente cada 5 minutos y conserva imágenes de las últimas 2 horas en intervalos de 10 minutos. ' +
-            '<strong>La cobertura disminuye con la distancia y el relieve:</strong> fuera del alcance del radar, una zona transparente no significa necesariamente que no esté lloviendo. ' +
+            'Esta capa muestra el radar terrestre del <strong>IMN de Costa Rica</strong>, distribuido por RainViewer. Costa Rica dispone de una sola estación integrada (KSJC, San José). La API conserva imágenes de las últimas 2 horas en intervalos de 10 minutos. <strong>Su cobertura disminuye con la distancia y el relieve:</strong> una zona transparente puede estar fuera del alcance del radar o no presentar ecos; no confirma que esté despejado. ' +
             'Fuentes: <a href="https://www.imn.ac.cr/radar" target="_blank" rel="noopener">IMN</a> · ' +
             '<a href="https://www.rainviewer.com/es/radars/costa-rica.html" target="_blank" rel="noopener">RainViewer · estación de Costa Rica</a>.';
         } else {
           $("mapStatusChip").textContent = "LibreWXR · precipitación global estimada por satélite";
           $("radarSourceNote").innerHTML =
-            'En Costa Rica, esta capa utiliza principalmente NOAA RRQPE, una <strong>estimación satelital de precipitación</strong>; no equivale a un radar terrestre local. LibreWXR puede incluir proyección experimental de hasta 60 minutos. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.';
+            'En Costa Rica, LibreWXR utiliza principalmente NOAA RRQPE, una <strong>estimación satelital infrarroja de precipitación</strong>, no una medición directa de radar terrestre. Tiene una cadencia aproximada de 10 minutos y una latencia mediana cercana a 17 minutos; puede subestimar lluvias cálidas o estratiformes. Su cobertura geográfica es más amplia, pero debe contrastarse con estaciones y avisos oficiales. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.';
         }
 
         updateZoomHint();
