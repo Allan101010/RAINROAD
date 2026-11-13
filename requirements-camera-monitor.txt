@@ -1,4 +1,4 @@
 requests==2.32.3
 beautifulsoup4==4.13.4
-Pillow==11.2.1
+Pillow==13.0.0
 pytesseract==0.3.13
