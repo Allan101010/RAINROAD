@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.5</title>
+  <title>RainTrack CR v1.8.6</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -324,6 +324,10 @@
     .camera-marker.low_visibility, .camera-marker.weather_uncertain,
     .camera-marker.scene_uncertain { background: linear-gradient(145deg, #94a3b8, #475569); }
     .camera-marker.not_weather_view { background: linear-gradient(145deg, #64748b, #334155); }
+    .camera-marker.online { background: linear-gradient(145deg, #34d399, #0f766e); }
+    .camera-marker.skyline-marker { border-radius: 11px; background: linear-gradient(145deg, #2dd4bf, #0f766e); }
+    .camera-marker.skyline-marker.offline { background: linear-gradient(145deg, #94a3b8, #475569); }
+    .camera-marker.skyline-marker.mixed { background: linear-gradient(145deg, #fbbf24, #b45309); }
     .camera-marker.pending { background: linear-gradient(145deg, #2dd4bf, #0f766e); }
     .camera-marker.station-marker { border-radius: 11px; background: linear-gradient(145deg, #22d3ee, #0e7490); }
 
@@ -501,6 +505,30 @@
       color: #91a4bb;
       font-size: 9px;
       font-weight: 450;
+    }
+    .camera-popup-row-preview-wrap {
+      grid-column: 1 / -1;
+      min-width: 0;
+      margin-top: 7px;
+    }
+    .camera-popup-row-preview {
+      display: block;
+      width: 100%;
+      max-height: 170px;
+      object-fit: cover;
+      border: 1px solid rgba(148,163,184,.18);
+      border-radius: 11px;
+      background: #0b1220;
+    }
+    .camera-popup-row-preview-offline {
+      display: block;
+      padding: 11px;
+      border: 1px dashed rgba(148,163,184,.24);
+      border-radius: 10px;
+      color: #a9bad0;
+      background: rgba(148,163,184,.06);
+      font-size: 10px;
+      line-height: 1.45;
     }
     .camera-popup-row-state {
       justify-self: end;
@@ -1007,7 +1035,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.5</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.6</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -1058,10 +1086,11 @@
               <option value="convection">Convección profunda</option>
               <option value="radargif">Radar animado IMN</option>
             </select>
-            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (21 sitios de cámaras · 8 cámaras OVSICORI · 13 estaciones IMN · 1 panel WeatherLink)</span></label>
+            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (27 puntos de cámaras · 8 OVSICORI · 9 SkylineWebcams · 13 estaciones IMN · 1 panel WeatherLink)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
-            <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos. Todas las cámaras públicas son candidatas: la IA evalúa si el encuadre muestra suficiente entorno exterior. Las imágenes demoradas o sin actualización no generan alertas actuales.</p>
+            <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos para Webcams Costa Rica y OVSICORI. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
+            <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos del mapa. Sus imágenes oficiales se actualizan aproximadamente cada 2 minutos; se muestran como referencia visual y no generan alertas automáticas de lluvia.</p>
           </div>
         </div>
 
@@ -1368,7 +1397,13 @@
       { slug: "volcan-irazu", name: "Volcán Irazú", zone: "Valle Central", lat: 9.9790, lon: -83.8520, url: "https://webcamscostarica.com/volcan-irazu/", detail: "Imagen del cráter · 1 cámara" },
       { slug: "volcan-poas", name: "Volcán Poás", zone: "Valle Central", lat: 10.1980, lon: -84.2310, url: "https://webcamscostarica.com/volcan-poas/", detail: "Cráter del Poás · imágenes del OVSICORI" },
       { slug: "sarapiqui", name: "Lapas verdes de Sarapiquí", zone: "Zona Norte", lat: 10.4560, lon: -84.0190, url: "https://webcamscostarica.com/sarapiqui/", detail: "Cámaras de fauna y dosel · encuadre evaluado por IA" },
-      { slug: "volcan-turrialba", name: "Volcán Turrialba", zone: "Valle Central", lat: 10.0250, lon: -83.7670, url: "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-turrialba", detail: "OVSICORI-UNA · cámara del cráter" }
+      { slug: "volcan-turrialba", name: "Volcán Turrialba", zone: "Valle Central", lat: 10.0250, lon: -83.7670, url: "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-turrialba", detail: "OVSICORI-UNA · cámara del cráter" },
+      { slug: "skyline-moravia", name: "SkylineWebcams · Moravia", zone: "Valle Central", lat: 9.96164, lon: -84.04880, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia.html", detail: "4 vistas · San Vicente, Irazú, San José y Braulio Carrillo · ubicación de referencia" },
+      { slug: "skyline-cerro-bebedero", name: "SkylineWebcams · Cerro Bebedero", zone: "Valle Central", lat: 9.907972, lon: -84.162667, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/panorama-san-jose-costa-rica.html", detail: "Panorama de San José · coordenada de referencia" },
+      { slug: "skyline-bahia-salinas", name: "SkylineWebcams · Bahía Salinas", zone: "Guanacaste", lat: 11.0300, lon: -85.7172, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/guanacaste/la-cruz/bahia-salinas.html", detail: "Playa Nandel · Nandel Beach Resort" },
+      { slug: "skyline-cobano", name: "SkylineWebcams · Aeropuerto de Cóbano", zone: "Península de Nicoya", lat: 9.69328, lon: -85.09104, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/cobano.html", detail: "Pistas del Aeropuerto de Cóbano" },
+      { slug: "skyline-esterillos", name: "SkylineWebcams · Esterillos Este", zone: "Pacífico Central", lat: 9.52478, lon: -84.45324, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/costa-rica-puntarenas.html", detail: "Playa Esterillos Este · Alma del Pacífico" },
+      { slug: "skyline-san-isidro", name: "SkylineWebcams · San Isidro", zone: "Zona Sur", lat: 9.3706, lon: -83.7046, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/perez-zeledon/san-isidro.html", detail: "Valle de San Isidro de El General" }
     ];
 
     const PUBLIC_STATIONS = [
@@ -1408,6 +1443,7 @@
     let imnRefreshTimer = null;
     let cameraMarkers = [];
     let activeMapDetailMarker = null;
+    let skylinePreviewRefreshTimer = null;
     let cameraMonitorData = null;
     let cameraMonitorTimer = null;
     const dismissedCameraAlertIds = new Set();
@@ -1771,8 +1807,34 @@
       }
     }
 
+    function startSkylinePreviewRefresh() {
+      if (skylinePreviewRefreshTimer) clearInterval(skylinePreviewRefreshTimer);
+      const images = document.querySelectorAll("#mapDetailContent img[data-skyline-preview]");
+      images.forEach(img => {
+        img.addEventListener("error", () => {
+          img.hidden = true;
+          const fallback = img.parentElement?.querySelector(".camera-popup-row-preview-offline");
+          if (fallback) {
+            fallback.hidden = false;
+            fallback.textContent = "La previsualización no está disponible ahora. Puedes abrir la cámara original en SkylineWebcams.";
+          }
+        }, { once: true });
+      });
+      if (!images.length) return;
+      skylinePreviewRefreshTimer = setInterval(() => {
+        document.querySelectorAll("#mapDetailContent img[data-skyline-preview]").forEach(img => {
+          const base = img.getAttribute("data-skyline-base");
+          if (base) img.src = base + (base.includes("?") ? "&" : "?") + "rt=" + Date.now();
+        });
+      }, 120000);
+    }
+
     function showMapDetail({ eyebrow, title, subtitle, content, markerElement }) {
       const sheet = $("mapDetailSheet");
+      if (skylinePreviewRefreshTimer) {
+        clearInterval(skylinePreviewRefreshTimer);
+        skylinePreviewRefreshTimer = null;
+      }
       if (activeMapDetailMarker) activeMapDetailMarker.classList.remove("is-active");
       activeMapDetailMarker = markerElement || null;
       if (activeMapDetailMarker) activeMapDetailMarker.classList.add("is-active");
@@ -1784,12 +1846,17 @@
       $("mapShell")?.classList.add("has-map-detail");
       sheet.hidden = false;
       sheet.classList.remove("is-open");
+      startSkylinePreviewRefresh();
       requestAnimationFrame(() => sheet.classList.add("is-open"));
     }
 
     function closeMapDetail() {
       const sheet = $("mapDetailSheet");
       if (!sheet) return;
+      if (skylinePreviewRefreshTimer) {
+        clearInterval(skylinePreviewRefreshTimer);
+        skylinePreviewRefreshTimer = null;
+      }
       sheet.classList.remove("is-open");
       sheet.hidden = true;
       $("mapShell")?.classList.remove("has-map-detail");
@@ -1863,6 +1930,15 @@
         ? cameraMonitorData.cameras.filter(item => item.site_slug === siteSlug)
         : [];
       if (!rows.length) return "pending";
+
+      const skylineRows = rows.filter(item => item.source_type === "skylinewebcams");
+      if (skylineRows.length) {
+        const available = skylineRows.filter(item => item.availability_status === "online").length;
+        if (available === skylineRows.length) return "online";
+        if (available > 0) return "mixed";
+        if (skylineRows.every(item => ["offline", "not_available"].includes(item.availability_status))) return "offline";
+        return "pending";
+      }
 
       const currentRows = rows.filter(item =>
         item.availability_status === "online" &&
@@ -1979,12 +2055,6 @@
 
       PUBLIC_CAMERAS.forEach(camera => {
         const status = cameraStatusForSite(camera.slug);
-        const element = document.createElement("button");
-        element.type = "button";
-        element.className = "camera-marker " + status;
-        element.textContent = status === "mixed" ? "⚠️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : ["low_visibility", "weather_uncertain", "scene_uncertain"].includes(status) ? "?" : "📷";
-        element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
-
         const allSiteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
           ? cameraMonitorData.cameras.filter(item => item.site_slug === camera.slug)
           : [];
@@ -1996,6 +2066,14 @@
               return !isGenericDefault;
             })
           : allSiteCameras;
+        const isSkylineSite = camera.slug.startsWith("skyline-");
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "camera-marker " + status + (isSkylineSite ? " skyline-marker" : "");
+        element.textContent = isSkylineSite && siteCameras.length > 1
+          ? String(siteCameras.length)
+          : status === "mixed" ? "⚠️" : status === "possible" ? "☔" : status === "offline" ? "×" : status === "stale" ? "⌛" : ["low_visibility", "weather_uncertain", "scene_uncertain"].includes(status) ? "?" : "📷";
+        element.setAttribute("aria-label", "Abrir cámaras: " + camera.name);
 
         const recentCount = siteCameras.filter(item => item.availability_status === "online").length;
         const evaluableCount = siteCameras.filter(item =>
@@ -2010,35 +2088,50 @@
         const offlineCount = siteCameras.filter(item => ["offline", "not_available"].includes(item.availability_status)).length;
         const delayedCount = siteCameras.filter(item => item.availability_status === "delayed").length;
         const staleCount = siteCameras.filter(item => item.availability_status === "stale").length;
-        const cameraSummary = siteCameras.length
+        const skylineCount = siteCameras.filter(item => item.source_type === "skylinewebcams").length;
+        const skylineAvailableCount = siteCameras.filter(item =>
+          item.source_type === "skylinewebcams" && item.availability_status === "online"
+        ).length;
+        const cameraSummary = skylineCount === siteCameras.length && skylineCount
           ? [
-              `${siteCameras.length} ${siteCameras.length === 1 ? "cámara" : "cámaras"}`,
-              `${evaluableCount} evaluables`,
-              notEvaluableCount ? `${notEvaluableCount} no evaluables` : "",
-              offlineCount ? `${offlineCount} sin señal` : "",
-              delayedCount ? `${delayedCount} demoradas` : "",
-              staleCount ? `${staleCount} desactualizadas` : ""
+              `${skylineCount} cámaras SkylineWebcams`,
+              `${skylineAvailableCount} disponibles`,
+              skylineCount - skylineAvailableCount ? `${skylineCount - skylineAvailableCount} sin conexión o sin verificar` : ""
             ].filter(Boolean)
-          : ["Sin detalle individual disponible"];
+          : siteCameras.length
+            ? [
+                `${siteCameras.length} ${siteCameras.length === 1 ? "cámara" : "cámaras"}`,
+                `${evaluableCount} evaluables`,
+                notEvaluableCount ? `${notEvaluableCount} no evaluables` : "",
+                offlineCount ? `${offlineCount} sin señal` : "",
+                delayedCount ? `${delayedCount} demoradas` : "",
+                staleCount ? `${staleCount} desactualizadas` : ""
+              ].filter(Boolean)
+            : ["Sin detalle individual disponible"];
 
         const cameraRows = siteCameras.slice(0, 10).map(item => {
           const availabilityStatus = item.availability_status || "unknown";
           const availability = cameraAvailabilityText(availabilityStatus);
+          const isSkylineCamera = item.source_type === "skylinewebcams";
           const hasVisualSignal = ["rain", "possible"].includes(item.status) &&
             item.image_quality_status === "usable" &&
             item.rain_evidence_assessment === "rain_visible" &&
             Number(item.rain_evidence_score) >= 0.82 &&
             Number(item.scene_outdoor_score) >= 0.70;
-          const statusLabel = hasVisualSignal
-            ? "Indicios visuales · sin confirmar"
-            : item.status === "low_visibility" || item.image_quality_status === "low_visibility"
-              ? "No evaluable · poca visibilidad"
-              : item.status === "weather_uncertain" || item.status === "possible"
-                ? "Lluvia no corroborada"
-                : item.status === "scene_uncertain"
-                  ? "Imagen sin detalle suficiente"
-                  : item.status === "clear" ? "Sin lluvia visible" : availability;
-          const icon = hasVisualSignal ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" || availabilityStatus === "offline" ? "×" : item.status === "low_visibility" ? "?" : "•";
+          const statusLabel = isSkylineCamera
+            ? availabilityStatus === "online" ? "Imagen externa disponible" : availabilityStatus === "offline" ? "Fuera de línea en Skyline" : "Estado sin verificar"
+            : hasVisualSignal
+              ? "Indicios visuales · sin confirmar"
+              : item.status === "low_visibility" || item.image_quality_status === "low_visibility"
+                ? "No evaluable · poca visibilidad"
+                : item.status === "weather_uncertain" || item.status === "possible"
+                  ? "Lluvia no corroborada"
+                  : item.status === "scene_uncertain"
+                    ? "Imagen sin detalle suficiente"
+                    : item.status === "clear" ? "Sin lluvia visible" : availability;
+          const icon = isSkylineCamera
+            ? availabilityStatus === "online" ? "↗" : "×"
+            : hasVisualSignal ? "☔" : item.status === "clear" ? "✓" : item.status === "offline" || availabilityStatus === "offline" ? "×" : item.status === "low_visibility" ? "?" : "•";
           const age = item.image_age_minutes != null && Number.isFinite(Number(item.image_age_minutes))
             ? Math.round(Number(item.image_age_minutes)) + " min"
             : "";
@@ -2047,36 +2140,48 @@
             ? item.status
             : ["online", "offline", "delayed", "stale"].includes(availabilityStatus) ? availabilityStatus : "unknown";
           const sourceLink = item.page_url
-            ? `<a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
+            ? `<a href="${escapeHtml(item.page_url)}" target="_blank" rel="noopener">${isSkylineCamera ? "Abrir en SkylineWebcams ↗" : item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
+            : "";
+          const previewMarkup = isSkylineCamera
+            ? availabilityStatus === "online" && item.preview_url
+              ? `<div class="camera-popup-row-preview-wrap">
+                  <img class="camera-popup-row-preview" data-skyline-preview data-skyline-base="${escapeHtml(item.preview_url)}" src="${escapeHtml(item.preview_url)}?rt=${Date.now()}" alt="Previsualización oficial de ${escapeHtml(cameraDisplayName(item))}" loading="lazy" referrerpolicy="no-referrer">
+                  <span class="camera-popup-row-preview-offline" hidden>La previsualización no está disponible ahora. Puedes abrir la cámara original en SkylineWebcams.</span>
+                </div>`
+              : `<div class="camera-popup-row-preview-wrap"><span class="camera-popup-row-preview-offline">${availabilityStatus === "offline" ? "SkylineWebcams indica que esta cámara está fuera de línea. No se muestra una captura anterior." : "No se pudo verificar la cámara; no se muestra una imagen posiblemente desactualizada."}</span></div>`
             : "";
           return `<div class="camera-popup-row">
             <div class="camera-popup-row-main">
               <strong class="camera-popup-row-title">${escapeHtml(cameraDisplayName(item))}</strong>
-              <small class="camera-popup-row-detail">${escapeHtml([age, recovered.trim()].filter(Boolean).join(" "))}</small>
+              <small class="camera-popup-row-detail">${escapeHtml(isSkylineCamera ? "Fuente externa · imagen fija" : [age, recovered.trim()].filter(Boolean).join(" "))}</small>
             </div>
             <span class="camera-popup-row-state ${stateClass}">${icon} ${escapeHtml(statusLabel)}</span>
+            ${previewMarkup}
             ${sourceLink}
           </div>`;
         }).join("");
-        const summary = status === "mixed"
-          ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
-          : status === "rain"
-            ? "El clasificador asignó una señal visual elevada, pero no hay confirmación meteorológica independiente."
-            : status === "possible"
-              ? "Dos análisis visuales independientes detectan indicios, pero la lluvia no está confirmada."
-              : status === "weather_uncertain"
-                ? "El primer modelo sugirió lluvia, pero la segunda revisión no encontró evidencia visual suficiente. No se genera alerta."
-                : status === "low_visibility"
-                  ? "La imagen está oscura, tiene interferencia o no ofrece detalle suficiente. No se toma en cuenta hasta que sea clara."
-                  : status === "offline"
-              ? "Las cámaras de este sitio no están proporcionando imágenes."
-              : status === "stale"
-                ? "Las imágenes disponibles no se han actualizado recientemente."
-                : status === "delayed"
-                  ? "Hay imágenes demoradas; no se usan para alertas actuales."
-                  : status === "not_weather_view"
-                    ? "Los encuadres disponibles no muestran suficiente entorno exterior."
-                    : "No hay una alerta visual activa para este sitio.";
+        const hasSkylineCameras = siteCameras.some(item => item.source_type === "skylinewebcams");
+        const summary = hasSkylineCameras
+          ? "Previsualizaciones oficiales de SkylineWebcams. Son imágenes fijas que se actualizan aproximadamente cada 2 minutos; no son vídeo continuo y no se utilizan para generar alertas automáticas de lluvia."
+          : status === "mixed"
+            ? "Las cámaras muestran resultados distintos: una detecta una señal compatible con lluvia y otra no. No se confirma precipitación en el sitio."
+            : status === "rain"
+              ? "El clasificador asignó una señal visual elevada, pero no hay confirmación meteorológica independiente."
+              : status === "possible"
+                ? "Dos análisis visuales independientes detectan indicios, pero la lluvia no está confirmada."
+                : status === "weather_uncertain"
+                  ? "El primer modelo sugirió lluvia, pero la segunda revisión no encontró evidencia visual suficiente. No se genera alerta."
+                  : status === "low_visibility"
+                    ? "La imagen está oscura, tiene interferencia o no ofrece detalle suficiente. No se toma en cuenta hasta que sea clara."
+                    : status === "offline"
+                      ? "Las cámaras de este sitio no están proporcionando imágenes."
+                      : status === "stale"
+                        ? "Las imágenes disponibles no se han actualizado recientemente."
+                        : status === "delayed"
+                          ? "Hay imágenes demoradas; no se usan para alertas actuales."
+                          : status === "not_weather_view"
+                            ? "Los encuadres disponibles no muestran suficiente entorno exterior."
+                            : "No hay una alerta visual activa para este sitio.";
         const popupHtml = `<div class="camera-popup">
           <div class="camera-popup-summary">${cameraSummary.map(value => `<span>${escapeHtml(value)}</span>`).join("")}</div>
           <div class="camera-popup-status">${escapeHtml(summary)}</div>
