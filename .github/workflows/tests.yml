@@ -4,20 +4,17 @@ on:
     paths:
       - "scripts/**"
       - "tests/**"
-      - "schemas/**"
       - "config/**"
-      - "global-events.json"
-      - "requirements-*.txt"
-      - ".github/workflows/global-hazard-tests.yml"
+      - "assets/**"
+      - "index.html"
+      - ".github/workflows/tests.yml"
   push:
     branches: [main]
     paths:
       - "scripts/**"
       - "tests/**"
-      - "schemas/**"
       - "config/**"
-      - "requirements-*.txt"
-      - ".github/workflows/global-hazard-tests.yml"
+      - ".github/workflows/tests.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,13 +27,14 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: |
-            requirements-global-monitor.txt
-            requirements-camera-monitor.txt
-      - run: pip install -r requirements-global-monitor.txt
+          cache-dependency-path: requirements-camera-monitor.txt
       - run: pip install requests==2.32.3 beautifulsoup4==4.13.4 Pillow==11.2.1 pytesseract==0.3.13
-      - run: python -m py_compile scripts/ingest_global_events.py scripts/monitor_cameras.py
+      - run: python -m py_compile scripts/monitor_cameras.py
       - run: python -m unittest discover -s tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node --check assets/app.js
       - name: Validate JSON documents
         run: |
           python - <<'PY'

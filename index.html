@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.13</title>
+  <title>RainTrack CR v1.8.14</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.13">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.14">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.13</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.14</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -90,7 +90,7 @@
             <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (27 puntos de cámaras · 8 OVSICORI · 9 SkylineWebcams · 13 estaciones IMN · 1 panel WeatherLink)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
-            <p class="layer-hint">Monitoreo visual aproximado cada 15 minutos para Webcams Costa Rica y OVSICORI. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
+            <p class="layer-hint">Monitoreo visual experimental cada 30 minutos para Webcams Costa Rica y OVSICORI; la lluvia detectada por cámara nunca está confirmada. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
             <p class="layer-hint">SkylineWebcams aporta 9 cámaras en 6 puntos. Algunas fichas, como el Aeropuerto de Cóbano, ofrecen video en vivo en su página original. RainTrack muestra una miniatura y verifica la disponibilidad; todavía no reproduce ni analiza el flujo de video.</p>
           </div>
           </div>
@@ -293,6 +293,6 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.13"></script>
+  <script src="assets/app.js?v=1.8.14"></script>
 </body>
 </html>

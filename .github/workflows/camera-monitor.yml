@@ -10,7 +10,7 @@ on:
       - "requirements-camera-monitor.txt"
       - ".github/workflows/camera-monitor.yml"
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:

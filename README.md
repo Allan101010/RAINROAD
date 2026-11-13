@@ -1,33 +1,30 @@
 # RainTrack CR
 
-Aplicación meteorológica y de inteligencia de fenómenos naturales con alcance global y prioridad operativa para Costa Rica y Centroamérica.
+Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, rutas con clima en el recorrido, estaciones del IMN y monitoreo visual de cámaras públicas.
 
-## Módulos disponibles
+## Módulos
 
-- Mapa meteorológico de Costa Rica, radar, pronóstico y rutas.
-- Catálogo de eventos globales normalizados.
-- Actualización automática del conjunto global cada 10 minutos (`global-events.json`). La página principal ya no muestra este panel; los datos se siguen generando para uso futuro. El conjunto es una instantánea actual, no un historial.
+- Mapa meteorológico de Costa Rica, radar (LibreWXR / WeatherAPI), imágenes satelitales del IMN, pronóstico y rutas.
+- Estaciones del IMN con lluvia medida.
+- Monitoreo **experimental** de cámaras públicas (Webcams Costa Rica, OVSICORI, SkylineWebcams): disponibilidad, frescura de la imagen e indicios visuales de lluvia. Una cámara nunca confirma lluvia por sí sola.
 
-## Fuentes conectadas
+## Cómo funciona
 
-- USGS Earthquake Hazards Program — GeoJSON global de sismos.
-- GDACS — alertas globales multiamenaza.
-- NASA EONET — eventos naturales abiertos.
-- NOAA National Hurricane Center — productos RSS del Atlántico y Pacífico oriental.
-- NOAA Space Weather Prediction Center — alertas oficiales de clima espacial.
-- Instituto Meteorológico Nacional de Costa Rica — avisos oficiales CAP con severidad, urgencia, certeza, áreas y vencimiento.
-- Red Sismológica Nacional UCR — reportes RSS de sismos sentidos, como complemento del catálogo USGS.
+- Sitio estático: `index.html`, `assets/styles.css`, `assets/app.js`.
+- `scripts/monitor_cameras.py` (GitHub Actions, cada 30 minutos) genera `camera-alerts.json` y `camera-catalog.json`. Solo publica cuando cambia el estado o pasó una hora.
+- Las listas de cámaras y estaciones están en `config/camera-sources.json`.
 
 ## Uso y limitaciones
 
-La aplicación agrega datos públicos de proveedores externos. La cobertura, precisión y latencia dependen de cada fuente. Un evento sin coordenadas puede aparecer en el listado y no en el mapa. Un feed sin datos o temporalmente caído no significa que no exista peligro.
-
-RainTrack CR es una herramienta informativa y de apoyo a la conciencia situacional. No predice terremotos, no reemplaza los avisos del IMN, CNE, OVSICORI, RSN ni las autoridades competentes, y no debe usarse como único medio para decisiones de emergencia.
+Los pronósticos, el radar y las imágenes de precipitación son estimaciones y la cobertura depende de cada proveedor. RainTrack CR es una herramienta informativa: no sustituye los avisos del IMN, la CNE, OVSICORI, RSN ni las autoridades, y no debe usarse como único medio para decisiones de emergencia.
 
 ## Desarrollo
 
-Pruebas locales: `pip install -r requirements-global-monitor.txt requests beautifulsoup4 Pillow pytesseract` y luego `python -m unittest discover -s tests -v`.
+Pruebas locales:
 
-- [Arquitectura global](docs/GLOBAL_INTELLIGENCE_ARCHITECTURE.md)
-- [Estado de las fuentes](global-events.json)
-- [Acciones y pruebas automatizadas](https://github.com/Allan101010/RAINROAD/actions)
+```
+pip install requests beautifulsoup4 Pillow pytesseract
+python -m unittest discover -s tests -v
+```
+
+[Acciones y pruebas automatizadas](https://github.com/Allan101010/RAINROAD/actions)

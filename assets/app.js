@@ -766,7 +766,7 @@ function renderCameraAlerts() {
     const isRain = isStation && item.status === "rain";
     const label = isStation
       ? "Lluvia medida por estación"
-      : "Señal visual preliminar · corroborada por dos análisis";
+      : "Señal visual experimental · sin confirmar";
     const detail = isStation
       ? Number(item.rain_last_hour_mm).toFixed(1) + " mm en la última hora"
       : "La cámara muestra indicios visibles; contrasta con el radar y las estaciones.";
