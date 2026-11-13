@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7.7</title>
+  <title>RainTrack CR v1.7.8</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -684,7 +684,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.7</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.8</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -720,9 +720,10 @@
             <strong style="font-size:12px">Capas meteorológicas</strong>
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
-              <option value="rainviewer">RainViewer</option>
-              <option value="librewxr">LibreWXR</option>
+              <option value="librewxr">LibreWXR · estimación satelital</option>
             </select>
+            <a class="btn secondary small-btn" href="https://www.meteoblue.com/es/country/weather/radar/costa-rica_costa-rica_3624060" target="_blank" rel="noopener" style="display:block;width:100%;text-align:center;text-decoration:none;margin-top:9px">↗ Comparar con radar Meteoblue</a>
+            <p class="layer-hint">Meteoblue se abre en otra pestaña como fuente independiente de comparación; todavía no se superpone a este mapa. En zonas sin radar terrestre puede utilizar estimaciones satelitales.</p>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
             <label for="imnProduct">Producto oficial IMN</label>
             <select class="source-select" id="imnProduct">
@@ -1061,7 +1062,7 @@
 
     let radarMetadata = null;
     let radarFrames = [];
-    let radarSourceKey = localStorage.getItem(SOURCE_STORAGE_KEY) || "rainviewer";
+    let radarSourceKey = localStorage.getItem(SOURCE_STORAGE_KEY) || "librewxr";
     let radarFrameIndex = 0;
     let radarPlayTimer = null;
     let weatherRefreshTimer = null;
@@ -1818,8 +1819,8 @@
         $("radarStatus").textContent = "Radar no disponible";
         $("radarStatus").className = "error-text";
         $("radarTime").textContent = "No se pudieron obtener imágenes de esta fuente.";
-        $("mapStatusChip").textContent = "El mapa base sigue funcionando; prueba la otra fuente de precipitación.";
-        $("radarSourceNote").textContent = "La fuente seleccionada no respondió o no tiene imágenes disponibles. Cambia entre RainViewer y LibreWXR para comparar.";
+        $("mapStatusChip").textContent = "El mapa base sigue funcionando; la capa de precipitación no está disponible.";
+        $("radarSourceNote").textContent = "LibreWXR no respondió o no tiene imágenes disponibles. Puedes consultar el radar oficial del IMN o comparar con Meteoblue en otra pestaña.";
         $("frameLabel").textContent = "--";
       }
     }
@@ -3161,7 +3162,7 @@
       $("forecastToggle").textContent = panel.hidden ? "Mostrar ▼" : "Ocultar ▲";
     });
 
-    $("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "rainviewer";
+    $("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
     $("radarSource").addEventListener("change", loadRadarSource);
     $("frameSlider").addEventListener("input", event => showRadarFrame(Number(event.target.value)));
     $("playRadar").addEventListener("click", toggleRadarAnimation);
