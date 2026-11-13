@@ -33,7 +33,7 @@ from PIL import Image, ImageOps, ImageStat
 BASE_URL = "https://webcamscostarica.com/"
 MODEL_ID = "prithivMLmods/Weather-Image-Classification"
 SCENE_MODEL_ID = "openai/clip-vit-base-patch32"
-CATALOG_SCHEMA_VERSION = 2
+CATALOG_SCHEMA_VERSION = 3
 CATALOG_PATH = Path("camera-catalog.json")
 ALERTS_PATH = Path("camera-alerts.json")
 CATALOG_MAX_AGE = timedelta(hours=6)
@@ -340,6 +340,132 @@ OVSICORI_CAMERAS = [
 ]
 
 
+# Cámaras públicas de SkylineWebcams. Se muestran como previsualizaciones
+# oficiales (imagen fija, no vídeo continuo). Solo se verifica la disponibilidad
+# de la ficha; estas imágenes NO se descargan ni se usan para alertas de lluvia.
+# Las coordenadas son referencias de localidad o punto de interés, no la
+# posición exacta del lente: SkylineWebcams no publica coordenadas precisas.
+SKYLINE_CAMERAS = [
+    {
+        "id": "skyline-bahia-salinas",
+        "site_slug": "skyline-bahia-salinas",
+        "site_name": "Bahía Salinas · Nandel Beach",
+        "zone": "Guanacaste",
+        "lat": 11.0300,
+        "lon": -85.7172,
+        "camera_name": "Bahía Salinas · Playa Nandel",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/guanacaste/la-cruz/bahia-salinas.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/4532.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Coordenada de referencia de Nandel Beach Resort; no es la posición exacta del lente."
+    },
+    {
+        "id": "skyline-moravia-panorama-sj",
+        "site_slug": "skyline-moravia",
+        "site_name": "Moravia · cámaras SkylineWebcams",
+        "zone": "Valle Central",
+        "lat": 9.96164,
+        "lon": -84.04880,
+        "camera_name": "Panorama de San José - Costa Rica",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/panorama-san-jose.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/5609.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Punto de referencia de San Vicente de Moravia; no es la posición exacta del lente."
+    },
+    {
+        "id": "skyline-moravia-irazu",
+        "site_slug": "skyline-moravia",
+        "site_name": "Moravia · cámaras SkylineWebcams",
+        "zone": "Valle Central",
+        "lat": 9.96164,
+        "lon": -84.04880,
+        "camera_name": "Irazú - Costa Rica",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/irazu.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/5607.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Punto de referencia de Moravia indicado en la ficha; la vista apunta al Irazú."
+    },
+    {
+        "id": "skyline-moravia-san-vicente",
+        "site_slug": "skyline-moravia",
+        "site_name": "Moravia · cámaras SkylineWebcams",
+        "zone": "Valle Central",
+        "lat": 9.96164,
+        "lon": -84.04880,
+        "camera_name": "San Vicente - Costa Rica",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/san-vicente.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/5606.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Coordenada de referencia de San Vicente de Moravia; no es la posición exacta del lente."
+    },
+    {
+        "id": "skyline-moravia-braulio-carrillo",
+        "site_slug": "skyline-moravia",
+        "site_name": "Moravia · cámaras SkylineWebcams",
+        "zone": "Valle Central",
+        "lat": 9.96164,
+        "lon": -84.04880,
+        "camera_name": "Panorama de Braulio Carrillo - Costa Rica",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/heredia-braulio-carrillo.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/5608.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Punto de referencia de Moravia indicado en la ficha; la vista apunta a Heredia y Braulio Carrillo."
+    },
+    {
+        "id": "skyline-cerro-bebedero",
+        "site_slug": "skyline-cerro-bebedero",
+        "site_name": "Cerro Bebedero · San José",
+        "zone": "Valle Central",
+        "lat": 9.907972,
+        "lon": -84.162667,
+        "camera_name": "Panorama de San José · Cerro Bebedero",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/panorama-san-jose-costa-rica.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/5894.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Coordenada de referencia cartográfica de Cerro Bebedero; no confirma la posición exacta de la cámara."
+    },
+    {
+        "id": "skyline-cobano",
+        "site_slug": "skyline-cobano",
+        "site_name": "Aeropuerto de Cóbano",
+        "zone": "Península de Nicoya",
+        "lat": 9.69328,
+        "lon": -85.09104,
+        "camera_name": "Aeropuerto de Cóbano",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/cobano.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/4652.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Coordenada de referencia del aeródromo de Cóbano; no es la posición exacta del lente."
+    },
+    {
+        "id": "skyline-esterillos",
+        "site_slug": "skyline-esterillos",
+        "site_name": "Esterillos Este · Alma del Pacífico",
+        "zone": "Pacífico Central",
+        "lat": 9.52478,
+        "lon": -84.45324,
+        "camera_name": "Playa Esterillos Este · Alma del Pacífico",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/puntarenas/puntarenas/costa-rica-puntarenas.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/1047.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Coordenada de referencia del Hotel Alma del Pacífico; no es la posición exacta del lente."
+    },
+    {
+        "id": "skyline-san-isidro",
+        "site_slug": "skyline-san-isidro",
+        "site_name": "San Isidro de El General",
+        "zone": "Zona Sur",
+        "lat": 9.3706,
+        "lon": -83.7046,
+        "camera_name": "San Isidro de El General",
+        "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/perez-zeledon/san-isidro.html",
+        "snapshot_url": "https://embed.skylinewebcams.com/img/1726.jpg",
+        "source_type": "skylinewebcams",
+        "coordinate_note": "Coordenada de referencia del centro de San Isidro de El General; no es la posición exacta del lente."
+    },
+]
+
+
 
 
 def utc_now() -> datetime:
@@ -375,6 +501,17 @@ def text_content(soup: BeautifulSoup) -> str:
 def page_is_offline(soup: BeautifulSoup) -> bool:
     text = text_content(soup)
     return any(phrase in text for phrase in OFFLINE_PHRASES)
+
+
+def skyline_page_is_offline(soup: BeautifulSoup) -> bool:
+    """Detect the explicit OFFLINE / OFF-LINE badge used by SkylineWebcams."""
+    raw_text = soup.get_text(" ", strip=True)
+    normalized = raw_text.casefold()
+    return (
+        bool(re.search(r"\b(?:offline|off-line)\b", raw_text, re.IGNORECASE))
+        or "esta cámara no tiene conexión" in normalized
+        or "esta camara no tiene conexion" in normalized
+    )
 
 
 def same_site_path(url_a: str, url_b: str) -> bool:
@@ -622,6 +759,17 @@ def build_catalog(session: requests.Session) -> list[dict]:
         })
         catalog.append(row)
 
+    # Añadir las nueve cámaras de SkylineWebcams como fuente visual externa.
+    # Solo se consulta el estado de su ficha; no se descargan sus imágenes para IA.
+    for camera in SKYLINE_CAMERAS:
+        row = dict(camera)
+        row.update({
+            "weather_relevant": False,
+            "reason": "Previsualización oficial de SkylineWebcams. Se verifica disponibilidad, pero no se utiliza para alertas automáticas de lluvia.",
+            "initial_status": "pending",
+        })
+        catalog.append(row)
+
     # Evitar analizar varias veces la misma imagen repetida en distintas
     # variantes de una ficha. Se conserva la fuente oficial OVSICORI cuando
     # comparte la misma URL de imagen con una ficha agregadora.
@@ -654,7 +802,17 @@ def load_catalog(session: requests.Session) -> list[dict]:
                 camera.get("id") for camera in saved_cameras
                 if isinstance(camera, dict) and camera.get("source_type") == "ovsicori"
             }
-            if generated_text and saved_cameras and schema_version >= CATALOG_SCHEMA_VERSION and required_ovsicori.issubset(present_ovsicori):
+            required_skyline = {camera["id"] for camera in SKYLINE_CAMERAS}
+            present_skyline = {
+                camera.get("id") for camera in saved_cameras
+                if isinstance(camera, dict) and camera.get("source_type") == "skylinewebcams"
+            }
+            if (
+                generated_text and saved_cameras
+                and schema_version >= CATALOG_SCHEMA_VERSION
+                and required_ovsicori.issubset(present_ovsicori)
+                and required_skyline.issubset(present_skyline)
+            ):
                 generated = datetime.fromisoformat(generated_text.replace("Z", "+00:00"))
                 age = datetime.now(timezone.utc) - generated
                 if age < CATALOG_MAX_AGE:
@@ -1488,6 +1646,7 @@ def main() -> int:
             "lon": camera["lon"],
             "camera_name": camera["camera_name"],
             "page_url": camera["page_url"],
+            "preview_url": camera.get("snapshot_url") if camera.get("source_type") == "skylinewebcams" else None,
             "source_type": camera.get("source_type", "webcamscostarica"),
             "coordinate_note": camera.get("coordinate_note"),
             "status": "pending",
@@ -1516,6 +1675,39 @@ def main() -> int:
             "image_timestamp_source": "not_provided",
             "recovered": False,
         }
+
+        if camera.get("source_type") == "skylinewebcams":
+            try:
+                page_html, resolved_url = get_page(session, camera["page_url"])
+                page_soup = BeautifulSoup(page_html, "html.parser")
+                result["page_url"] = resolved_url
+                result["checked_at"] = iso_now()
+                result["scene_assessment"] = "pending"
+                result["image_quality_status"] = "not_evaluated"
+                if skyline_page_is_offline(page_soup):
+                    result["availability_status"] = "offline"
+                    result["status"] = "offline"
+                    result["message"] = (
+                        "SkylineWebcams indica que esta cámara está fuera de línea. "
+                        "No se muestra una captura anterior ni se genera una alerta."
+                    )
+                else:
+                    result["availability_status"] = "online"
+                    result["status"] = "external_preview"
+                    result["message"] = (
+                        "La ficha de SkylineWebcams está disponible. Se muestra su imagen oficial "
+                        "de previsualización; esta fuente no se analiza con IA ni genera alertas automáticas."
+                    )
+            except Exception as exc:
+                result["availability_status"] = "unknown"
+                result["status"] = "not_available"
+                result["message"] = (
+                    "No se pudo verificar la disponibilidad en SkylineWebcams. "
+                    "No se muestra una captura anterior. Se volverá a comprobar en el siguiente ciclo."
+                )
+                logging.info("No se pudo verificar SkylineWebcams %s: %s", camera.get("id"), exc)
+            results.append(result)
+            continue
 
         snapshot_url, resolution_status = resolve_snapshot_url(session, camera)
         if not snapshot_url:
@@ -1748,6 +1940,7 @@ def main() -> int:
         "source_url": BASE_URL,
         "sources": [
             {"name": "Webcams Costa Rica", "url": BASE_URL, "type": "public_webcams"},
+            {"name": "SkylineWebcams", "url": "https://www.skylinewebcams.com/es/webcam/costa-rica.html", "type": "external_webcam_previews", "note": "Nueve cámaras públicas. Se muestran las imágenes oficiales de previsualización y se verifica la disponibilidad de cada ficha. No se descargan ni se usan para alertas automáticas de lluvia."},
             {"name": "OVSICORI-UNA", "url": "https://www.ovsicori.una.ac.cr/index.php/camaras", "type": "official_volcano_cameras"},
             {
                 "name": "IMN · estaciones automáticas",
@@ -1775,9 +1968,10 @@ def main() -> int:
             "La puntuación model_score/rain_probability es una salida interna, no una probabilidad meteorológica calibrada. "
             "Una alerta visual solo se publica si la imagen tiene calidad suficiente y dos análisis independientes coinciden en que la lluvia es visible. "
             "Las imágenes nocturnas oscuras, con interferencia o sin detalle se excluyen hasta que sean legibles. "
-            "Las mediciones instrumentales se muestran por separado."
+            "Las mediciones instrumentales se muestran por separado. "
+            "Las cámaras SkylineWebcams son referencias visuales externas: solo se verifica su disponibilidad y no se usan para alertas automáticas."
         ),
-        "directory_sites": len(SITES),
+        "directory_sites": len(SITES) + len({camera["site_slug"] for camera in SKYLINE_CAMERAS}),
         "camera_count": len(results),
         "station_count": len(stations),
         "evaluated_count": sum(
