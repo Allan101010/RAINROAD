@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.7.8</title>
+  <title>RainTrack CR v1.7.9</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <style>
@@ -684,7 +684,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.8</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.7.9</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -720,10 +720,10 @@
             <strong style="font-size:12px">Capas meteorológicas</strong>
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
-              <option value="librewxr">LibreWXR · estimación satelital</option>
+              <option value="librewxr">LibreWXR · estimación satelital NOAA</option>
+              <option value="nasa_gpm">NASA GPM IMERG · precipitación satelital (30 min; retraso 5–6 h)</option>
             </select>
-            <a class="btn secondary small-btn" href="https://www.meteoblue.com/es/country/weather/radar/costa-rica_costa-rica_3624060" target="_blank" rel="noopener" style="display:block;width:100%;text-align:center;text-decoration:none;margin-top:9px">↗ Comparar con radar Meteoblue</a>
-            <p class="layer-hint">Meteoblue se abre en otra pestaña como fuente independiente de comparación; todavía no se superpone a este mapa. En zonas sin radar terrestre puede utilizar estimaciones satelitales.</p>
+            <p class="layer-hint">Ambas fuentes se muestran directamente sobre este mapa. NASA GPM es una estimación satelital global con retraso aproximado de 5–6 horas; no es radar en vivo.</p>
             <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span>Mostrar productos satelitales IMN</span></label>
             <label for="imnProduct">Producto oficial IMN</label>
             <select class="source-select" id="imnProduct">
@@ -958,15 +958,6 @@
     const ROUTE_WEATHER_SAMPLES_MAX = 8;
 
     const RADAR_SOURCES = {
-      rainviewer: {
-        label: "RainViewer",
-        metadataUrl: "https://api.rainviewer.com/public/weather-maps.json",
-        fallbackHost: "https://tilecache.rainviewer.com",
-        maxZoom: 7,
-        color: 2,
-        smooth: 0,
-        snow: 0
-      },
       librewxr: {
         label: "LibreWXR",
         metadataUrl: "https://api.librewxr.net/public/weather-maps.json",
@@ -975,8 +966,18 @@
         color: 10,
         smooth: 0,
         snow: 0
+      },
+      nasa_gpm: {
+        label: "NASA GPM IMERG",
+        maxZoom: 6
       }
     };
+
+    const NASA_GPM_TILE_BASE = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/IMERG_Precipitation_Rate_30min/default";
+    const NASA_GPM_TILE_MATRIX = "GoogleMapsCompatible_Level6";
+    const NASA_GPM_STEP_MS = 30 * 60 * 1000;
+    const NASA_GPM_TYPICAL_DELAY_MS = 6 * 60 * 60 * 1000;
+    let nasaGpmLastCheckedAt = 0;
 
     // Imágenes oficiales publicadas por el portal satelital del IMN.
     // Se muestran como una vista flotante dentro del mismo mapa, no como
@@ -1758,7 +1759,89 @@
       if (map.getSource("raintrack-radar-source")) map.removeSource("raintrack-radar-source");
     }
 
+    function nasaGpmIsoTime(timestampMs) {
+      return new Date(timestampMs).toISOString().replace(".000Z", "Z");
+    }
+
+    function nasaGpmTileUrl(frame) {
+      return NASA_GPM_TILE_BASE + "/" + frame.isoTime + "/" +
+        NASA_GPM_TILE_MATRIX + "/{z}/{y}/{x}.png";
+    }
+
+    async function findLatestNasaGpmFrame() {
+      // IMERG Early Run suele estar disponible unas 5 horas después de la observación.
+      // Se usa un margen conservador de 6 horas y se retrocede si GIBS aún no publicó el intervalo.
+      const candidate = Math.floor(
+        (Date.now() - NASA_GPM_TYPICAL_DELAY_MS) / NASA_GPM_STEP_MS
+      ) * NASA_GPM_STEP_MS;
+
+      // Tesela de prueba sobre Costa Rica (Web Mercator, z4/x4/y7).
+      for (let attempt = 0; attempt < 16; attempt++) {
+        const timestampMs = candidate - attempt * NASA_GPM_STEP_MS;
+        const isoTime = nasaGpmIsoTime(timestampMs);
+        const probeUrl = NASA_GPM_TILE_BASE + "/" + isoTime + "/" +
+          NASA_GPM_TILE_MATRIX + "/4/7/4.png";
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        try {
+          const response = await fetch(probeUrl, {
+            method: "GET",
+            cache: "no-store",
+            signal: controller.signal
+          });
+          const contentType = response.headers.get("content-type") || "";
+          if (response.ok && contentType.toLowerCase().includes("image")) {
+            return { timestampMs, isoTime };
+          }
+        } catch (error) {
+          if (attempt === 15) throw error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+      throw new Error("NASA GPM todavía no tiene una tesela reciente disponible para Costa Rica.");
+    }
+
+    async function loadNasaGpmSource(config) {
+      const latest = await findLatestNasaGpmFrame();
+      const frameCount = 5;
+      radarMetadata = { source: "NASA GPM IMERG / NASA GIBS" };
+      radarFrames = [];
+      for (let offset = frameCount - 1; offset >= 0; offset--) {
+        const timestampMs = latest.timestampMs - offset * NASA_GPM_STEP_MS;
+        radarFrames.push({
+          time: Math.floor(timestampMs / 1000),
+          isoTime: nasaGpmIsoTime(timestampMs),
+          frameType: "observed",
+          sourceType: "nasa-gpm"
+        });
+      }
+
+      radarFrameIndex = radarFrames.length - 1;
+      $("frameSlider").disabled = radarFrames.length <= 1;
+      $("frameSlider").min = "0";
+      $("frameSlider").max = String(Math.max(0, radarFrames.length - 1));
+      $("frameSlider").value = String(radarFrameIndex);
+      $("playRadar").disabled = radarFrames.length <= 1;
+      showRadarFrame(radarFrameIndex);
+
+      const latestClock = formatClockFromTimestamp(radarFrames[radarFrameIndex].time);
+      $("radarStatus").textContent = "● " + config.label + " conectado";
+      $("radarStatus").className = "success";
+      $("radarTime").textContent = "Última estimación disponible: " + latestClock;
+      $("mapStatusChip").textContent = "NASA GPM IMERG · precipitación satelital global · intervalo de 30 min";
+      $("radarSourceNote").innerHTML =
+        'NASA GPM IMERG combina observaciones de varios satélites para estimar precipitación cada 30 minutos. ' +
+        '<strong>El producto reciente suele tener unas 5–6 horas de retraso:</strong> no es radar terrestre ni lluvia en tiempo real. ' +
+        'La resolución es de aproximadamente 10 km. Fuente: ' +
+        '<a href="https://gpm.nasa.gov/data/imerg" target="_blank" rel="noopener">NASA GPM IMERG</a> · ' +
+        '<a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>.';
+      nasaGpmLastCheckedAt = Date.now();
+      updateZoomHint();
+    }
+
     function radarTileUrl(frame, metadata, config) {
+      if (frame.sourceType === "nasa-gpm") return nasaGpmTileUrl(frame);
       const host = String(metadata.host || config.fallbackHost).replace(/\/$/, "");
       const path = String(frame.path || "");
       return host + path + "/256/{z}/{x}/{y}/" + config.color + "/" + config.smooth + "_" + config.snow + ".png";
@@ -1767,10 +1850,12 @@
     async function loadRadarSource() {
       if (!mapReady) return;
       stopRadarAnimation();
-      radarSourceKey = $("radarSource").value;
+      const selectedSource = $("radarSource").value;
+      radarSourceKey = RADAR_SOURCES[selectedSource] ? selectedSource : "librewxr";
+      $("radarSource").value = radarSourceKey;
       localStorage.setItem(SOURCE_STORAGE_KEY, radarSourceKey);
-      const config = RADAR_SOURCES[radarSourceKey];
 
+      const config = RADAR_SOURCES[radarSourceKey];
       $("radarStatus").textContent = "Consultando " + config.label + "…";
       $("radarStatus").className = "loading";
       $("radarTime").textContent = "Obteniendo imágenes disponibles";
@@ -1778,12 +1863,16 @@
       removeRadarLayer();
 
       try {
+        if (radarSourceKey === "nasa_gpm") {
+          await loadNasaGpmSource(config);
+          return;
+        }
+
         const metadata = await fetchJson(config.metadataUrl);
         const past = Array.isArray(metadata.radar?.past) ? metadata.radar.past : [];
-        const future = radarSourceKey === "librewxr" && Array.isArray(metadata.radar?.nowcast)
-          ? metadata.radar.nowcast : [];
+        const future = Array.isArray(metadata.radar?.nowcast) ? metadata.radar.nowcast : [];
 
-        if (!past.length) throw new Error("La fuente no devolvió imágenes de radar.");
+        if (!past.length) throw new Error("La fuente no devolvió imágenes disponibles.");
 
         radarMetadata = metadata;
         radarFrames = [
@@ -1797,31 +1886,30 @@
         $("frameSlider").max = String(Math.max(0, radarFrames.length - 1));
         $("frameSlider").value = String(radarFrameIndex);
         $("playRadar").disabled = radarFrames.length <= 1;
-
         showRadarFrame(radarFrameIndex);
 
         const lastObserved = past[past.length - 1];
         $("radarStatus").textContent = "● " + config.label + " conectado";
         $("radarStatus").className = "success";
         $("radarTime").textContent = "Última imagen disponible: " + formatClockFromTimestamp(lastObserved.time);
-        $("mapStatusChip").textContent = radarSourceKey === "librewxr"
-          ? "LibreWXR · Precipitación global observada estimada por satélite en Costa Rica"
-          : "RainViewer · Imágenes de radar disponibles según cobertura del proveedor";
-
-        $("radarSourceNote").innerHTML = radarSourceKey === "librewxr"
-          ? 'En Costa Rica, la capa global utiliza principalmente NOAA RRQPE, una <strong>estimación satelital de precipitación</strong>; no equivale a un radar terrestre local. LibreWXR puede incluir proyección experimental de hasta 60 minutos. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.'
-          : 'RainViewer ofrece imágenes pasadas con intervalos aproximados de 10 minutos. En su API pública el zoom nativo máximo es 7 y no se debe interpretar el acercamiento del mapa como mayor resolución. Fuente: <a href="https://www.rainviewer.com/api/weather-maps-api.html" target="_blank" rel="noopener">RainViewer</a>.';
-
+        $("mapStatusChip").textContent =
+          "LibreWXR · Precipitación global estimada por satélite en Costa Rica";
+        $("radarSourceNote").innerHTML =
+          'En Costa Rica, la capa global utiliza principalmente NOAA RRQPE, una <strong>estimación satelital de precipitación</strong>; no equivale a un radar terrestre local. LibreWXR puede incluir proyección experimental de hasta 60 minutos. Fuente: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a>.';
         updateZoomHint();
       } catch (error) {
-        console.error("Error al cargar radar:", error);
+        console.error("Error al cargar fuente de precipitación:", error);
         removeRadarLayer();
-        $("radarStatus").textContent = "Radar no disponible";
+        $("radarStatus").textContent = "Fuente no disponible";
         $("radarStatus").className = "error-text";
-        $("radarTime").textContent = "No se pudieron obtener imágenes de esta fuente.";
+        $("radarTime").textContent = "No se pudo obtener una imagen de esta fuente.";
         $("mapStatusChip").textContent = "El mapa base sigue funcionando; la capa de precipitación no está disponible.";
-        $("radarSourceNote").textContent = "LibreWXR no respondió o no tiene imágenes disponibles. Puedes consultar el radar oficial del IMN o comparar con Meteoblue en otra pestaña.";
+        $("radarSourceNote").textContent = radarSourceKey === "nasa_gpm"
+          ? "NASA GPM no devolvió una tesela reciente válida para Costa Rica. Puede haber retraso en la publicación del producto; intenta actualizar más tarde."
+          : "LibreWXR no respondió o no tiene imágenes disponibles. La capa base del mapa sigue funcionando.";
         $("frameLabel").textContent = "--";
+        $("frameSlider").disabled = true;
+        $("playRadar").disabled = true;
       }
     }
 
@@ -1843,7 +1931,7 @@
         maxzoom: config.maxZoom,
         attribution: radarSourceKey === "librewxr"
           ? 'Precipitation data: LibreWXR / NOAA RRQPE'
-          : 'Weather data by RainViewer'
+          : 'NASA GPM IMERG precipitation estimate / NASA GIBS'
       });
 
       const firstSymbol = map.getStyle().layers.find(layer => layer.type === "symbol");
@@ -3179,7 +3267,12 @@
       if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
       cameraMonitorTimer = setInterval(loadCameraMonitoringData, 5 * 60 * 1000);
       setInterval(() => {
-        if (mapReady) loadRadarSource();
+        if (!mapReady) return;
+        if (radarSourceKey === "nasa_gpm") {
+          if (Date.now() - nasaGpmLastCheckedAt >= 30 * 60 * 1000) loadRadarSource();
+        } else {
+          loadRadarSource();
+        }
       }, 5 * 60 * 1000);
       if (imnRefreshTimer) clearInterval(imnRefreshTimer);
       imnRefreshTimer = setInterval(() => {
