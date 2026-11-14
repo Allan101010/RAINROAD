@@ -398,7 +398,7 @@ def build_catalog(session: requests.Session) -> list[dict]:
         row = dict(camera)
         row.update({
             "weather_relevant": False,
-            "reason": (
+            "reason": camera.get("reason") or (
                 "Esta cámara solo ofrece video en vivo en su página original. RainTrack no puede "
                 "verificar si está en línea ni mostrar una miniatura; abre el enlace para verla."
             ),
@@ -445,8 +445,7 @@ def load_catalog(session: requests.Session) -> list[dict]:
             }
             required_external = {camera["id"] for camera in EXTERNAL_LINK_CAMERAS}
             present_external = {
-                camera.get("id") for camera in saved_cameras
-                if isinstance(camera, dict) and camera.get("source_type") == "external_link"
+                camera.get("id") for camera in saved_cameras if isinstance(camera, dict)
             }
             if (
                 generated_text and saved_cameras

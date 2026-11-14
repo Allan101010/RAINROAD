@@ -561,6 +561,20 @@
       "live_video_page": true,
       "snapshot_url": null,
       "coordinate_note": "Coordenada de referencia del volcán Arenal; no es la posición exacta del lente."
+    },
+    {
+      "id": "apm-moin-gate",
+      "site_slug": "puerto-moin",
+      "site_name": "Puerto de Moín · APM Terminals",
+      "zone": "Caribe",
+      "lat": 10.0035,
+      "lon": -83.156,
+      "camera_name": "APM Terminals Moín · entrada de camiones",
+      "page_url": "https://www.apmterminals.com/en/moin/e-services/truck-turn-times",
+      "source_type": "public_snapshot",
+      "snapshot_url": "https://cms-cd.apmterminals.com/apm/api/v1/gatecameras/gate-camera?id=cd1535f7-3f80-4352-986e-9b841537afd6",
+      "reason": "Cámara pública de la entrada de camiones del puerto; se verifica que la imagen cargue, pero no se usa para alertas de lluvia.",
+      "coordinate_note": "Coordenada de referencia del puerto de Moín; no es la posición exacta del lente."
     }
   ]
 }
