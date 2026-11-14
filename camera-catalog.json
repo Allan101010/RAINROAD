@@ -1,6 +1,6 @@
 {
   "schema_version": 4,
-  "generated_at": "2026-11-14T00:20:53Z",
+  "generated_at": "2026-11-14T02:02:12Z",
   "cameras": [
     {
       "id": "playa-flamingo-flamingo-2",
@@ -314,22 +314,7 @@
       "lon": -85.058,
       "camera_name": "Reserva Karen Mogensen ahora mismo",
       "page_url": "https://webcamscostarica.com/reserva-karen-mogensen/",
-      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955130",
-      "source_type": "webcamscostarica",
-      "weather_relevant": true,
-      "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
-      "initial_status": "pending"
-    },
-    {
-      "id": "santa-teresa-default",
-      "site_slug": "santa-teresa",
-      "site_name": "Santa Teresa",
-      "zone": "Península de Nicoya",
-      "lat": 9.646,
-      "lon": -85.169,
-      "camera_name": "Santa Teresa ahora mismo",
-      "page_url": "https://webcamscostarica.com/santa-teresa/",
-      "snapshot_url": "https://webcamscostarica.com/snap/santa-teresa-malpais-960.jpg",
+      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955181",
       "source_type": "webcamscostarica",
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
@@ -696,6 +681,22 @@
       "initial_status": "pending"
     },
     {
+      "id": "skyline-tamarindo",
+      "site_slug": "skyline-tamarindo",
+      "site_name": "Tamarindo · Playa Tamarindo",
+      "zone": "Guanacaste",
+      "lat": 10.3,
+      "lon": -85.841,
+      "camera_name": "Playa Tamarindo",
+      "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/guanacaste/tamarindo/beach.html",
+      "snapshot_url": "https://embed.skylinewebcams.com/img/5930.jpg",
+      "source_type": "skylinewebcams",
+      "coordinate_note": "Coordenada de referencia de Tamarindo; no es la posición exacta del lente.",
+      "weather_relevant": false,
+      "reason": "Previsualización oficial de SkylineWebcams. Se verifica disponibilidad, pero no se utiliza para alertas automáticas de lluvia.",
+      "initial_status": "pending"
+    },
+    {
       "id": "tamarindo-tamarindo-diria-1",
       "site_slug": "tamarindo",
       "site_name": "Tamarindo",
@@ -749,6 +750,21 @@
       "lon": -85.841,
       "camera_name": "Tamarindo · Witch's Rock 2",
       "page_url": "https://webcamscostarica.com/tamarindo/?cam=tamarindo-witchsrock-2",
+      "snapshot_url": null,
+      "source_type": "webcamscostarica",
+      "weather_relevant": true,
+      "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
+      "initial_status": "offline"
+    },
+    {
+      "id": "santa-teresa-default",
+      "site_slug": "santa-teresa",
+      "site_name": "Santa Teresa",
+      "zone": "Península de Nicoya",
+      "lat": 9.646,
+      "lon": -85.169,
+      "camera_name": "Mientras tanto, en vivo cerca de aquí",
+      "page_url": "https://webcamscostarica.com/santa-teresa/",
       "snapshot_url": null,
       "source_type": "webcamscostarica",
       "weather_relevant": true,
