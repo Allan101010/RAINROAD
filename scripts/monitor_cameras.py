@@ -376,7 +376,7 @@ def build_catalog(session: requests.Session) -> list[dict]:
         })
         catalog.append(row)
 
-    # Añadir las nueve cámaras de SkylineWebcams como fuente visual externa.
+    # Añadir las diez cámaras de SkylineWebcams como fuente visual externa.
     # Solo se consulta el estado de su ficha; no se descargan sus imágenes para IA.
     for camera in SKYLINE_CAMERAS:
         row = dict(camera)
@@ -1279,7 +1279,7 @@ def main() -> int:
         "source_url": BASE_URL,
         "sources": [
             {"name": "Webcams Costa Rica", "url": BASE_URL, "type": "public_webcams"},
-            {"name": "SkylineWebcams", "url": "https://www.skylinewebcams.com/es/webcam/costa-rica.html", "type": "external_webcam_previews", "note": "Nueve cámaras públicas. Algunas fichas, como el Aeropuerto de Cóbano, ofrecen video en vivo en la página original. RainTrack verifica la ficha y muestra una miniatura; no reproduce ni analiza el flujo de video ni genera alertas a partir de SkylineWebcams."},
+            {"name": "SkylineWebcams", "url": "https://www.skylinewebcams.com/es/webcam/costa-rica.html", "type": "external_webcam_previews", "note": "Diez cámaras públicas. Algunas fichas, como el Aeropuerto de Cóbano, ofrecen video en vivo en la página original. RainTrack verifica la ficha y muestra una miniatura; no reproduce ni analiza el flujo de video ni genera alertas a partir de SkylineWebcams."},
             {"name": "OVSICORI-UNA", "url": "https://www.ovsicori.una.ac.cr/index.php/camaras", "type": "official_volcano_cameras"},
             {
                 "name": "IMN · estaciones automáticas",

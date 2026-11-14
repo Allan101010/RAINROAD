@@ -524,6 +524,19 @@
       "snapshot_url": "https://embed.skylinewebcams.com/img/1726.jpg",
       "source_type": "skylinewebcams",
       "coordinate_note": "Coordenada de referencia del centro de San Isidro de El General; no es la posición exacta del lente."
+    },
+    {
+      "id": "skyline-tamarindo",
+      "site_slug": "skyline-tamarindo",
+      "site_name": "Tamarindo · Playa Tamarindo",
+      "zone": "Guanacaste",
+      "lat": 10.3,
+      "lon": -85.841,
+      "camera_name": "Playa Tamarindo",
+      "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/guanacaste/tamarindo/beach.html",
+      "snapshot_url": "https://embed.skylinewebcams.com/img/5930.jpg",
+      "source_type": "skylinewebcams",
+      "coordinate_note": "Coordenada de referencia de Tamarindo; no es la posición exacta del lente."
     }
   ],
   "camera_name_overrides": {
