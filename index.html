@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.54">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.55">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.54</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.55</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -125,18 +125,19 @@
         </section>
       </div>
 
-      <div class="map-toolbar">
+      <div class="map-toolbar" id="mapToolbar">
         <div class="radar-toolbar-top">
-          <div>
-            <div id="radarStatus" class="loading">Consultando capa meteorológica…</div>
+          <div class="radar-heading">
+            <div id="radarStatus" class="radar-title loading">Consultando capa meteorológica…</div>
             <div id="radarTime" class="radar-time">Esperando imagen meteorológica</div>
           </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <div class="radar-actions">
             <button class="btn secondary small-btn" id="routeToggle" type="button" aria-expanded="false">🧭 Rutas</button>
             <button class="btn secondary small-btn" id="goHomeMap" type="button">⌖ Mi ubicación</button>
           </div>
         </div>
-        <div class="timeline-row">
+        <div class="own-rain-stats" id="ownRainStats" hidden></div>
+        <div class="timeline-row" id="timelineRow">
           <button class="btn secondary small-btn" id="playRadar" type="button" disabled>▶ Reproducir</button>
           <input id="frameSlider" type="range" min="0" max="0" value="0" disabled aria-label="Elegir imagen del radar">
           <div class="timeline-label" id="frameLabel">--</div>
@@ -302,9 +303,9 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.54"></script>
-  <script src="assets/app.js?v=1.8.54"></script>
-  <script src="assets/landmarks.js?v=1.8.54"></script>
-  <script src="assets/ratelayer.js?v=1.8.54"></script>
+  <script src="assets/ambient.js?v=1.8.55"></script>
+  <script src="assets/app.js?v=1.8.55"></script>
+  <script src="assets/landmarks.js?v=1.8.55"></script>
+  <script src="assets/ratelayer.js?v=1.8.55"></script>
 </body>
 </html>

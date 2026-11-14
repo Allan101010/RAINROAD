@@ -1258,13 +1258,21 @@ function showOwnRainSource() {
   const gen = cameraMonitorData && cameraMonitorData.generated_at ? new Date(cameraMonitorData.generated_at) : null;
   const when = gen && !Number.isNaN(gen.getTime())
     ? gen.toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" }) : "esperando datos";
-  $("radarStatus").textContent = "RainTrack · lluvia medida por estaciones del IMN";
-  $("radarStatus").className = "muted";
-  $("radarTime").textContent = "Última lectura de estaciones: " + when + " · solo donde hay estación midiendo";
+  $("radarStatus").textContent = "🌧️ Lluvia medida · IMN";
+  $("radarStatus").className = "radar-title";
+  const genAge = gen && !Number.isNaN(gen.getTime()) ? Math.max(0, Math.round((Date.now() - gen.getTime()) / 60000)) : null;
+  $("radarTime").textContent = "Estaciones del IMN · lectura de las " + when + (genAge == null ? "" : " (hace " + genAge + " min)");
   $("frameLabel").textContent = "--";
+  $("mapToolbar").classList.add("own-rain-mode");
   if (window.RainTrackOwnRain) { window.RainTrackOwnRain.rebuild(); window.RainTrackOwnRain.sync(); }
   const storms = window.RainTrackOwnRain ? window.RainTrackOwnRain.stormCount() : 0;
   const cellsNow = window.RainTrackOwnRain ? window.RainTrackOwnRain.cellCount() : 0;
+  const stats = $("ownRainStats");
+  stats.hidden = false;
+  stats.innerHTML =
+    `<span class="orc ${cellsNow ? "on" : ""}"><b>${cellsNow}</b> ${cellsNow === 1 ? "estación con lluvia" : "estaciones con lluvia"}</span>` +
+    `<span class="orc ${storms ? "storm" : ""}"><b>${storms}</b> ${storms === 1 ? "tormenta" : "tormentas"}</span>` +
+    `<span class="orc hint">Solo donde hay estación midiendo</span>`;
   $("mapStatusChip").textContent = storms
     ? "⛈️ " + storms + (storms === 1 ? " zona con tormenta" : " zonas con tormenta") + " · lluvia intensa medida"
     : cellsNow ? "🌧️ Lluvia medida en " + cellsNow + (cellsNow === 1 ? " estación" : " estaciones") : "☀️ Sin lluvia medida ahora · estaciones IMN";
@@ -1281,6 +1289,8 @@ async function loadRadarSource() {
     return;
   }
   ownRainSelected = false;
+  $("mapToolbar").classList.remove("own-rain-mode");
+  $("ownRainStats").hidden = true;
   if (window.RainTrackOwnRain) window.RainTrackOwnRain.sync();
 
   const selectedSource = $("radarSource").value;
