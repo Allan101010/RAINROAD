@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.27</title>
+  <title>RainTrack CR v1.8.28</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.27">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.28">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.27</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.28</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -79,7 +79,7 @@
               <option value="convection">Convección profunda</option>
               <option value="radargif">Radar animado IMN</option>
             </select>
-            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (27 puntos de cámaras · 8 OVSICORI · 9 SkylineWebcams · 13 estaciones IMN · 1 panel WeatherLink)</span></label>
+            <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span>Mostrar cámaras y estaciones (cámaras públicas · 24 estaciones IMN · 1 panel WeatherLink)</span></label>
             <button class="btn secondary small-btn" id="imnRefresh" type="button" style="width:100%;margin-top:10px">↻ Actualizar imagen IMN</button>
             <p class="layer-hint">Las imágenes IMN se muestran en una ventana dentro del mapa. Aún no se superponen geográficamente: el portal publica imágenes, no teselas con coordenadas verificadas.</p>
             <p class="layer-hint">Estado de las cámaras de Webcams Costa Rica y OVSICORI cada 10 minutos. Las imágenes oscuras, demoradas o sin detalle se marcan como no legibles. Las imágenes oscuras, demoradas o sin detalle se excluyen de alertas.</p>
@@ -293,6 +293,6 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.27"></script>
+  <script src="assets/app.js?v=1.8.28"></script>
 </body>
 </html>

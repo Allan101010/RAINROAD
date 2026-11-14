@@ -34,7 +34,7 @@ def build_message(zone: dict, alert: dict) -> dict:
     places = ", ".join(zone.get("places", []))
     body = f"{alert.get('station_name', 'Estación IMN')}: {amount}."
     if places:
-        body += f"\nZona: {places}.\nEs la estación más cercana; la lluvia puede variar de un barrio a otro."
+        body += f"\nZona: {places}.\nEs una estación del IMN de esta zona; la lluvia puede variar de un barrio a otro."
     return {
         "topic": zone["topic"],
         "title": f"Lluvia en {zone['name']}",

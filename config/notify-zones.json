@@ -19,7 +19,10 @@
         "Santa Rosa de Poás"
       ],
       "station_ids": [
-        "imn-aeropuerto-sjo-07"
+        "imn-aeropuerto-sjo-07",
+        "imn-fabio-baudrit",
+        "imn-laguna-fraijanes",
+        "imn-recope-la-garita"
       ]
     },
     {
@@ -36,7 +39,10 @@
         "San José centro"
       ],
       "station_ids": [
-        "imn-aranjuez"
+        "imn-aranjuez",
+        "imn-cigefi",
+        "imn-jaboncillal",
+        "imn-finca-los-macaya"
       ]
     }
   ]
