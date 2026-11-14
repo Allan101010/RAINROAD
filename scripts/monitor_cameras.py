@@ -18,6 +18,7 @@ import json
 import logging
 import re
 import statistics
+import sys
 import time
 import unicodedata
 from datetime import datetime, timezone, timedelta
@@ -28,6 +29,9 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps, ImageStat
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import camera_training  # noqa: E402
 
 try:
     from scripts.notify_zones import notify_new_rain
@@ -1343,6 +1347,7 @@ def main() -> int:
     }
 
     results: list[dict] = []
+    camera_features: dict[str, dict] = {}
 
     for camera in catalog:
         result = {
@@ -1436,6 +1441,10 @@ def main() -> int:
             result["image_last_modified"] = metadata.get("last_modified")
             result.update(assess_image_freshness(camera, image, metadata))
             result.update(assess_image_quality(image))
+            try:
+                camera_features[result["id"]] = camera_training.extract_features(image)
+            except Exception as exc:  # recolección opcional: nunca debe romper el monitor
+                logging.info("Sin resumen de imagen para %s: %s", result.get("id"), exc)
 
             if result["image_quality_status"] != "usable":
                 result["status"] = "low_visibility"
@@ -1575,6 +1584,20 @@ def main() -> int:
         "stations": stations,
         "external_stations": external_stations,
     }
+
+    try:
+        now_utc = utc_now()
+        flashes = camera_training.fetch_lightning(session)
+        rows = [
+            camera_training.build_row(item, camera_features[item["id"]], stations, flashes, now_utc)
+            for item in results
+            if item.get("id") in camera_features and item.get("availability_status") == "online"
+            and item.get("lat") is not None and item.get("lon") is not None
+        ]
+        total = camera_training.append_rows(rows, now_utc)
+        logging.info("Datos de entrenamiento: %s filas nuevas (%s en total).", len(rows), total)
+    except Exception as exc:
+        logging.warning("No se pudieron guardar los datos de entrenamiento: %s", exc)
 
     notify_state = dict(previous_payload.get("notify_state") or {})
     sent = notify_new_rain(station_alerts, previous_payload.get("station_alerts", []), session, state=notify_state)

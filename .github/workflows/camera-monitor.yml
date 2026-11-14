@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "scripts/monitor_cameras.py"
+      - "scripts/camera_training.py"
       - "config/camera-sources.json"
       - "requirements-camera-monitor.txt"
       - ".github/workflows/camera-monitor.yml"
@@ -45,8 +46,18 @@ jobs:
       - name: Instalar dependencias del monitor
         run: pip install -r requirements-camera-monitor.txt
 
+      - name: Recuperar datos de entrenamiento de cámaras
+        run: |
+          git fetch origin camera-training:refs/remotes/origin/camera-training || true
+          mkdir -p training-data
+          git show origin/camera-training:camera-features.jsonl > training-data/camera-features.jsonl 2>/dev/null || rm -f training-data/camera-features.jsonl
+
       - name: Consultar cámaras y estaciones
         run: python scripts/monitor_cameras.py
+
+      - name: Publicar datos de entrenamiento de cámaras
+        continue-on-error: true
+        run: python scripts/camera_training.py publish
 
       - name: Publicar resultados para GitHub Pages
         run: |

@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -95,6 +96,43 @@ class UcrSanLuisTests(unittest.TestCase):
         self.assertEqual(values["rain_last_hour_mm"], 0.4)
         self.assertEqual(values["rain_today_mm"], 0.6)
         self.assertEqual(cams.parse_ucr_sanluis("basura"), {})
+
+
+class CameraTrainingTests(unittest.TestCase):
+    def test_features_and_row(self):
+        from PIL import Image
+        sys_path = str(Path(__file__).resolve().parents[1] / "scripts")
+        if sys_path not in sys.path:
+            sys.path.insert(0, sys_path)
+        import camera_training as ct
+        image = Image.new("RGB", (200, 150), (120, 130, 150))
+        feats = ct.extract_features(image)
+        self.assertIn("sky_luma", feats)
+        self.assertAlmostEqual(feats["contrast"], 0.0, places=1)
+        stations = [
+            {"id": "a", "lat": 9.93, "lon": -84.08, "availability_status": "online", "rain_last_hour_mm": 1.2},
+            {"id": "b", "lat": 9.94, "lon": -84.07, "availability_status": "stale", "rain_last_hour_mm": 9.0},
+            {"id": "c", "lat": 11.0, "lon": -85.0, "availability_status": "online", "rain_last_hour_mm": 0.0},
+        ]
+        now = cams.utc_now()
+        flashes = [[now.timestamp() - 60, 9.95, -84.05], [now.timestamp() - 3000, 9.95, -84.05]]
+        row = ct.build_row({"id": "cam1", "lat": 9.935, "lon": -84.075, "image_quality_status": "usable", "image_age_minutes": 3},
+                           feats, stations, flashes, now)
+        self.assertEqual([item[0] for item in row["st"]], ["a"])
+        self.assertEqual(row["lg"], 1)
+        self.assertIsNone(ct.lightning_near(9.9, -84.0, None, now))
+
+    def test_append_rows_prunes_old(self):
+        import tempfile
+        import camera_training as ct
+        now = cams.utc_now()
+        old = (now - timedelta(days=20)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "x.jsonl"
+            path.write_text(json.dumps({"t": old, "cam": "old"}) + "\n", encoding="utf-8")
+            total = ct.append_rows([{"t": now.replace(microsecond=0).isoformat().replace("+00:00", "Z"), "cam": "new"}], now, path)
+            self.assertEqual(total, 1)
+            self.assertNotIn("old", path.read_text(encoding="utf-8"))
 
 
 class CameraSourcesTests(unittest.TestCase):
