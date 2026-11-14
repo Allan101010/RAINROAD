@@ -36,6 +36,28 @@
     return { type: "FeatureCollection", features };
   }
 
+  // Mini rayo dibujado en canvas, un color por rango de antigüedad.
+  const BOLT_COLORS = ["#ffffff", "#ffe44d", "#ffa000", "#a1887f"];
+  function boltImage(color) {
+    const w = 44, h = 64, canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const c = canvas.getContext("2d");
+    c.beginPath();
+    c.moveTo(27, 2); c.lineTo(8, 36); c.lineTo(21, 36); c.lineTo(15, 62); c.lineTo(37, 25); c.lineTo(24, 25); c.lineTo(32, 2);
+    c.closePath();
+    c.lineJoin = "round";
+    c.lineWidth = 5; c.strokeStyle = "rgba(20,20,30,0.9)"; c.stroke();
+    c.fillStyle = color; c.fill();
+    c.lineWidth = 1.5; c.strokeStyle = "rgba(255,255,255,0.55)"; c.stroke();
+    return c.getImageData(0, 0, w, h);
+  }
+  function ensureBoltImages() {
+    BOLT_COLORS.forEach((color, i) => {
+      const id = "rt-bolt-" + i;
+      if (!map.hasImage(id)) map.addImage(id, boltImage(color), { pixelRatio: 2 });
+    });
+  }
+
   function removeLayers() {
     if (typeof map === "undefined" || !map || !map.getStyle || !map.getStyle()) return;
     [DOT_ID, GLOW_ID].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
@@ -56,22 +78,26 @@
     map.addLayer({
       id: GLOW_ID, type: "circle", source: SOURCE_ID,
       paint: {
-        "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 16, 5, 11, MAX_AGE_MIN, 4],
+        "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 20, 5, 13, 12, 6],
         "circle-color": ageColor,
-        "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.45, 5, 0.25, MAX_AGE_MIN, 0.04],
+        "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.4, 5, 0.18, 12, 0],
         "circle-blur": 1
       }
     }, before);
+    ensureBoltImages();
     map.addLayer({
-      id: DOT_ID, type: "circle", source: SOURCE_ID,
+      id: DOT_ID, type: "symbol", source: SOURCE_ID,
+      layout: {
+        "icon-image": ["step", ["get", "age"], "rt-bolt-0", 2, "rt-bolt-1", 10, "rt-bolt-2", 20, "rt-bolt-3"],
+        "icon-size": ["interpolate", ["linear"], ["get", "age"], 0, 0.95, 5, 0.8, MAX_AGE_MIN, 0.5],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-anchor": "center"
+      },
       paint: {
-        "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 5, 5, 4, MAX_AGE_MIN, 2.5],
-        "circle-color": ageColor,
-        "circle-stroke-color": "rgba(0,0,0,0.55)",
-        "circle-stroke-width": 0.8,
-        "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 1, 15, 0.8, MAX_AGE_MIN, 0.35]
+        "icon-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 1, 15, 0.85, MAX_AGE_MIN, 0.4]
       }
-    }, before);
+    });
   }
 
   function updateInfo() {
