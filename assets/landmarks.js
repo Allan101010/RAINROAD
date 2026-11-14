@@ -117,6 +117,95 @@
   const write = (k, v) => { try { localStorage.setItem(key + "-" + k, v ? "1" : "0"); } catch (e) {} };
 
   function clear() { markers.forEach(m => m.remove()); markers = []; }
+  // Fotos de lugares icónicos: Wikimedia Commons (licencia libre; cada foto enlaza a su página con autor y licencia).
+  const PHOTOS = {
+    "Teatro Nacional": {
+      "f": "Costa Rica-Teatro Nacional.JPG",
+      "a": "Andres Alvarez"
+    },
+    "Alajuela, Ciudad de los Mangos": {
+      "f": "Juan Santamaria 1.JPG",
+      "a": "Erick Chavarría"
+    },
+    "Basílica de Nuestra Señora de los Ángeles": {
+      "f": "Basilica of Our Lady of the Angels, Cartago 01.jpg",
+      "a": "Bernard Gagnon"
+    },
+    "El Fortín y el café de Heredia": {
+      "f": "El Fortín de Heredia.JPG",
+      "a": "Lex.mercurio"
+    },
+    "Liberia, la Ciudad Blanca": {
+      "f": "Liberia (Costa Rica).jpg",
+      "a": "Tizianok"
+    },
+    "Puerto de Puntarenas": {
+      "f": "Muelle de Puntarenas.jpg",
+      "a": "Steven Depolo"
+    },
+    "Parque Vargas, Limón": {
+      "f": "Parque Vargas. Limón. Costa Rica.jpg",
+      "a": "Roger"
+    },
+    "Sarchí y la carreta pintada": {
+      "f": "Carreta tipica Sarchi (1).JPG",
+      "a": "Axxis10"
+    },
+    "Jardín de arbustos de Zarcero": {
+      "f": "ZARCERO TOPIARY GARDEN, COSTA RICA.jpg",
+      "a": "Jerrye y Roy Klotz"
+    },
+    "Monteverde": {
+      "f": "Monteverde Cloud Forest 01.jpg",
+      "a": "Cephas"
+    },
+    "Tortuguero": {
+      "f": "Tortuguero Nationalpark.jpg",
+      "a": "Leyo"
+    },
+    "Manuel Antonio": {
+      "f": "Parque Nacional Manuel Antonio 02.jpg",
+      "a": "Bernard Gagnon"
+    },
+    "Jacó": {
+      "f": "Beach, Jaco.JPG",
+      "a": "Milei.vencel"
+    },
+    "Tamarindo": {
+      "f": "Tamarindo beach-Guanacaste-Costa Rica.jpg",
+      "a": "Jarle Naustvik"
+    },
+    "Cahuita": {
+      "f": "Cahuita national park, Costa Rica.jpg",
+      "a": "Haakon S. Krohn"
+    },
+    "Península de Osa y Corcovado": {
+      "f": "Corcovado National Park, Costa RIca 02.jpg",
+      "a": "Bernard Gagnon"
+    },
+    "Cerro Chirripó": {
+      "f": "Chirripo.jpg",
+      "a": "Peter Andersen"
+    },
+    "Valle de Orosi": {
+      "f": "Vista del Valle de Orosi.jpg",
+      "a": "André Oliva"
+    },
+    "Isla del Coco": {
+      "f": "CocosIslandCostaRica.jpg",
+      "a": "Shannon Rankin, NOAA"
+    },
+    "Nicoya y su iglesia de San Blas": {
+      "f": "Fachada Iglesia Colonial Nicoya Museo Nacional CRI 01 2020 4152.jpg",
+      "a": "Mariordo"
+    }
+  };
+  function photoHtml(name) {
+    const ph = PHOTOS[name];
+    if (!ph) return "";
+    const file = encodeURIComponent(ph.f.replace(/ /g, "_"));
+    return `<figure class="lm-photo"><img class="vol-photo" src="https://commons.wikimedia.org/wiki/Special:FilePath/${file}?width=720" alt="${esc(name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('figure').remove()"><figcaption>Foto: ${esc(ph.a)} · <a href="https://commons.wikimedia.org/wiki/File:${file}" target="_blank" rel="noopener">Wikimedia Commons ↗</a></figcaption></figure>`;
+  }
   function esc(s) { return typeof escapeHtml === "function" ? escapeHtml(s) : String(s); }
 
   function add(el, lon, lat, detail) {
@@ -160,7 +249,7 @@
           eyebrow: l.major ? "ÍCONO DE LA PROVINCIA" : "ÍCONO DE COSTA RICA",
           title: l.n,
           subtitle: l.p,
-          content: `<div class="camera-popup"><div class="camera-popup-status">${esc(l.t)}</div></div>`
+          content: `<div class="camera-popup">${photoHtml(l.n)}<div class="camera-popup-status">${esc(l.t)}</div></div>`
         });
       });
     }

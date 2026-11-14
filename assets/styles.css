@@ -1276,3 +1276,8 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 .vol-smoke.strong.s3, .vol-smoke.ash.s3 { animation-delay: 2.7s; }
 .vol-photo { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; background: #1b2438; }
 #map.zoom-low .landmark.volcano { width: 32px; height: 29px; }
+
+.lm-photo { margin: 0 0 10px; }
+.lm-photo .vol-photo { margin-bottom: 4px; min-height: 90px; }
+.lm-photo figcaption { font-size: 11px; opacity: .7; }
+.lm-photo figcaption a { color: inherit; text-decoration: underline; }
