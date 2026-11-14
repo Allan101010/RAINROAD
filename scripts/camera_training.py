@@ -194,6 +194,73 @@ def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> in
     return len(kept)
 
 
+HOME_FRESH_MINUTES = 20
+HOME_BASELINE_MIN_ROWS = 12
+HOME_DAY_HOURS = range(8, 17)  # hora local en que el color de la imagen es confiable
+HOME_FALLBACK_SATURATION = 30.0
+HOME_GREY_RATIO = 0.6
+HOME_COORD_DECIMALS = 2  # ~1 km: la ubicación exacta de la casa no se publica
+
+
+def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
+    """Estimación experimental de lluvia con una sola cámara: cielo gris y apagado de día.
+
+    No es una medición. Compara la saturación de color de la imagen con la habitual de esa misma
+    cámara (si hay historial de día) y exige además que el cielo no se vea azul. De noche no opina.
+    """
+    features = latest.get("f", {})
+    hour = latest.get("hour")
+    if latest.get("q") != "usable" or hour not in HOME_DAY_HOURS:
+        return {"estimate": "unknown", "reason": "night_or_low_quality"}
+    saturation = float(features.get("saturation", 0))
+    blue_ratio = float(features.get("sky_blue_ratio", 9))
+    day_values = sorted(float(r["f"]["saturation"]) for r in history
+                        if r.get("hour") in HOME_DAY_HOURS and r.get("q") == "usable" and "saturation" in r.get("f", {}))
+    if len(day_values) >= HOME_BASELINE_MIN_ROWS:
+        baseline = day_values[len(day_values) // 2]
+        grey = saturation < baseline * HOME_GREY_RATIO
+        basis = "own_baseline"
+    else:
+        baseline = None
+        grey = saturation < HOME_FALLBACK_SATURATION
+        basis = "fixed_threshold"
+    overcast = blue_ratio <= 1.05
+    return {
+        "estimate": "possible_rain" if grey and overcast else "no_rain",
+        "saturation": round(saturation, 1),
+        "baseline": None if baseline is None else round(baseline, 1),
+        "basis": basis,
+    }
+
+
+def home_estimates(now: datetime, lat: float | None, lon: float | None, path: Path | None = None) -> list[dict]:
+    """Una estimación por cámara de casa, a partir de su lectura más reciente."""
+    path = path or DATA_PATH
+    if not path.exists():
+        return []
+    by_cam: dict[str, list[dict]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if str(row.get("cam", "")).startswith("home-"):
+            by_cam.setdefault(row["cam"], []).append(row)
+    fresh_after = (now - timedelta(minutes=HOME_FRESH_MINUTES)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    result = []
+    for cam, rows in sorted(by_cam.items()):
+        rows.sort(key=lambda r: r["t"])
+        latest = rows[-1]
+        if latest["t"] < fresh_after:
+            continue
+        item = {"id": cam, "t": latest["t"], **estimate_home_rain(latest, rows[:-1])}
+        if lat is not None and lon is not None:
+            item["lat"] = round(lat, HOME_COORD_DECIMALS)
+            item["lon"] = round(lon, HOME_COORD_DECIMALS)
+        result.append(item)
+    return result
+
+
 def publish(path: Path = DATA_PATH) -> None:
     """Publica el archivo como único commit de la rama camera-training."""
     blob = subprocess.check_output(["git", "hash-object", "-w", str(path)], text=True).strip()

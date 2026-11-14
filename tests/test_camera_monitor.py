@@ -203,5 +203,50 @@ class CameraSourcesTests(unittest.TestCase):
                 self.assertTrue(row["page_url"].startswith("https://"), row["id"])
 
 
+class HomeRainEstimateTests(unittest.TestCase):
+    def setUp(self):
+        scripts = str(Path(__file__).resolve().parents[1] / "scripts")
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        import camera_training as ct
+        self.ct = ct
+
+    def row(self, saturation, blue=1.2, hour=11, q="usable", t="2026-11-14T17:00:00Z"):
+        return {"t": t, "cam": "home-casa", "hour": hour, "q": q,
+                "f": {"saturation": saturation, "sky_blue_ratio": blue}}
+
+    def test_without_history_uses_fixed_threshold(self):
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20, blue=0.98), [])["estimate"], "possible_rain")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(60, blue=1.3), [])["estimate"], "no_rain")
+
+    def test_blue_sky_blocks_rain_even_if_pale(self):
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20, blue=1.25), [])["estimate"], "no_rain")
+
+    def test_night_and_low_quality_give_no_opinion(self):
+        self.assertEqual(self.ct.estimate_home_rain(self.row(10, blue=0.9, hour=22), [])["estimate"], "unknown")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(10, blue=0.9, q="low_visibility"), [])["estimate"], "unknown")
+
+    def test_own_baseline_adapts_to_a_dull_camera(self):
+        history = [self.row(40) for _ in range(15)]
+        # 30 es "apagado" con umbral fijo, pero normal para una cámara que suele dar 40 -> 0.6*40=24
+        self.assertEqual(self.ct.estimate_home_rain(self.row(30, blue=1.0), history)["estimate"], "no_rain")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20, blue=1.0), history)["estimate"], "possible_rain")
+
+    def test_home_estimates_use_latest_fresh_reading_and_round_coordinates(self):
+        import tempfile
+        from datetime import datetime, timezone
+        now = datetime(2026, 11, 14, 17, 5, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "f.jsonl"
+            rows = [self.row(60, t="2026-11-14T16:50:00Z"), self.row(18, blue=0.97, t="2026-11-14T17:00:00Z")]
+            path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+            result = self.ct.home_estimates(now, 9.912345, -83.612345, path)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["estimate"], "possible_rain")
+            self.assertEqual((result[0]["lat"], result[0]["lon"]), (9.91, -83.61))
+            stale = self.ct.home_estimates(datetime(2026, 11, 14, 18, 0, tzinfo=timezone.utc), None, None, path)
+            self.assertEqual(stale, [])
+
+
 if __name__ == "__main__":
     unittest.main()

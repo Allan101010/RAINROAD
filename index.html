@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.66">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.67">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.66</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.67</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -89,6 +89,7 @@
               <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span class="layer-label"><strong>📷 Cámaras</strong><small>Públicas y de volcanes · muestran si están en línea</small></span></label>
               <label class="layer-check"><input id="stationsToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Estaciones meteorológicas</strong><small>132 estaciones IMN + 1 panel WeatherLink · miden la lluvia</small></span></label>
               <label class="layer-check"><input id="lightningToggle" type="checkbox" checked> <span class="layer-label"><strong>⚡ Rayos reales</strong><small id="lightningInfo">Rayos del satélite GOES-19 (NOAA). Cargando…</small></span></label>
+              <label class="layer-check"><input id="homeCamToggle" type="checkbox" checked> <span class="layer-label"><strong>📷 Cámara de casa</strong><small id="homeCamInfo">Estimación por imagen (experimental). Sin lectura reciente.</small></span></label>
               <label class="layer-check"><input id="volcanoToggle" type="checkbox"> <span class="layer-label"><strong>🌋 Volcanes</strong><small>Los principales volcanes del país con su altura y estado general</small></span></label>
               <label class="layer-check"><input id="landmarkToggle" type="checkbox"> <span class="layer-label"><strong>🗺️ Íconos de Costa Rica</strong><small>Un símbolo por provincia y lugares emblemáticos al acercar</small></span></label>
               <label class="layer-check"><input id="tempToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Temperatura actual</strong><small>Grados medidos por las estaciones del IMN, con color por rango</small></span></label>
@@ -304,10 +305,10 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.66"></script>
-  <script src="assets/app.js?v=1.8.66"></script>
-  <script src="assets/landmarks.js?v=1.8.66"></script>
-  <script src="assets/ratelayer.js?v=1.8.66"></script>
-  <script src="assets/lightning.js?v=1.8.66"></script>
+  <script src="assets/ambient.js?v=1.8.67"></script>
+  <script src="assets/app.js?v=1.8.67"></script>
+  <script src="assets/landmarks.js?v=1.8.67"></script>
+  <script src="assets/ratelayer.js?v=1.8.67"></script>
+  <script src="assets/lightning.js?v=1.8.67"></script>
 </body>
 </html>

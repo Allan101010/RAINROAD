@@ -1263,7 +1263,12 @@ def status_signature(payload: dict) -> tuple:
         for item in station_rows
         if item.get("id")
     ))
-    return camera_signature + station_signature
+    home_signature = tuple(sorted(
+        (item.get("id"), item.get("estimate"))
+        for item in (payload.get("home_cameras", []) if isinstance(payload, dict) else [])
+        if item.get("id")
+    ))
+    return camera_signature + station_signature + home_signature
 
 
 def previous_publish_time(payload: dict) -> datetime | None:
@@ -1607,6 +1612,9 @@ def main() -> int:
             rows.extend(home_rows)
         total = camera_training.append_rows(rows, now_utc)
         logging.info("Datos de entrenamiento: %s filas nuevas (%s en total).", len(rows), total)
+        if home_topic:
+            payload["home_cameras"] = camera_training.home_estimates(now_utc, home_lat, home_lon)
+            logging.info("Cámaras de casa con estimación: %s.", len(payload["home_cameras"]))
     except Exception as exc:
         logging.warning("No se pudieron guardar los datos de entrenamiento: %s", exc)
 

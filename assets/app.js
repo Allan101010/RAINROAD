@@ -561,6 +561,7 @@ function initMap() {
   map.on("load", async () => {
     mapReady = true;
     $("mapStatusChip").textContent = "Preparando mapa de Costa Rica…";
+    updateHomeCameraMarker();
 
     try {
       await addCostaRicaFocusMask();
@@ -887,6 +888,10 @@ function updateAmbientLocalRain() {
     window.RainTrackAmbient.setLocalRain(true, true);
     return;
   }
+  if (homeLocation && homeCameraRaining(3)) {
+    window.RainTrackAmbient.setLocalRain(true);
+    return;
+  }
   if (!homeLocation || !cameraMonitorData || !Array.isArray(cameraMonitorData.stations)) {
     window.RainTrackAmbient.setLocalRain(null);
     return;
@@ -906,6 +911,69 @@ function updateAmbientLocalRain() {
   window.RainTrackAmbient.setLocalRain(nearbyOnline === 0 ? null : nearbyRain);
 }
 
+// Cámara de casa (experimental): estimación a partir de la imagen, no una medición.
+const HOME_CAM_STORAGE_KEY = "raintrack-homecam-on";
+let homeCameraMarker = null;
+
+function homeCameraEnabled() {
+  const toggle = $("homeCamToggle");
+  return !toggle || toggle.checked;
+}
+
+function homeCameraRows() {
+  const rows = cameraMonitorData && Array.isArray(cameraMonitorData.home_cameras) ? cameraMonitorData.home_cameras : [];
+  return rows.filter(row => row && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
+}
+
+function homeCameraRaining(radiusKm) {
+  if (!homeLocation || !homeCameraEnabled()) return false;
+  return homeCameraRows().some(row => row.estimate === "possible_rain" &&
+    distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= radiusKm);
+}
+
+function homeCameraPopupText(row) {
+  const minutes = Math.max(0, Math.round((Date.now() - Date.parse(row.t)) / 60000));
+  const state = row.estimate === "possible_rain" ? "posible lluvia"
+    : row.estimate === "no_rain" ? "sin señales de lluvia" : "sin opinión (de noche o poca visibilidad)";
+  return "Cámara de casa (estimación): " + state + ". Lectura de hace " + minutes + " min. " +
+    "Se deduce de la imagen, no es una medición.";
+}
+
+function updateHomeCameraMarker() {
+  if (homeCameraMarker) { homeCameraMarker.remove(); homeCameraMarker = null; }
+  const info = $("homeCamInfo");
+  const rows = homeCameraRows();
+  if (info) {
+    info.textContent = rows.length
+      ? "Estimación por imagen (experimental): " + (rows[0].estimate === "possible_rain" ? "posible lluvia." :
+        rows[0].estimate === "no_rain" ? "sin señales de lluvia." : "sin opinión ahora.")
+      : "Estimación por imagen (experimental). Sin lectura reciente.";
+  }
+  if (!mapReady || !homeCameraEnabled() || !rows.length) return;
+  const row = rows[0];
+  const element = document.createElement("div");
+  element.textContent = "📷";
+  element.style.cssText = "width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
+    "font-size:15px;border:3px solid " + (row.estimate === "possible_rain" ? "#38bdf8" : "#ffffff") + ";" +
+    "background:" + (row.estimate === "possible_rain" ? "#0369a1" : "#475569") + ";" +
+    "box-shadow:0 2px 9px rgba(0,0,0,.4);" + (row.estimate === "unknown" ? "opacity:.6;" : "");
+  homeCameraMarker = new maplibregl.Marker({ element, anchor: "center" })
+    .setLngLat([Number(row.lon), Number(row.lat)])
+    .setPopup(new maplibregl.Popup({ offset: 16 }).setText(homeCameraPopupText(row)))
+    .addTo(map);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = $("homeCamToggle");
+  if (!toggle) return;
+  try { if (localStorage.getItem(HOME_CAM_STORAGE_KEY) === "0") toggle.checked = false; } catch (e) {}
+  toggle.addEventListener("change", () => {
+    try { localStorage.setItem(HOME_CAM_STORAGE_KEY, toggle.checked ? "1" : "0"); } catch (e) {}
+    updateHomeCameraMarker();
+    updateAmbientLocalRain();
+  });
+});
+
 document.addEventListener("raintrack:lightning", updateAmbientLocalRain);
 
 async function loadCameraMonitoringData() {
@@ -914,6 +982,7 @@ async function loadCameraMonitoringData() {
     if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
     cameraMonitorData = await response.json();
     updateAmbientLocalRain();
+    updateHomeCameraMarker();
     renderCameraAlerts();
     if (mapReady && ownRainSelected) showOwnRainSource();
     if (mapReady && ($("camerasToggle").checked || $("stationsToggle").checked || $("tempToggle").checked)) addCameraMarkers();
