@@ -53,6 +53,9 @@ class MonitorMainTests(unittest.TestCase):
             {"id": "sky", "site_slug": "skyline-x", "site_name": "Sky", "zone": "G", "lat": 10.2, "lon": -85.3,
              "camera_name": "Sky", "page_url": "https://sky.test/1", "source_type": "skylinewebcams",
              "snapshot_url": "https://e.test/1.jpg", "live_video_page": True},
+            {"id": "arenal", "site_slug": "volcan-arenal", "site_name": "Arenal", "zone": "N", "lat": 10.46, "lon": -84.7,
+             "camera_name": "Arenal", "page_url": "https://arenal.test/cam", "source_type": "external_link",
+             "snapshot_url": None, "live_video_page": True, "reason": "solo video"},
         ]
         freshness = {"delayed": ("delayed", 35), "unknown": ("unknown", None), "stale": ("stale", 300)}
         self.notify_calls = []
@@ -77,7 +80,7 @@ class MonitorMainTests(unittest.TestCase):
     def test_every_camera_is_reported_with_its_plain_status(self):
         data = self.run_monitor()
         by_id = {c["id"]: c for c in data["cameras"]}
-        self.assertEqual(set(by_id), {"ok", "dark", "delayed", "unknown", "stale", "off", "sky"})
+        self.assertEqual(set(by_id), {"ok", "dark", "delayed", "unknown", "stale", "off", "sky", "arenal"})
         self.assertEqual(by_id["ok"]["status"], "online")
         self.assertEqual(by_id["delayed"]["status"], "delayed")
         self.assertEqual(by_id["unknown"]["status"], "unknown")
@@ -85,12 +88,14 @@ class MonitorMainTests(unittest.TestCase):
         self.assertEqual(by_id["stale"]["status"], "stale")
         self.assertEqual(by_id["off"]["status"], "offline")
         self.assertEqual(by_id["sky"]["status"], "external_preview")
+        self.assertEqual(by_id["arenal"]["status"], "external_link")
+        self.assertEqual(by_id["arenal"]["availability_status"], "unknown")
 
     def test_cameras_never_generate_rain_alerts(self):
         data = self.run_monitor()
         self.assertEqual(data["alerts"], [])
         self.assertEqual(data["visual_rain_detection"], "disabled")
-        self.assertEqual(data["camera_count"], 7)
+        self.assertEqual(data["camera_count"], 8)
         self.assertEqual(data["evaluated_count"], 1)
         for camera in data["cameras"]:
             for key in ("scene_assessment", "rain_evidence_assessment", "rain_probability", "vision_judge"):

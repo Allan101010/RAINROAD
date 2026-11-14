@@ -63,7 +63,7 @@ class CameraSourcesTests(unittest.TestCase):
         self.assertEqual(len(raw["imn_stations"]), len(cams.IMN_STATIONS))
 
     def test_ids_are_unique(self):
-        for name in ("IMN_STATIONS", "OVSICORI_CAMERAS", "SKYLINE_CAMERAS"):
+        for name in ("IMN_STATIONS", "OVSICORI_CAMERAS", "SKYLINE_CAMERAS", "EXTERNAL_LINK_CAMERAS"):
             ids = [row["id"] for row in getattr(cams, name)]
             self.assertEqual(len(ids), len(set(ids)), name)
         slugs = [row[0] for row in cams.SITES]
@@ -71,14 +71,14 @@ class CameraSourcesTests(unittest.TestCase):
 
     def test_coordinates_are_inside_costa_rica(self):
         points = [(row[3], row[4], row[0]) for row in cams.SITES]
-        for name in ("IMN_STATIONS", "OVSICORI_CAMERAS", "SKYLINE_CAMERAS"):
+        for name in ("IMN_STATIONS", "OVSICORI_CAMERAS", "SKYLINE_CAMERAS", "EXTERNAL_LINK_CAMERAS"):
             points += [(row["lat"], row["lon"], row["id"]) for row in getattr(cams, name)]
         for lat, lon, label in points:
             self.assertTrue(CR_LAT[0] <= lat <= CR_LAT[1], f"lat fuera de rango: {label}")
             self.assertTrue(CR_LON[0] <= lon <= CR_LON[1], f"lon fuera de rango: {label}")
 
     def test_external_cameras_have_https_page_urls(self):
-        for name in ("OVSICORI_CAMERAS", "SKYLINE_CAMERAS"):
+        for name in ("OVSICORI_CAMERAS", "SKYLINE_CAMERAS", "EXTERNAL_LINK_CAMERAS"):
             for row in getattr(cams, name):
                 self.assertTrue(row["page_url"].startswith("https://"), row["id"])
 

@@ -97,6 +97,7 @@ const PUBLIC_CAMERAS = [
   { slug: "volcan-irazu", name: "Volcán Irazú", zone: "Valle Central", lat: 9.9790, lon: -83.8520, url: "https://webcamscostarica.com/volcan-irazu/", detail: "Imagen del cráter · 1 cámara" },
   { slug: "volcan-poas", name: "Volcán Poás", zone: "Valle Central", lat: 10.1980, lon: -84.2310, url: "https://webcamscostarica.com/volcan-poas/", detail: "Cráter del Poás · imágenes del OVSICORI" },
   { slug: "sarapiqui", name: "Lapas verdes de Sarapiquí", zone: "Zona Norte", lat: 10.4560, lon: -84.0190, url: "https://webcamscostarica.com/sarapiqui/", detail: "Cámaras de fauna y dosel · encuadre evaluado por IA" },
+  { slug: "volcan-arenal", name: "Volcán Arenal", zone: "Zona Norte", lat: 10.4637, lon: -84.7032, url: "https://www.arenalobservatorylodge.com/es/camara-en-vivo/", detail: "Arenal Observatory Lodge · video en vivo en la fuente" },
   { slug: "volcan-turrialba", name: "Volcán Turrialba", zone: "Valle Central", lat: 10.0250, lon: -83.7670, url: "https://www.ovsicori.una.ac.cr/index.php/vulcanologia/camara-volcanes-2/camara-v-turrialba", detail: "OVSICORI-UNA · cámara del cráter" },
   { slug: "skyline-moravia", name: "SkylineWebcams · Moravia", zone: "Valle Central", lat: 9.96164, lon: -84.04880, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia.html", detail: "4 vistas · San Vicente, Irazú, San José y Braulio Carrillo · ubicación de referencia" },
   { slug: "skyline-cerro-bebedero", name: "SkylineWebcams · Cerro Bebedero", zone: "Valle Central", lat: 9.907972, lon: -84.162667, url: "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/panorama-san-jose-costa-rica.html", detail: "Panorama de San José · coordenada de referencia" },
@@ -765,7 +766,10 @@ function addCameraMarkers() {
     const skylineAvailableCount = siteCameras.filter(item =>
       item.source_type === "skylinewebcams" && item.availability_status === "online"
     ).length;
-    const cameraSummary = skylineCount === siteCameras.length && skylineCount
+    const externalLinkCount = siteCameras.filter(item => item.source_type === "external_link").length;
+    const cameraSummary = externalLinkCount === siteCameras.length && externalLinkCount
+      ? [`${externalLinkCount} ${externalLinkCount === 1 ? "cámara" : "cámaras"} de video en vivo`, "estado no verificable desde RainTrack"]
+      : skylineCount === siteCameras.length && skylineCount
       ? [
           `${skylineCount} ${skylineCount === 1 ? "cámara SkylineWebcams" : "cámaras SkylineWebcams"}`,
           `${skylineAvailableCount} disponibles`,
@@ -786,12 +790,17 @@ function addCameraMarkers() {
       const availabilityStatus = item.availability_status || "unknown";
       const availability = cameraAvailabilityText(availabilityStatus);
       const isSkylineCamera = item.source_type === "skylinewebcams";
-      const statusLabel = isSkylineCamera
+      const isExternalLink = item.source_type === "external_link";
+      const statusLabel = isExternalLink
+        ? "Video en vivo en la fuente"
+        : isSkylineCamera
         ? availabilityStatus === "online" ? "Imagen externa disponible" : availabilityStatus === "offline" ? "Fuera de línea en Skyline" : "Estado sin verificar"
         : item.status === "low_visibility" || item.image_quality_status === "low_visibility"
           ? "Imagen oscura o sin detalle"
           : availability;
-      const icon = isSkylineCamera
+      const icon = isExternalLink
+        ? "↗"
+        : isSkylineCamera
         ? availabilityStatus === "online" ? "↗" : "×"
         : item.status === "offline" || availabilityStatus === "offline" ? "×" : item.status === "low_visibility" ? "?" : "•";
       const age = item.image_age_minutes != null && Number.isFinite(Number(item.image_age_minutes))
@@ -802,7 +811,7 @@ function addCameraMarkers() {
         ? item.status
         : ["online", "offline", "delayed", "stale"].includes(availabilityStatus) ? availabilityStatus : "unknown";
       const sourceLink = item.page_url
-        ? `<a href="${escapeHtml(safeHttpUrl(item.page_url, "#"))}" target="_blank" rel="noopener">${isSkylineCamera ? (item.live_video_page ? "Abrir video en vivo ↗" : "Abrir en SkylineWebcams ↗") : item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
+        ? `<a href="${escapeHtml(safeHttpUrl(item.page_url, "#"))}" target="_blank" rel="noopener">${isExternalLink ? "Abrir video en vivo ↗" : isSkylineCamera ? (item.live_video_page ? "Abrir video en vivo ↗" : "Abrir en SkylineWebcams ↗") : item.source_type === "ovsicori" ? "Abrir fuente OVSICORI ↗" : "Abrir cámara ↗"}</a>`
         : "";
       const previewMarkup = isSkylineCamera
         ? availabilityStatus === "online" && item.preview_url
@@ -815,16 +824,19 @@ function addCameraMarkers() {
       return `<div class="camera-popup-row">
         <div class="camera-popup-row-main">
           <strong class="camera-popup-row-title">${escapeHtml(cameraDisplayName(item))}</strong>
-          <small class="camera-popup-row-detail">${escapeHtml(isSkylineCamera ? (item.live_video_page ? "Video en vivo en la fuente · miniatura en RainTrack" : "Vista previa externa · no analizada") : [age, recovered.trim()].filter(Boolean).join(" "))}</small>
+          <small class="camera-popup-row-detail">${escapeHtml(isExternalLink ? "Sin miniatura ni verificación de estado · ábrela para saber si transmite" : isSkylineCamera ? (item.live_video_page ? "Video en vivo en la fuente · miniatura en RainTrack" : "Vista previa externa · no analizada") : [age, recovered.trim()].filter(Boolean).join(" "))}</small>
         </div>
         <span class="camera-popup-row-state ${stateClass}">${icon} ${escapeHtml(statusLabel)}</span>
         ${previewMarkup}
         ${sourceLink}
       </div>`;
     }).join("");
+    const hasOnlyExternalLinks = siteCameras.length > 0 && siteCameras.every(item => item.source_type === "external_link");
     const hasSkylineCameras = siteCameras.some(item => item.source_type === "skylinewebcams");
     const hasLiveSkylineVideo = siteCameras.some(item => item.source_type === "skylinewebcams" && item.live_video_page === true);
-    const summary = hasLiveSkylineVideo
+    const summary = hasOnlyExternalLinks
+      ? "Esta cámara solo ofrece video en vivo en su página original. RainTrack no puede comprobar si está transmitiendo ni mostrar una miniatura; ábrela para verla cuando esté disponible."
+      : hasLiveSkylineVideo
       ? "La página original de SkylineWebcams ofrece video en vivo. RainTrack muestra una miniatura y verifica que la ficha esté disponible; todavía no reproduce ni analiza el flujo de video. Abre la cámara original para verla en directo."
       : hasSkylineCameras
         ? "RainTrack muestra una previsualización externa de SkylineWebcams y verifica la disponibilidad de la ficha. La imagen de previsualización no genera alertas de lluvia."

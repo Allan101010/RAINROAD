@@ -546,5 +546,21 @@
     "tamarindo-tamarindo-diria-2": "Tamarindo · Diriá 2",
     "tamarindo-tamarindo-witchsrock-1": "Tamarindo · Witch's Rock 1",
     "tamarindo-tamarindo-witchsrock-2": "Tamarindo · Witch's Rock 2"
-  }
+  },
+  "external_cameras": [
+    {
+      "id": "arenal-observatory-lodge",
+      "site_slug": "volcan-arenal",
+      "site_name": "Volcán Arenal",
+      "zone": "Zona Norte",
+      "lat": 10.4637,
+      "lon": -84.7032,
+      "camera_name": "Arenal Observatory Lodge · vista del volcán",
+      "page_url": "https://www.arenalobservatorylodge.com/es/camara-en-vivo/",
+      "source_type": "external_link",
+      "live_video_page": true,
+      "snapshot_url": null,
+      "coordinate_note": "Coordenada de referencia del volcán Arenal; no es la posición exacta del lente."
+    }
+  ]
 }

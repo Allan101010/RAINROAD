@@ -54,6 +54,8 @@ SITES = [tuple(row) for row in _CAMERA_SOURCES["sites"]]
 IMN_STATIONS = _CAMERA_SOURCES["imn_stations"]
 OVSICORI_CAMERAS = _CAMERA_SOURCES["ovsicori_cameras"]
 SKYLINE_CAMERAS = _CAMERA_SOURCES["skyline_cameras"]
+# Cámaras de video en vivo sin imagen fija pública: solo se enlazan, no se pueden verificar.
+EXTERNAL_LINK_CAMERAS = _CAMERA_SOURCES.get("external_cameras", [])
 CAMERA_NAME_OVERRIDES = _CAMERA_SOURCES["camera_name_overrides"]
 
 OFFLINE_PHRASES = (
@@ -392,6 +394,18 @@ def build_catalog(session: requests.Session) -> list[dict]:
         })
         catalog.append(row)
 
+    for camera in EXTERNAL_LINK_CAMERAS:
+        row = dict(camera)
+        row.update({
+            "weather_relevant": False,
+            "reason": (
+                "Esta cámara solo ofrece video en vivo en su página original. RainTrack no puede "
+                "verificar si está en línea ni mostrar una miniatura; abre el enlace para verla."
+            ),
+            "initial_status": "pending",
+        })
+        catalog.append(row)
+
     # Evitar analizar varias veces la misma imagen repetida en distintas
     # variantes de una ficha. Se conserva la fuente oficial OVSICORI cuando
     # comparte la misma URL de imagen con una ficha agregadora.
@@ -429,8 +443,14 @@ def load_catalog(session: requests.Session) -> list[dict]:
                 camera.get("id") for camera in saved_cameras
                 if isinstance(camera, dict) and camera.get("source_type") == "skylinewebcams"
             }
+            required_external = {camera["id"] for camera in EXTERNAL_LINK_CAMERAS}
+            present_external = {
+                camera.get("id") for camera in saved_cameras
+                if isinstance(camera, dict) and camera.get("source_type") == "external_link"
+            }
             if (
                 generated_text and saved_cameras
+                and required_external.issubset(present_external)
                 and schema_version >= CATALOG_SCHEMA_VERSION
                 and required_ovsicori.issubset(present_ovsicori)
                 and required_skyline.issubset(present_skyline)
@@ -1135,6 +1155,13 @@ def main() -> int:
             "image_timestamp_source": "not_provided",
             "recovered": False,
         }
+
+        if camera.get("source_type") == "external_link":
+            result["image_quality_status"] = "not_evaluated"
+            result["status"] = "external_link"
+            result["message"] = camera.get("reason", "")
+            results.append(result)
+            continue
 
         if camera.get("source_type") == "skylinewebcams":
             try:
