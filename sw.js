@@ -1,7 +1,7 @@
 // Service worker mínimo: la app siempre intenta la red primero para que cada
 // actualización publicada llegue sola; sin conexión usa la última copia guardada.
 const CACHE = "raintrackcr-shell-v2";
-const SHELL = ["./", "index.html", "assets/app.js", "assets/ambient.js", "assets/styles.css", "manifest.webmanifest"];
+const SHELL = ["./", "index.html", "assets/app.js", "assets/ambient.js", "assets/landmarks.js", "assets/styles.css", "manifest.webmanifest"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).catch(() => {}));

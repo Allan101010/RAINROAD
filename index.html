@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.42">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.43">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.42</small> <button class="ambient-toggle" id="ambientToggle" type="button" aria-pressed="true" title="Ambiente animado (lluvia, sol, luna)" aria-label="Ambiente animado">✨</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.43</small> <button class="ambient-toggle" id="ambientToggle" type="button" aria-pressed="true" title="Ambiente animado (lluvia, sol, luna)" aria-label="Ambiente animado">✨</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -87,6 +87,8 @@
               <div class="layer-group-title">📍 Puntos en el mapa</div>
               <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span class="layer-label"><strong>📷 Cámaras</strong><small>Públicas y de volcanes · muestran si están en línea</small></span></label>
               <label class="layer-check"><input id="stationsToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Estaciones meteorológicas</strong><small>132 estaciones IMN + 1 panel WeatherLink · miden la lluvia</small></span></label>
+              <label class="layer-check"><input id="volcanoToggle" type="checkbox"> <span class="layer-label"><strong>🌋 Volcanes</strong><small>Los principales volcanes del país con su altura y estado general</small></span></label>
+              <label class="layer-check"><input id="landmarkToggle" type="checkbox"> <span class="layer-label"><strong>🗺️ Íconos de Costa Rica</strong><small>Un símbolo por provincia y lugares emblemáticos al acercar</small></span></label>
               <label class="layer-check"><input id="tempToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Temperatura actual</strong><small>Grados medidos por las estaciones del IMN, con color por rango</small></span></label>
               <div class="temp-legend" aria-hidden="true"><span style="background:#2563eb">&lt;16°</span><span style="background:#0891b2">16</span><span style="background:#16a34a">20</span><span style="background:#ca8a04">24</span><span style="background:#ea580c">28</span><span style="background:#dc2626">32°+</span></div>
               <p class="layer-hint">Se revisan cada 10 minutos. La lluvia se informa solo con las estaciones, que la miden; las cámaras solo indican su estado. Las imágenes oscuras, demoradas o sin detalle se marcan como no legibles y no generan alertas. Algunas cámaras (SkylineWebcams, Aeropuerto de Cóbano) abren el video en su página original.</p>
@@ -299,7 +301,8 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.42"></script>
-  <script src="assets/app.js?v=1.8.42"></script>
+  <script src="assets/ambient.js?v=1.8.43"></script>
+  <script src="assets/app.js?v=1.8.43"></script>
+  <script src="assets/landmarks.js?v=1.8.43"></script>
 </body>
 </html>
