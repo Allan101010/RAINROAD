@@ -1194,3 +1194,28 @@ body.map-focus:has(.map-shell.has-map-detail) .map-toolbar { display: none !impo
 body.map-focus:has(.map-shell.has-map-detail) .maplibregl-ctrl-bottom-left,
 body.map-focus:has(.map-shell.has-map-detail) .maplibregl-ctrl-bottom-right { display: none; }
 body.map-focus .map-detail-sheet { z-index: 10001; bottom: 0; max-height: 62dvh; padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Ambiente animado */
+body { position: relative; }
+.amb-rain { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+.amb-sky { position: absolute; left: 0; right: 0; height: 0; z-index: 1; pointer-events: none; }
+.amb-sky[hidden] { display: none; }
+.amb-body { position: absolute; right: 16px; top: 0; opacity: .92; }
+.amb-moon.dim { opacity: .55; }
+.amb-rays { transform-origin: 36px 36px; animation: amb-spin 90s linear infinite; }
+.amb-cloud { position: absolute; opacity: .16; animation: amb-drift 70s linear infinite alternate; }
+.amb-cloud.dark { opacity: .22; }
+.amb-cloud.c1 { right: 70px; top: 6px; }
+.amb-cloud.c2 { right: 8px; top: 46px; transform: scale(.75); animation-duration: 95s; }
+.amb-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.amb-star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #e6eeff; opacity: .5; animation: amb-twinkle 4s ease-in-out infinite; }
+.ambient-toggle { margin-left: 6px; padding: 2px 7px; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; color: #fde68a; background: rgba(255,255,255,.06); font-size: 13px; line-height: 1.4; }
+.ambient-toggle[aria-pressed="false"] { opacity: .45; filter: grayscale(1); }
+body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { display: none; }
+@keyframes amb-spin { to { transform: rotate(360deg); } }
+@keyframes amb-drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
+@keyframes amb-twinkle { 0%,100% { opacity: .15; } 50% { opacity: .65; } }
+@media (prefers-reduced-motion: reduce) { .amb-rays, .amb-cloud, .amb-star { animation: none; } }
+.amb-sky, .amb-stars { z-index: -1; }
+.amb-body { right: 10px; opacity: .8; }
+.amb-body svg { width: 58px; height: 58px; }

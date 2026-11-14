@@ -2281,6 +2281,7 @@ async function loadWeatherForLocation(location, type) {
 
     renderWeatherCard(cardId, location, data, isHome);
     renderSolarCard(solarId, location, data, isHome);
+    if (isHome && window.RainTrackAmbient) window.RainTrackAmbient.setWeather(data.current);
 
     if (isHome && !destinationLocation) renderForecast(location, data);
     if (!isHome) renderForecast(location, data);
