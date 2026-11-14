@@ -5,8 +5,7 @@
   "use strict";
   const KEY = "raintrack-ambient";
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let enabled = true;
-  try { enabled = localStorage.getItem(KEY) !== "off"; } catch (e) {}
+  const enabled = true; // el ambiente animado queda siempre activo
 
   let state = { kind: "clear", isDay: true, intensity: 0 };
   let canvas, ctx, celestial, rafId = null;
@@ -276,13 +275,6 @@
       apply();
     },
     flash() { if (rafId) bolt = makeBolt(); },
-    toggle() {
-      enabled = !enabled;
-      try { localStorage.setItem(KEY, enabled ? "on" : "off"); } catch (e) {}
-      const b = document.getElementById("ambientToggle");
-      if (b) b.setAttribute("aria-pressed", String(enabled));
-      apply();
-    },
     preview(name) {
       const map = {
         lluvia: [63, true], tormenta: [95, true], llovizna: [53, true], sol: [0, true], nublado: [3, true],
@@ -297,11 +289,6 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
-    const b = document.getElementById("ambientToggle");
-    if (b) {
-      b.setAttribute("aria-pressed", String(enabled));
-      b.addEventListener("click", () => window.RainTrackAmbient.toggle());
-    }
     const param = new URLSearchParams(location.search).get("ambiente");
     if (param) window.RainTrackAmbient.preview(param);
     else apply();

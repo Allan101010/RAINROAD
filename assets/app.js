@@ -1203,8 +1203,16 @@ function updateZoomHint() {
   }
 }
 
+function syncBasemapButton() {
+  const b = $("basemapQuick");
+  if (!b) return;
+  b.textContent = basemapMode === "dark" ? "🌙" : "☀️";
+  b.title = basemapMode === "dark" ? "Fondo oscuro · toca para fondo claro" : "Fondo claro · toca para fondo oscuro";
+}
+
 function applyBasemap(mode) {
   basemapMode = mode === "light" ? "light" : "dark";
+  syncBasemapButton();
   try { localStorage.setItem(BASEMAP_STORAGE_KEY, basemapMode); } catch (e) {}
   $("mapShell").classList.toggle("map-dark", basemapMode === "dark");
   if (!map || !mapReady) return;
@@ -2736,9 +2744,9 @@ setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
 $("radarSource").value = ownRainSelected ? "raintrack" : (RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr");
 $("librewxrColorScheme").value = String(librewxrColorScheme);
 $("radarSource").addEventListener("change", loadRadarSource);
-$("basemapSelect").value = basemapMode;
 $("mapShell").classList.toggle("map-dark", basemapMode === "dark");
-$("basemapSelect").addEventListener("change", event => applyBasemap(event.target.value));
+syncBasemapButton();
+$("basemapQuick").addEventListener("click", () => applyBasemap(basemapMode === "dark" ? "light" : "dark"));
 $("librewxrColorScheme").addEventListener("change", event => {
   const nextColor = Number(event.target.value);
   librewxrColorScheme = LIBREWXR_PALETTES.includes(nextColor) ? nextColor : 10;
