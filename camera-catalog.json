@@ -1,6 +1,6 @@
 {
   "schema_version": 4,
-  "generated_at": "2026-11-14T02:02:12Z",
+  "generated_at": "2026-11-14T02:05:56Z",
   "cameras": [
     {
       "id": "playa-flamingo-flamingo-2",
@@ -314,7 +314,7 @@
       "lon": -85.058,
       "camera_name": "Reserva Karen Mogensen ahora mismo",
       "page_url": "https://webcamscostarica.com/reserva-karen-mogensen/",
-      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955181",
+      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955182",
       "source_type": "webcamscostarica",
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
@@ -770,6 +770,23 @@
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
       "initial_status": "offline"
+    },
+    {
+      "id": "arenal-observatory-lodge",
+      "site_slug": "volcan-arenal",
+      "site_name": "Volcán Arenal",
+      "zone": "Zona Norte",
+      "lat": 10.4637,
+      "lon": -84.7032,
+      "camera_name": "Arenal Observatory Lodge · vista del volcán",
+      "page_url": "https://www.arenalobservatorylodge.com/es/camara-en-vivo/",
+      "source_type": "external_link",
+      "live_video_page": true,
+      "snapshot_url": null,
+      "coordinate_note": "Coordenada de referencia del volcán Arenal; no es la posición exacta del lente.",
+      "weather_relevant": false,
+      "reason": "Esta cámara solo ofrece video en vivo en su página original. RainTrack no puede verificar si está en línea ni mostrar una miniatura; abre el enlace para verla.",
+      "initial_status": "pending"
     }
   ]
 }
