@@ -9,7 +9,14 @@ const LIBREWXR_COLOR_STORAGE_KEY = "raintrackcr_librewxr_color_v1";
 const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
 const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
 const LOCATION_CACHE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
-const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+const MAP_STYLES = {
+  light: "https://tiles.openfreemap.org/styles/positron",
+  dark: "https://tiles.openfreemap.org/styles/dark"
+};
+const BASEMAP_STORAGE_KEY = "raintrackcr_basemap_v1";
+let basemapMode = (() => { try { return localStorage.getItem(BASEMAP_STORAGE_KEY) === "light" ? "light" : "dark"; } catch (e) { return "dark"; } })();
+const MAP_STYLE = MAP_STYLES[basemapMode];
+let lastRouteDraw = null;
 
 // El mapa se limita a Costa Rica: permite acercar y alejar, pero no
 // navegar libremente por el resto del mundo.
@@ -472,7 +479,7 @@ async function addCostaRicaFocusMask() {
     type: "fill",
     source: "raintrack-cr-mask-source",
     paint: {
-      "fill-color": CR_MASK_COLOR,
+      "fill-color": basemapMode === "dark" ? "#0b111c" : CR_MASK_COLOR,
       "fill-opacity": 0.985
     }
   });
@@ -487,7 +494,7 @@ async function addCostaRicaFocusMask() {
     type: "line",
     source: "raintrack-cr-boundary-source",
     paint: {
-      "line-color": "#0284c7",
+      "line-color": basemapMode === "dark" ? "#38bdf8" : "#0284c7",
       "line-width": 2,
       "line-opacity": 0.9
     }
@@ -1192,6 +1199,19 @@ function updateZoomHint() {
   }
 }
 
+function applyBasemap(mode) {
+  basemapMode = mode === "light" ? "light" : "dark";
+  try { localStorage.setItem(BASEMAP_STORAGE_KEY, basemapMode); } catch (e) {}
+  $("mapShell").classList.toggle("map-dark", basemapMode === "dark");
+  if (!map || !mapReady) return;
+  map.setStyle(MAP_STYLES[basemapMode], { diff: false });
+  map.once("style.load", async () => {
+    try { await addCostaRicaFocusMask(); } catch (error) { console.warn("Contorno de Costa Rica no disponible:", error); }
+    if (lastRouteDraw) { try { drawRouteOnMap(lastRouteDraw.route, lastRouteDraw.origin, lastRouteDraw.destination); } catch (e) {} }
+    if (!ownRainSelected && radarFrames.length) showRadarFrame(radarFrameIndex);
+  });
+}
+
 function removeRadarLayer() {
   if (!mapReady) return;
   if (map.getLayer("raintrack-radar-layer")) map.removeLayer("raintrack-radar-layer");
@@ -1749,6 +1769,7 @@ function formatRouteDuration(seconds) {
 }
 
 function drawRouteOnMap(route, origin, destination) {
+  lastRouteDraw = { route, origin, destination };
   clearRouteLayers();
   const feature = {
     type: "Feature",
@@ -2707,6 +2728,9 @@ setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
 $("radarSource").value = ownRainSelected ? "raintrack" : (RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr");
 $("librewxrColorScheme").value = String(librewxrColorScheme);
 $("radarSource").addEventListener("change", loadRadarSource);
+$("basemapSelect").value = basemapMode;
+$("mapShell").classList.toggle("map-dark", basemapMode === "dark");
+$("basemapSelect").addEventListener("change", event => applyBasemap(event.target.value));
 $("librewxrColorScheme").addEventListener("change", event => {
   const nextColor = Number(event.target.value);
   librewxrColorScheme = LIBREWXR_PALETTES.includes(nextColor) ? nextColor : 10;

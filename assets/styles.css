@@ -1242,3 +1242,11 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 #map.zoom-low .vol-smoke { width: 6px; height: 6px; margin-left: -3px; }
 
 .own-rain-canvas { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+
+/* Mapa oscuro */
+.map-shell.map-dark { background: #0b111c; }
+.map-shell.map-dark .maplibregl-ctrl-scale { background: rgba(16,24,39,.8); color: #cbd5e1; border-color: #64748b; }
+.map-shell.map-dark .maplibregl-ctrl-attrib { background: rgba(16,24,39,.7); color: #94a3b8; }
+.map-shell.map-dark .maplibregl-ctrl-attrib a { color: #cbd5e1; }
+.map-shell.map-dark .landmark.emblem { background: rgba(16,24,39,.85); border-color: rgba(255,255,255,.75); }
+.map-shell.map-dark .landmark.emblem.major { border-color: #38bdf8; }
