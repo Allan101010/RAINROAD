@@ -529,11 +529,10 @@ function initMap() {
     style: MAP_STYLE,
     center: [-84.10, 9.75],
     zoom: 7.2,
-    minZoom: 6.7,
-    maxZoom: 16,
-    maxBounds: CR_NAVIGATION_BOUNDS,
-    maxBoundsViscosity: 1,
-    renderWorldCopies: false,
+    // Sin límites: se puede alejar, acercar y mover el mapa libremente.
+    minZoom: 2,
+    maxZoom: 22,
+    renderWorldCopies: true,
     attributionControl: true,
     // En móviles: permitir mover el mapa arrastrando con un solo dedo.
     // El zoom con pellizco continúa funcionando con dos dedos.
@@ -551,10 +550,10 @@ function initMap() {
 
     try {
       await addCostaRicaFocusMask();
-      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa limitado al país";
+      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa libre";
     } catch (error) {
       console.warn("No se pudo cargar el contorno de Costa Rica; se mantienen los límites de navegación:", error);
-      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Navegación limitada";
+      $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa libre";
     }
 
     showCostaRicaOverview(false);
