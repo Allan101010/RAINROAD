@@ -2479,6 +2479,7 @@ function setupCollapsible(buttonId, panelId, storageKey) {
     try { localStorage.setItem(storageKey, open ? "open" : "closed"); } catch (error) { /* sin almacenamiento */ }
   });
 }
+setupCollapsible("searchToggle", "searchPanel", "raintrackcr_section_search_v1");
 setupCollapsible("conditionsToggle", "conditionsPanel", "raintrackcr_section_conditions_v1");
 setupCollapsible("forecastToggle", "forecastPanel", "raintrackcr_section_forecast_v1");
 setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
