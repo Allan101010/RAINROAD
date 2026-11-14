@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.47">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.48">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.47</small> <button class="ambient-toggle" id="ambientToggle" type="button" aria-pressed="true" title="Ambiente animado (lluvia, sol, luna)" aria-label="Ambiente animado">✨</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.48</small> <button class="ambient-toggle" id="ambientToggle" type="button" aria-pressed="true" title="Ambiente animado (lluvia, sol, luna)" aria-label="Ambiente animado">✨</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -62,10 +62,10 @@
             </select>
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
-              <option value="librewxr">LibreWXR · precipitación estimada por satélite (principal)</option>
-              <option value="raintrack">RainTrack · lluvia medida por estaciones del IMN (propia)</option>
+              <option value="raintrack">RainTrack · lluvia medida por estaciones del IMN (principal)</option>
+              <option value="librewxr">LibreWXR · precipitación estimada por satélite (secundaria)</option>
             </select>
-            <p class="layer-hint">LibreWXR: precipitación estimada por satélite, cubre todo el mapa. RainTrack: lluvia animada solo donde una estación del IMN midió lluvia en la última hora (no inventa datos entre estaciones).</p>
+            <p class="layer-hint">RainTrack (principal): lluvia animada solo donde una estación del IMN midió lluvia en la última hora; no inventa datos entre estaciones. LibreWXR (secundaria): precipitación estimada por satélite que cubre todo el mapa.</p>
             <div id="librewxrStyleControl">
               <label for="librewxrColorScheme">Estilo visual del radar LibreWXR</label>
               <select class="source-select" id="librewxrColorScheme">
@@ -218,7 +218,7 @@
         <span class="legend-item"><span class="legend-dot" style="background:#facc15"></span> Fuerte</span>
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Intensa</span>
       </div>
-      <p class="source-note" id="radarSourceNote">LibreWXR es la fuente principal. Revisa la hora de la imagen antes de interpretar la precipitación.</p>
+      <p class="source-note" id="radarSourceNote">La fuente principal es RainTrack (estaciones del IMN); LibreWXR es la secundaria. Revisa la hora de la lectura antes de interpretar la precipitación.</p>
     </section>
 
     <section class="section">
@@ -307,9 +307,9 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.47"></script>
-  <script src="assets/app.js?v=1.8.47"></script>
-  <script src="assets/landmarks.js?v=1.8.47"></script>
-  <script src="assets/ratelayer.js?v=1.8.47"></script>
+  <script src="assets/ambient.js?v=1.8.48"></script>
+  <script src="assets/app.js?v=1.8.48"></script>
+  <script src="assets/landmarks.js?v=1.8.48"></script>
+  <script src="assets/ratelayer.js?v=1.8.48"></script>
 </body>
 </html>

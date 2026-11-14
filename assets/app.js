@@ -4,7 +4,7 @@
 // CONFIGURACIÓN GENERAL
 // La última ubicación GPS se conserva localmente durante 30 minutos.
 // ------------------------------------------------------------
-const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v2";
+const SOURCE_STORAGE_KEY = "raintrackcr_radar_source_v3"; // v3: la capa propia (RainTrack) es la principal por defecto
 const LIBREWXR_COLOR_STORAGE_KEY = "raintrackcr_librewxr_color_v1";
 const LOCATION_CACHE_KEY = "raintrackcr_current_location_v1";
 const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -270,7 +270,7 @@ let radarFrames = [];
 const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
 let radarSourceKey = "librewxr";
 // "raintrack" = capa propia de lluvia medida por las estaciones del IMN (ver ratelayer.js).
-let ownRainSelected = savedRadarSource === "raintrack";
+let ownRainSelected = savedRadarSource !== "librewxr";
 const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
 let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
 let radarFrameIndex = 0;
