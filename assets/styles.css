@@ -1153,3 +1153,31 @@ body.map-focus .route-panel { max-height: 22dvh; overflow-y: auto; }
 .rain-ticker-close { flex: 0 0 26px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; color: #cbd5e1; background: rgba(255,255,255,.1); font-size: 16px; line-height: 1; }
 @keyframes rain-ticker-move { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { .rain-ticker-track { animation: none; } .rain-ticker-set[aria-hidden] { display: none; } .rain-ticker-window { overflow-x: auto; } }
+
+/* Mapa ampliado: pantalla limpia (solo lo esencial sobre el mapa) */
+body.map-focus #mapLocationChip,
+body.map-focus #mapStatusChip,
+body.map-focus .maplibregl-ctrl-top-right,
+body.map-focus .maplibregl-ctrl-attrib,
+body.map-focus #radarStatus,
+body.map-focus .map-toolbar .legend { display: none !important; }
+body.map-focus .map-top-actions { left: auto; right: 12px; gap: 8px; }
+body.map-focus .map-expand-toggle,
+body.map-focus .map-layer-toggle { min-height: 38px; padding: 7px 12px; border-radius: 19px; background: rgba(16,24,39,.8); backdrop-filter: blur(8px); }
+body.map-focus .map-layer-control { width: auto; }
+body.map-focus .map-layer-panel { position: absolute; right: 0; width: min(320px, calc(100vw - 24px)); }
+body.map-focus .camera-alert-stack { top: calc(60px + env(safe-area-inset-top, 0px)); }
+body.map-focus .map-toolbar {
+  max-height: 22dvh;
+  padding: 8px 10px;
+  border-radius: 20px;
+  background: rgba(16,24,39,.8);
+}
+body.map-focus .map-toolbar:has(#routePanel:not([hidden])) { max-height: 46dvh; }
+body.map-focus .radar-toolbar-top { margin: 0 0 6px; align-items: center; }
+body.map-focus .radar-time { font-size: 11px; }
+body.map-focus .map-toolbar .btn.small-btn { padding: 6px 10px; font-size: 12px; min-height: 34px; }
+body.map-focus .maplibregl-ctrl-bottom-left,
+body.map-focus .maplibregl-ctrl-bottom-right { bottom: calc(22dvh + 20px + env(safe-area-inset-bottom, 0px)); }
+.camera-alert-stack { display: block; }
+.rain-ticker { min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; }
