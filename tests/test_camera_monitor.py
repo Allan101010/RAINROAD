@@ -264,6 +264,43 @@ class HomeMotionTests(unittest.TestCase):
         self.assertEqual(bad, [])
 
 
+class HomeSilenceTests(unittest.TestCase):
+    def setUp(self):
+        scripts = str(Path(__file__).resolve().parents[1] / "scripts")
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        import camera_training as ct
+        self.ct = ct
+
+    def write(self, tmp, times):
+        path = Path(tmp) / "f.jsonl"
+        path.write_text("\n".join(json.dumps({"t": t, "cam": "home-casa"}) for t in times) + "\n", encoding="utf-8")
+        return path
+
+    def test_alerts_once_per_outage_and_again_after_recovery(self):
+        import tempfile
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as tmp:
+            state = {}
+            path = self.write(tmp, ["2026-11-14T17:00:00Z"])
+            ok = self.ct.home_silence_message(datetime(2026, 11, 14, 17, 20, tzinfo=timezone.utc), state, path)
+            self.assertIsNone(ok)
+            alert = self.ct.home_silence_message(datetime(2026, 11, 14, 17, 40, tzinfo=timezone.utc), state, path)
+            self.assertIn("11:00", alert["message"])  # 17:00 UTC = 11:00 hora local
+            state["home_cam_alerted_for"] = alert["last"]
+            again = self.ct.home_silence_message(datetime(2026, 11, 14, 19, 0, tzinfo=timezone.utc), state, path)
+            self.assertIsNone(again)
+            path = self.write(tmp, ["2026-11-14T17:00:00Z", "2026-11-14T20:00:00Z"])
+            later = self.ct.home_silence_message(datetime(2026, 11, 14, 20, 45, tzinfo=timezone.utc), state, path)
+            self.assertIsNotNone(later)
+
+    def test_no_readings_ever_means_no_alert(self):
+        import tempfile
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(self.ct.home_silence_message(datetime.now(timezone.utc), {}, Path(tmp) / "none.jsonl"))
+
+
 class HomeRainEstimateTests(unittest.TestCase):
     def setUp(self):
         scripts = str(Path(__file__).resolve().parents[1] / "scripts")

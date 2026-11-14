@@ -56,6 +56,7 @@ jobs:
         env:
           HOME_CAM_TOPIC: ${{ secrets.HOME_CAM_TOPIC }}
           HOME_CAM_LAT: ${{ secrets.HOME_CAM_LAT }}
+          HOME_CAM_ALERT_TOPIC: ${{ secrets.HOME_CAM_ALERT_TOPIC }}
           HOME_CAM_LON: ${{ secrets.HOME_CAM_LON }}
         run: python scripts/monitor_cameras.py
 

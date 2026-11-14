@@ -1619,6 +1619,21 @@ def main() -> int:
         logging.warning("No se pudieron guardar los datos de entrenamiento: %s", exc)
 
     notify_state = dict(previous_payload.get("notify_state") or {})
+    try:
+        alert_topic = os.environ.get("HOME_CAM_ALERT_TOPIC", "").strip()
+        if alert_topic and os.environ.get("HOME_CAM_TOPIC", "").strip():
+            silence = camera_training.home_silence_message(utc_now(), notify_state)
+            if silence:
+                response = session.post(
+                    "https://ntfy.sh",
+                    data=json.dumps({"topic": alert_topic, "title": silence["title"], "message": silence["message"],
+                                     "tags": ["warning"], "priority": 3}).encode("utf-8"),
+                    timeout=15)
+                response.raise_for_status()
+                notify_state["home_cam_alerted_for"] = silence["last"]
+                logging.info("Aviso enviado: la tablet de cámaras lleva más de 30 min sin datos.")
+    except Exception as exc:
+        logging.warning("No se pudo revisar/avisar el silencio de la tablet: %s", exc)
     sent = notify_new_rain(station_alerts, previous_payload.get("station_alerts", []), session, state=notify_state)
     payload["notify_state"] = notify_state
     if sent:

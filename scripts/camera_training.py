@@ -274,6 +274,44 @@ def home_estimates(now: datetime, lat: float | None, lon: float | None, path: Pa
     return result
 
 
+HOME_SILENCE_MINUTES = 30
+
+
+def home_silence_message(now: datetime, state: dict, path: Path | None = None) -> dict | None:
+    """Aviso si la tablet lleva más de 30 min sin mandar lecturas. Uno por apagón, no repite.
+
+    `state` recuerda la última lectura por la que ya se avisó; cuando vuelve la tablet y luego se
+    cae de nuevo, esa lectura cambia y se vuelve a avisar. No avisa si nunca hubo lecturas.
+    """
+    path = path or DATA_PATH
+    if not path.exists():
+        return None
+    last = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if str(row.get("cam", "")).startswith("home-") and (last is None or row["t"] > last):
+            last = row["t"]
+    if last is None:
+        return None
+    try:
+        last_time = datetime.fromisoformat(last.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    silent = (now - last_time).total_seconds() / 60
+    if silent <= HOME_SILENCE_MINUTES or state.get("home_cam_alerted_for") == last:
+        return None
+    local = last_time.astimezone(LOCAL_TZ)
+    return {
+        "last": last,
+        "title": "La tablet de las cámaras dejó de enviar",
+        "message": f"Última lectura a las {local:%H:%M}. Revisa que la tablet tenga WiFi y batería, "
+                   "y que Termux siga abierto con el programa corriendo.",
+    }
+
+
 def publish(path: Path = DATA_PATH) -> None:
     """Publica el archivo como único commit de la rama camera-training."""
     blob = subprocess.check_output(["git", "hash-object", "-w", str(path)], text=True).strip()
