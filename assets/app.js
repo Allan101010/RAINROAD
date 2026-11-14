@@ -1048,7 +1048,7 @@ function addCameraMarkers() {
       element.textContent = "🌡️";
       element.setAttribute("aria-label", "Abrir panel meteorológico: " + station.name);
       const popupHtml = `<div class="camera-popup">
-        <div class="camera-popup-status">Panel público enlazado desde Parapente Pura Vida. Es una referencia externa; RainTrack todavía no utiliza sus valores para generar alertas.</div>
+        <div class="camera-popup-status">Panel público enlazado desde Parapente Pura Vida. Referencia externa. Su última lectura es de noviembre de 2025 (la estación no transmite), por eso no se usa para la lluvia. Si vuelve a transmitir, RainTrack la incluirá solo con datos de menos de 60 min.</div>
         <iframe class="weatherlink-frame" src="${escapeHtml(station.url)}" title="Condiciones actuales NEOJACO WeatherLink" loading="lazy" referrerpolicy="no-referrer"></iframe>
         <div class="camera-popup-links">
           <a class="camera-popup-link" href="${escapeHtml(station.url)}" target="_blank" rel="noopener">Abrir panel WeatherLink ↗</a>

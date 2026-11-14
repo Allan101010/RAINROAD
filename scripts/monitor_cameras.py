@@ -1115,24 +1115,45 @@ def resolve_snapshot_url(session: requests.Session, camera: dict) -> tuple[str |
 WEATHERLINK_NEOJACO_ID = "893d2aa1a69d47928c05b4c1c8e1b6c0"
 
 
-def probe_weatherlink(session: requests.Session) -> None:
-    """Sondeo informativo del panel público NEOJACO (solo escribe en el registro)."""
-    for url in (
-        f"https://www.weatherlink.com/embeddablePage/getData/{WEATHERLINK_NEOJACO_ID}",
-        f"https://www.weatherlink.com/embeddablePage/show/{WEATHERLINK_NEOJACO_ID}/slim",
-    ):
-        try:
-            response = session.get(url, timeout=HTTP_TIMEOUT, headers={"Accept": "application/json, text/html"})
-            logging.info("WEATHERLINK %s -> %s %s %s", url[-60:], response.status_code,
-                         response.headers.get("content-type"), response.text[:1800].replace("\n", " "))
-        except Exception as exc:  # solo diagnóstico
-            logging.info("WEATHERLINK %s falló: %s", url[-60:], exc)
+def fetch_weatherlink_station(session: requests.Session) -> dict:
+    """Lee el JSON público del panel WeatherLink de NEOJACO (no requiere token)."""
+    result = {
+        "id": "ppv-neojaco",
+        "station_name": "NEOJACO · WeatherLink",
+        "zone": "Pacífico Central",
+        "source_type": "weatherlink_station",
+        "availability_status": "offline",
+        "image_timestamp": None,
+        "image_age_minutes": None,
+        "rain_observed": False,
+        "checked_at": iso_now(),
+    }
+    try:
+        response = session.get(
+            f"https://www.weatherlink.com/embeddablePage/getData/{WEATHERLINK_NEOJACO_ID}",
+            timeout=HTTP_TIMEOUT,
+            headers={"Accept": "application/json"},
+        )
+        response.raise_for_status()
+        data = response.json()
+        received = data.get("lastReceived")
+        if received:
+            stamp = datetime.fromtimestamp(int(received) / 1000, timezone.utc)
+            result["image_timestamp"] = stamp.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+            result.update(assess_station_freshness(result["image_timestamp"]))
+        result["temperature_c"] = parse_localized_number(data.get("temperature"))
+        result["humidity_percent"] = parse_localized_number(data.get("humidity"))
+        result["wind_speed_kmh"] = parse_localized_number(data.get("wind"))
+        result["rain_raw_mm"] = parse_localized_number(data.get("rain"))
+        logging.info("NEOJACO WeatherLink: hora=%s estado=%s", result["image_timestamp"], result["availability_status"])
+    except Exception as exc:
+        logging.warning("NEOJACO WeatherLink no disponible: %s", exc)
+    return result
 
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     session = session_with_headers()
-    probe_weatherlink(session)
     catalog = load_catalog(session)
     previous_payload = read_previous_payload()
     previous_rows = {
@@ -1291,6 +1312,7 @@ def main() -> int:
 
     # Estaciones IMN: lecturas instrumentales independientes del análisis visual.
     stations = collect_imn_stations(session)
+    external_stations = [fetch_weatherlink_station(session)]
     station_alerts = [
         {
             "alert_type": "station",
@@ -1341,7 +1363,7 @@ def main() -> int:
                 "name": "NEOJACO · WeatherLink",
                 "url": "https://www.weatherlink.com/embeddablePage/show/893d2aa1a69d47928c05b4c1c8e1b6c0/slim",
                 "type": "external_station_widget",
-                "note": "Panel público visible desde el marcador de Jacó; no se ingieren sus valores para alertas automáticas porque la API de condiciones actuales requiere token de cuenta."
+                "note": "Panel público visible desde el marcador de Jacó; el bot lee su JSON público y solo lo usará si reporta datos de menos de 60 min; su última lectura es de nov-2025 (estación sin transmitir)."
             },
         ],
         "visual_rain_detection": "disabled",
@@ -1368,6 +1390,7 @@ def main() -> int:
         "recovered_cameras": recovered_cameras,
         "cameras": results,
         "stations": stations,
+        "external_stations": external_stations,
     }
 
     notify_state = dict(previous_payload.get("notify_state") or {})
