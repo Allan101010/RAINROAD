@@ -43,6 +43,8 @@ class MonitorMainTests(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         m.ALERTS_PATH = tmp / "camera-alerts.json"
         m.CATALOG_PATH = tmp / "camera-catalog.json"
+        m.camera_training.DATA_PATH = tmp / "training" / "camera-features.jsonl"
+        m.camera_training.fetch_lightning = lambda session: None
         if previous is not None:
             m.ALERTS_PATH.write_text(json.dumps(previous), encoding="utf-8")
         good, dark = landscape(), Image.new("RGB", (320, 240), (3, 3, 3))

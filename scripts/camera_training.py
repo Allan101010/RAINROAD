@@ -110,8 +110,9 @@ def build_row(camera: dict, features: dict, stations: list[dict], flashes, now: 
     }
 
 
-def append_rows(rows: list[dict], now: datetime, path: Path = DATA_PATH) -> int:
+def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> int:
     """Agrega filas al archivo local y descarta lo anterior a KEEP_DAYS."""
+    path = path or DATA_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     cutoff = (now - timedelta(days=KEEP_DAYS)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     kept = []
