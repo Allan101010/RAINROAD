@@ -211,26 +211,27 @@ class HomeRainEstimateTests(unittest.TestCase):
         import camera_training as ct
         self.ct = ct
 
-    def row(self, saturation, blue=1.2, hour=11, q="usable", t="2026-11-14T17:00:00Z"):
+    def row(self, saturation, ground=100, hour=11, q="usable", t="2026-11-14T17:00:00Z"):
         return {"t": t, "cam": "home-casa", "hour": hour, "q": q,
-                "f": {"saturation": saturation, "sky_blue_ratio": blue}}
+                "f": {"saturation": saturation, "ground_luma": ground, "sky_blue_ratio": 0.9}}
 
     def test_without_history_uses_fixed_threshold(self):
-        self.assertEqual(self.ct.estimate_home_rain(self.row(20, blue=0.98), [])["estimate"], "possible_rain")
-        self.assertEqual(self.ct.estimate_home_rain(self.row(60, blue=1.3), [])["estimate"], "no_rain")
-
-    def test_blue_sky_blocks_rain_even_if_pale(self):
-        self.assertEqual(self.ct.estimate_home_rain(self.row(20, blue=1.25), [])["estimate"], "no_rain")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20), [])["estimate"], "possible_rain")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(60), [])["estimate"], "no_rain")
 
     def test_night_and_low_quality_give_no_opinion(self):
-        self.assertEqual(self.ct.estimate_home_rain(self.row(10, blue=0.9, hour=22), [])["estimate"], "unknown")
-        self.assertEqual(self.ct.estimate_home_rain(self.row(10, blue=0.9, q="low_visibility"), [])["estimate"], "unknown")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(10, hour=22), [])["estimate"], "unknown")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(10, q="low_visibility"), [])["estimate"], "unknown")
 
-    def test_own_baseline_adapts_to_a_dull_camera(self):
-        history = [self.row(40) for _ in range(15)]
-        # 30 es "apagado" con umbral fijo, pero normal para una cámara que suele dar 40 -> 0.6*40=24
-        self.assertEqual(self.ct.estimate_home_rain(self.row(30, blue=1.0), history)["estimate"], "no_rain")
-        self.assertEqual(self.ct.estimate_home_rain(self.row(20, blue=1.0), history)["estimate"], "possible_rain")
+    def test_with_baseline_needs_grey_and_darker_ground(self):
+        history = [self.row(40, ground=100) for _ in range(15)]
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20, ground=70), history)["estimate"], "possible_rain")
+        # apagado pero el suelo no se oscureció (nublado seco): no avisa
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20, ground=98), history)["estimate"], "no_rain")
+        # suelo oscuro pero con color normal (sombra): no avisa
+        self.assertEqual(self.ct.estimate_home_rain(self.row(38, ground=70), history)["estimate"], "no_rain")
+        # 30 es "apagado" con umbral fijo, pero normal para una cámara que suele dar 40
+        self.assertEqual(self.ct.estimate_home_rain(self.row(30, ground=70), history)["estimate"], "no_rain")
 
     def test_home_estimates_use_latest_fresh_reading_and_round_coordinates(self):
         import tempfile
@@ -238,7 +239,7 @@ class HomeRainEstimateTests(unittest.TestCase):
         now = datetime(2026, 11, 14, 17, 5, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "f.jsonl"
-            rows = [self.row(60, t="2026-11-14T16:50:00Z"), self.row(18, blue=0.97, t="2026-11-14T17:00:00Z")]
+            rows = [self.row(60, t="2026-11-14T16:50:00Z"), self.row(18, t="2026-11-14T17:00:00Z")]
             path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
             result = self.ct.home_estimates(now, 9.912345, -83.612345, path)
             self.assertEqual(len(result), 1)

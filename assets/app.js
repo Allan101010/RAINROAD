@@ -912,12 +912,12 @@ function updateAmbientLocalRain() {
 }
 
 // Cámara de casa (experimental): estimación a partir de la imagen, no una medición.
-const HOME_CAM_STORAGE_KEY = "raintrack-homecam-on";
 let homeCameraMarker = null;
 
+// El ícono sigue el interruptor "Cámaras"; la animación de lluvia usa la estimación aunque esté apagado.
 function homeCameraEnabled() {
-  const toggle = $("homeCamToggle");
-  return !toggle || toggle.checked;
+  const toggle = $("camerasToggle");
+  return !!toggle && toggle.checked;
 }
 
 function homeCameraRows() {
@@ -926,7 +926,7 @@ function homeCameraRows() {
 }
 
 function homeCameraRaining(radiusKm) {
-  if (!homeLocation || !homeCameraEnabled()) return false;
+  if (!homeLocation) return false;
   return homeCameraRows().some(row => row.estimate === "possible_rain" &&
     distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= radiusKm);
 }
@@ -941,14 +941,7 @@ function homeCameraPopupText(row) {
 
 function updateHomeCameraMarker() {
   if (homeCameraMarker) { homeCameraMarker.remove(); homeCameraMarker = null; }
-  const info = $("homeCamInfo");
   const rows = homeCameraRows();
-  if (info) {
-    info.textContent = rows.length
-      ? "Estimación por imagen (experimental): " + (rows[0].estimate === "possible_rain" ? "posible lluvia." :
-        rows[0].estimate === "no_rain" ? "sin señales de lluvia." : "sin opinión ahora.")
-      : "Estimación por imagen (experimental). Sin lectura reciente.";
-  }
   if (!mapReady || !homeCameraEnabled() || !rows.length) return;
   const row = rows[0];
   const element = document.createElement("div");
@@ -964,14 +957,8 @@ function updateHomeCameraMarker() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const toggle = $("homeCamToggle");
-  if (!toggle) return;
-  try { if (localStorage.getItem(HOME_CAM_STORAGE_KEY) === "0") toggle.checked = false; } catch (e) {}
-  toggle.addEventListener("change", () => {
-    try { localStorage.setItem(HOME_CAM_STORAGE_KEY, toggle.checked ? "1" : "0"); } catch (e) {}
-    updateHomeCameraMarker();
-    updateAmbientLocalRain();
-  });
+  const toggle = $("camerasToggle");
+  if (toggle) toggle.addEventListener("change", updateHomeCameraMarker);
 });
 
 document.addEventListener("raintrack:lightning", updateAmbientLocalRain);

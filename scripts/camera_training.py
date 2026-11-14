@@ -199,38 +199,44 @@ HOME_BASELINE_MIN_ROWS = 12
 HOME_DAY_HOURS = range(8, 17)  # hora local en que el color de la imagen es confiable
 HOME_FALLBACK_SATURATION = 30.0
 HOME_GREY_RATIO = 0.6
+HOME_DARK_RATIO = 0.85
 HOME_COORD_DECIMALS = 2  # ~1 km: la ubicación exacta de la casa no se publica
 
 
-def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
-    """Estimación experimental de lluvia con una sola cámara: cielo gris y apagado de día.
+def _median(values: list[float]) -> float:
+    values = sorted(values)
+    return values[len(values) // 2]
 
-    No es una medición. Compara la saturación de color de la imagen con la habitual de esa misma
-    cámara (si hay historial de día) y exige además que el cielo no se vea azul. De noche no opina.
+
+def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
+    """Estimación experimental de lluvia con una sola cámara, de día.
+
+    No es una medición. Con historial de la misma cámara (de día) pide dos señales a la vez frente a
+    lo habitual: color más apagado y suelo más oscuro (calle mojada). Sin historial usa solo un
+    umbral fijo de color. No exige cielo azul porque esta cámara mira al suelo. De noche no opina.
     """
     features = latest.get("f", {})
     hour = latest.get("hour")
     if latest.get("q") != "usable" or hour not in HOME_DAY_HOURS:
         return {"estimate": "unknown", "reason": "night_or_low_quality"}
     saturation = float(features.get("saturation", 0))
-    blue_ratio = float(features.get("sky_blue_ratio", 9))
-    day_values = sorted(float(r["f"]["saturation"]) for r in history
-                        if r.get("hour") in HOME_DAY_HOURS and r.get("q") == "usable" and "saturation" in r.get("f", {}))
-    if len(day_values) >= HOME_BASELINE_MIN_ROWS:
-        baseline = day_values[len(day_values) // 2]
-        grey = saturation < baseline * HOME_GREY_RATIO
+    ground = float(features.get("ground_luma", 0))
+    day_rows = [r for r in history
+                if r.get("hour") in HOME_DAY_HOURS and r.get("q") == "usable" and "saturation" in r.get("f", {})]
+    if len(day_rows) >= HOME_BASELINE_MIN_ROWS:
+        base_sat = _median([float(r["f"]["saturation"]) for r in day_rows])
+        base_ground = _median([float(r["f"].get("ground_luma", 0)) for r in day_rows])
+        grey = saturation < base_sat * HOME_GREY_RATIO
+        darker = base_ground > 0 and ground < base_ground * HOME_DARK_RATIO
+        rain = grey and darker
         basis = "own_baseline"
+        baseline = round(base_sat, 1)
     else:
-        baseline = None
-        grey = saturation < HOME_FALLBACK_SATURATION
+        rain = saturation < HOME_FALLBACK_SATURATION
         basis = "fixed_threshold"
-    overcast = blue_ratio <= 1.05
-    return {
-        "estimate": "possible_rain" if grey and overcast else "no_rain",
-        "saturation": round(saturation, 1),
-        "baseline": None if baseline is None else round(baseline, 1),
-        "basis": basis,
-    }
+        baseline = None
+    return {"estimate": "possible_rain" if rain else "no_rain", "saturation": round(saturation, 1),
+            "baseline": baseline, "basis": basis}
 
 
 def home_estimates(now: datetime, lat: float | None, lon: float | None, path: Path | None = None) -> list[dict]:
