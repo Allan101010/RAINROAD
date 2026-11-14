@@ -8,13 +8,29 @@
 
   const pref = () => { try { return localStorage.getItem(KEY) !== "0"; } catch (e) { return true; } };
 
+  // Edad real del dato (minutos): la que tenía al guardarse + el tiempo desde que se guardó.
+  function stationAge(s, gen) {
+    const base = Number(s.image_age_minutes);
+    return (Number.isFinite(base) ? base : 0) + Math.max(0, (Date.now() - gen) / 60000);
+  }
+  // Cuánto tiempo se considera vigente una lluvia según su intensidad: la llovizna pasa rápido.
+  function maxAgeFor(mm) { return mm < 0.5 ? 45 : mm < 2 ? 60 : 80; }
+  // 1 = dato reciente (hasta 15 min); baja hasta 0 al vencer su vigencia.
+  function freshness(mm, age) {
+    if (age <= 15) return 1;
+    const max = maxAgeFor(mm);
+    return Math.max(0, 1 - (age - 15) / (max - 15));
+  }
+
   function rainyStations() {
     if (typeof cameraMonitorData === "undefined" || !cameraMonitorData) return [];
     const gen = cameraMonitorData.generated_at ? new Date(cameraMonitorData.generated_at).getTime() : 0;
     if (!gen || Date.now() - gen > 80 * 60 * 1000) return [];
     const rows = Array.isArray(cameraMonitorData.stations) ? cameraMonitorData.stations : [];
     return rows.filter(s => s.availability_status === "online" && Number(s.rain_last_hour_mm) > 0
-      && Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon)));
+      && Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon)))
+      .map(s => Object.assign({}, s, { _fresh: freshness(Number(s.rain_last_hour_mm), stationAge(s, gen)) }))
+      .filter(s => s._fresh > 0.03);
   }
 
   function buildCells() {
@@ -23,11 +39,11 @@
     cells = rainyStations().map(s => {
       const mm = Number(s.rain_last_hour_mm);
       const prev = old.get(s.id);
-      const n = Math.min(70, 14 + Math.round(mm * 7));
+      const n = mm < 0.5 ? 8 : Math.min(70, 14 + Math.round(mm * 7));
       const drops = prev && prev.drops.length === n ? prev.drops : Array.from({ length: n }, () => ({
         a: Math.random() * 6.283, r: Math.sqrt(Math.random()), p: Math.random(), v: 0.012 + Math.random() * 0.012
       }));
-      return { id: s.id, lat: Number(s.lat), lon: Number(s.lon), mm, drops, storm: mm >= STORM_MM,
+      return { id: s.id, lat: Number(s.lat), lon: Number(s.lon), mm, fresh: s._fresh, drizzle: mm < 0.5, drops, storm: mm >= STORM_MM && s._fresh > 0.5,
                nextBolt: prev ? prev.nextBolt : performance.now() + 800 + Math.random() * 3000, bolt: prev ? prev.bolt : null };
     });
   }
@@ -42,8 +58,9 @@
     if (!map || !mapReady || document.hidden) return;
     if (now - lastCellsAt > 20000) buildCells();
     for (const c of cells) {
+      ctx.globalAlpha = c.drizzle ? c.fresh * 0.7 : c.fresh;
       const pt = map.project([c.lon, c.lat]);
-      const radiusM = Math.min(11000, 4500 + c.mm * 700);
+      const radiusM = c.drizzle ? 3500 : Math.min(11000, 4500 + c.mm * 700);
       const R = Math.max(16, radiusM / metersPerPx(c.lat));
       if (pt.x < -R || pt.x > W + R || pt.y < -R || pt.y > H + R) continue;
       const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, R);
@@ -66,6 +83,7 @@
       }
       if (c.storm) drawStorm(c, pt, R, now);
     }
+    ctx.globalAlpha = 1;
   }
 
   function makeBolt(pt, R) {

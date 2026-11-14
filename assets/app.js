@@ -1116,6 +1116,10 @@ function addCameraMarkers() {
     const updated = observation && observation.image_timestamp
       ? new Date(observation.image_timestamp).toLocaleString("es-CR")
       : "Hora de observación no identificada";
+    const obsAgeMin = observation && observation.image_timestamp
+      ? Math.max(0, Math.round((Date.now() - new Date(observation.image_timestamp).getTime()) / 60000))
+      : null;
+    const updatedAge = obsAgeMin == null ? "" : obsAgeMin < 90 ? ` (hace ${obsAgeMin} min)` : ` (hace ${Math.round(obsAgeMin / 60)} h)`;
     const stationStatus = observation ? cameraAvailabilityText(availability) : "Esperando primera lectura";
     const stationMessage = rainObserved
       ? "La estación registró precipitación en la última hora."
@@ -1136,7 +1140,7 @@ function addCameraMarkers() {
         <div class="station-metric"><span>Dirección del viento</span><strong>${escapeHtml(windDirection)}</strong></div>
         <div class="station-metric"><span>Punto de rocío</span><strong>${escapeHtml(dewPoint)}</strong></div>
       </div>
-      <small class="camera-popup-meta">Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated)} · Datos preliminares del IMN</small>
+      <small class="camera-popup-meta">Estado: ${escapeHtml(stationStatus)} · Observación: ${escapeHtml(updated + updatedAge)} · Datos preliminares del IMN</small>
       <div class="camera-popup-links">
         <a class="camera-popup-link" href="${escapeHtml(station.tableUrl || station.url)}" target="_blank" rel="noopener">Consultar datos oficiales ↗</a>
         ${station.url && station.url !== station.tableUrl ? '<a class="camera-popup-link" href="' + escapeHtml(station.url) + '" target="_blank" rel="noopener">Ver panel gráfico ↗</a>' : ""}
