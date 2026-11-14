@@ -3,7 +3,6 @@
    Vista previa: añade ?ambiente=lluvia | tormenta (con relámpagos) | sol | nublado | noche | luna-llena a la dirección. */
 (function () {
   "use strict";
-  const KEY = "raintrack-ambient";
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const enabled = true; // el ambiente animado queda siempre activo
 

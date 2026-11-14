@@ -27,7 +27,7 @@
     const gen = cameraMonitorData.generated_at ? new Date(cameraMonitorData.generated_at).getTime() : 0;
     if (!gen || Date.now() - gen > 80 * 60 * 1000) return [];
     const rows = Array.isArray(cameraMonitorData.stations) ? cameraMonitorData.stations : [];
-    return rows.filter(s => s.availability_status === "online" && Number(s.rain_last_hour_mm) > 0
+    return rows.filter(s => (s.availability_status === "online" || s.availability_status === "delayed") && Number(s.rain_last_hour_mm) > 0
       && Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon)))
       .map(s => Object.assign({}, s, { _fresh: freshness(Number(s.rain_last_hour_mm), stationAge(s, gen)) }))
       .filter(s => s._fresh > 0.03);

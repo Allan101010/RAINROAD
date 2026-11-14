@@ -1210,7 +1210,6 @@ body { position: relative; }
 .amb-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 .amb-star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #e6eeff; opacity: .5; animation: amb-twinkle 4s ease-in-out infinite; }
 .ambient-toggle { margin-left: 6px; padding: 2px 7px; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; color: #fde68a; background: rgba(255,255,255,.06); font-size: 13px; line-height: 1.4; }
-.ambient-toggle[aria-pressed="false"] { opacity: .45; filter: grayscale(1); }
 body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { display: none; }
 @keyframes amb-spin { to { transform: rotate(360deg); } }
 @keyframes amb-drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
@@ -1260,13 +1259,10 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 .vol-smoke.s2 { animation-delay: 1.4s; }
 .vol-smoke.s3 { animation-delay: 2.8s; }
 .vol-smoke.ash { background: radial-gradient(circle, rgba(148,163,184,.95), rgba(71,85,105,.55)); }
-.vol-glow { animation: vol-glow 1.8s ease-in-out infinite; filter: drop-shadow(0 0 3px #f97316); }
 @keyframes vol-puff { 0% { transform: translate(0,0) scale(.5); opacity: 0; } 15% { opacity: .9; } 100% { transform: translate(7px,-26px) scale(2.1); opacity: 0; } }
-@keyframes vol-glow { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
 #map.zoom-low .landmark.volcano { width: 30px; height: 27px; }
 #map.zoom-low .vol-smoke { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
-@media (prefers-reduced-motion: reduce) { .vol-smoke, .vol-glow { animation: none; } .vol-smoke.s2, .vol-smoke.s3 { display: none; } .vol-smoke { opacity: .6; } }
-
+@media (prefers-reduced-motion: reduce) { .vol-smoke, 
 /* Volcanes: tamaños, humo por intensidad y foto en la ficha */
 .landmark.volcano { width: 48px; height: 44px; }
 .vol-smoke.soft { width: 7px; height: 7px; margin: -3px 0 0 -3px; }

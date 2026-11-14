@@ -893,7 +893,7 @@ def assess_station_freshness(timestamp_value: str | None) -> dict:
         if age_seconds < -600:
             return {"availability_status": "unknown", "image_age_minutes": None}
         age_minutes = round(max(0.0, age_seconds) / 60.0, 1)
-        if age_seconds <= timedelta(minutes=20).total_seconds():
+        if age_seconds <= timedelta(minutes=30).total_seconds():
             status = "online"
         elif age_seconds <= timedelta(hours=1).total_seconds():
             status = "delayed"
@@ -1018,7 +1018,7 @@ def collect_imn_stations(session: requests.Session) -> list[dict]:
             if result["availability_status"] == "stale":
                 result["message"] = "La tabla del IMN está accesible, pero su última observación tiene más de una hora."
             elif result["availability_status"] == "delayed":
-                result["message"] = "La observación del IMN tiene entre 20 y 60 minutos; no se usa para alertas inmediatas."
+                result["message"] = "La observación del IMN tiene entre 30 y 60 minutos; no se usa para alertas inmediatas."
             elif result["availability_status"] == "unknown":
                 result["message"] = "La tabla está accesible, pero no se pudo verificar la hora de observación."
             else:
@@ -1359,7 +1359,7 @@ def main() -> int:
         logging.info("Avisos de lluvia enviados: %s.", sent)
 
     old_time = previous_publish_time(previous_payload)
-    heartbeat_due = old_time is None or (utc_now() - old_time) >= timedelta(hours=1)
+    heartbeat_due = old_time is None or (utc_now() - old_time) >= timedelta(minutes=15)
     state_changed = status_signature(payload) != status_signature(previous_payload)
 
     if state_changed or heartbeat_due:
@@ -1367,7 +1367,7 @@ def main() -> int:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        logging.info("Resultados publicados (cambio de estado o actualización horaria).")
+        logging.info("Resultados publicados (cambio de estado o latido de 15 minutos).")
     else:
         logging.info("Sin cambios de estado; se conserva el último JSON publicado para evitar commits repetidos.")
 

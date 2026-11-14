@@ -6,12 +6,14 @@ Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, r
 
 - Mapa meteorológico de Costa Rica, radar (LibreWXR), imágenes satelitales del IMN, pronóstico y rutas.
 - **Estaciones del IMN:** la lluvia se informa solo con sus mediciones. Si una estación mide lluvia, aparece un aviso en la página.
+- **Capa propia «RainTrack · lluvia medida»:** lluvia animada solo alrededor de estaciones del IMN que midieron precipitación en la última hora (no interpola entre estaciones). Se atenúa según la intensidad y la edad del dato; con ≥ 8 mm/h se dibuja como tormenta (los relámpagos son estimados, el IMN no publica rayos con coordenadas). LibreWXR queda como fuente secundaria.
+- **Mapa:** fondo oscuro/claro (botón 🌙/☀️ arriba), temperaturas actuales con la más alta y la más baja en el aviso superior, volcanes con su ícono propio y foto, e íconos emblemáticos con foto de Wikimedia Commons (cada ficha enlaza al autor y la licencia). La clasificación de volcanes es general, no un reporte en vivo: consultar OVSICORI.
 - **Cámaras públicas** (Webcams Costa Rica, OVSICORI, SkylineWebcams): se muestra si están en línea, qué tan reciente es su imagen y si es legible. Las cámaras **no** generan alertas de lluvia: ninguna cámara confirma lluvia por sí sola.
 
 ## Cómo funciona
 
 - Sitio estático: `index.html`, `assets/styles.css`, `assets/app.js`.
-- `scripts/monitor_cameras.py` (GitHub Actions, cada 10 minutos) genera `camera-alerts.json` y `camera-catalog.json`. Solo publica cuando cambia el estado o pasó una hora.
+- `scripts/monitor_cameras.py` (GitHub Actions) genera `camera-alerts.json` y `camera-catalog.json`. Se dispara cada 10 minutos desde un cronjob externo (cron-job.org → `workflow_dispatch`), porque el `schedule` gratuito de GitHub se atrasa horas. Solo publica cuando cambia el estado o pasaron 15 minutos.
 - Las listas de cámaras y estaciones están en `config/camera-sources.json`.
 
 ## Uso y limitaciones

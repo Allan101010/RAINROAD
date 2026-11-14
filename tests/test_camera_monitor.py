@@ -45,6 +45,8 @@ class StationFreshnessTests(unittest.TestCase):
 
     def test_online_delayed_stale(self):
         self.assertEqual(self.status(5), "online")
+        self.assertEqual(self.status(25), "online")  # el IMN publica ~cada 15 min + el ciclo del bot
+        self.assertEqual(self.status(35), "delayed")
         self.assertEqual(self.status(40), "delayed")
         self.assertEqual(self.status(300), "stale")
 
