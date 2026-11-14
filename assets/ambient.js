@@ -1,6 +1,6 @@
 /* Ambiente animado de RainTrack CR: lluvia que rebota en el texto, sol, luna y nubes
    según el clima actual. Se puede apagar con el botón ✨ (se recuerda la elección).
-   Vista previa: añade ?ambiente=lluvia | tormenta | sol | nublado | noche | luna-llena a la dirección. */
+   Vista previa: añade ?ambiente=lluvia | tormenta (con relámpagos) | sol | nublado | noche | luna-llena a la dirección. */
 (function () {
   "use strict";
   const KEY = "raintrack-ambient";
@@ -165,6 +165,37 @@
     placeCelestial();
     refreshRects();
   }
+  // ---------- relámpagos (solo en tormenta eléctrica) ----------
+  let bolt = null, nextBoltAt = 0;
+  function makeBolt() {
+    const pts = [];
+    let x = W * (0.15 + Math.random() * 0.7), y = 0;
+    const endY = H * (0.28 + Math.random() * 0.2);
+    pts.push([x, y]);
+    while (y < endY) { y += 16 + Math.random() * 16; x += (Math.random() - 0.5) * 30; pts.push([x, y]); }
+    const bi = 2 + Math.floor(Math.random() * Math.max(1, pts.length - 4));
+    const branch = [pts[bi]];
+    let bx = pts[bi][0], by = pts[bi][1];
+    for (let i = 0; i < 4; i++) { by += 12 + Math.random() * 12; bx += (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 14); branch.push([bx, by]); }
+    return { pts, branch, life: 30 };
+  }
+  function drawBolt() {
+    const l = bolt.life;
+    const a = l > 24 ? 1 : l > 20 ? 0.2 : l > 16 ? 0.9 : l / 16;
+    ctx.fillStyle = "rgba(200,220,255," + (0.13 * a) + ")";
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.shadowColor = "rgba(160,200,255," + a + ")"; ctx.shadowBlur = 14;
+    ctx.strokeStyle = "rgba(235,244,255," + (0.9 * a) + ")"; ctx.lineWidth = 2; ctx.lineJoin = "round";
+    for (const path of [bolt.pts, bolt.branch]) {
+      ctx.beginPath(); path.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+      ctx.lineWidth = 1.2;
+    }
+    ctx.restore();
+    bolt.life--;
+    if (bolt.life <= 0) bolt = null;
+  }
+
   function frame(now) {
     rafId = requestAnimationFrame(frame);
     if (document.hidden || document.body.classList.contains("map-focus")) { ctx.clearRect(0, 0, W, H); return; }
@@ -200,6 +231,13 @@
       ctx.beginPath(); ctx.arc(s.x, s.y, 1.3, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1;
+    if (state.intensity >= 4) {
+      if (!bolt && now > nextBoltAt) {
+        if (nextBoltAt) bolt = makeBolt();
+        nextBoltAt = now + 6000 + Math.random() * 9000;
+      }
+      if (bolt) drawBolt();
+    }
   }
   function startRain() {
     if (rafId || reduceMotion || !enabled) return;
@@ -220,7 +258,7 @@
   function placeCelestialSoon() { if (!placeTimer) placeTimer = setTimeout(() => { placeTimer = null; placeCelestial(); }, 200); }
   function stopRain() {
     if (rafId) cancelAnimationFrame(rafId);
-    rafId = null; drops = []; splashes = [];
+    rafId = null; drops = []; splashes = []; bolt = null; nextBoltAt = 0;
     if (ctx) ctx.clearRect(0, 0, W, H);
   }
 
