@@ -7,7 +7,7 @@
   const enabled = true; // el ambiente animado queda siempre activo
 
   let state = { kind: "clear", isDay: true, intensity: 0 };
-  let lastCurrent = null, localRain = null; // localRain: true/false según estaciones cercanas, null = sin dato
+  let lastCurrent = null, localRain = null, localThunder = false; // localRain: true/false según estaciones cercanas, null = sin dato
   let canvas, ctx, celestial, rafId = null;
   let drops = [], splashes = [], rects = [], mapRect = null, lastRectsAt = 0, dpr = 1, W = 0, H = 0;
 
@@ -263,7 +263,8 @@
 
   function refresh() {
     state = classify(lastCurrent.weather_code, lastCurrent.is_day);
-    if (localRain === false && state.kind === "rain") state = { kind: "cloudy", isDay: state.isDay, intensity: 0 };
+    if (localThunder) state = { kind: "rain", isDay: state.isDay, intensity: 4 }; // rayos reales cerca: tormenta confirmada
+    else if (localRain === false && state.kind === "rain") state = { kind: "cloudy", isDay: state.isDay, intensity: 0 };
     apply();
   }
 
@@ -281,8 +282,9 @@
       refresh();
     },
     // Estaciones medidas cerca del usuario mandan sobre el modelo: sin lluvia medida, sin animación de lluvia.
-    setLocalRain(value) {
+    setLocalRain(value, thunder) {
       localRain = value === true || value === false ? value : null;
+      localThunder = thunder === true;
       if (lastCurrent && !window.__ambientForced) refresh();
     },
     flash() { if (rafId) bolt = makeBolt(); },

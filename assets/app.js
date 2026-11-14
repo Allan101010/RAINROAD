@@ -881,6 +881,12 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 
 function updateAmbientLocalRain() {
   if (!window.RainTrackAmbient) return;
+  // Rayos reales (satélite) a menos de 20 km en los últimos 15 min confirman tormenta en tu zona.
+  if (homeLocation && window.RainTrackLightning &&
+      window.RainTrackLightning.nearby(homeLocation.lat, homeLocation.lon, 20, 15) >= 2) {
+    window.RainTrackAmbient.setLocalRain(true, true);
+    return;
+  }
   if (!homeLocation || !cameraMonitorData || !Array.isArray(cameraMonitorData.stations)) {
     window.RainTrackAmbient.setLocalRain(null);
     return;
@@ -899,6 +905,8 @@ function updateAmbientLocalRain() {
   });
   window.RainTrackAmbient.setLocalRain(nearbyOnline === 0 ? null : nearbyRain);
 }
+
+document.addEventListener("raintrack:lightning", updateAmbientLocalRain);
 
 async function loadCameraMonitoringData() {
   try {

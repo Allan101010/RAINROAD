@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: raintrack-camera-monitor
@@ -75,3 +76,11 @@ jobs:
             fi
             git push origin HEAD:main
           fi
+
+      - name: Mantener activo el lector de rayos GLM
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/workflows/lightning.yml/dispatches" \
+            -X POST -f ref=main
