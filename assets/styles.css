@@ -1250,3 +1250,19 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 .map-shell.map-dark .maplibregl-ctrl-attrib a { color: #cbd5e1; }
 .map-shell.map-dark .landmark.emblem { background: rgba(16,24,39,.85); border-color: rgba(255,255,255,.75); }
 .map-shell.map-dark .landmark.emblem.major { border-color: #38bdf8; }
+
+/* Volcanes ilustrados */
+.landmark.volcano { width: 44px; height: 40px; font-size: 0; }
+.landmark.volcano .vol-icon { width: 100%; height: 100%; }
+.landmark.volcano .vol-icon svg { width: 100%; height: 100%; overflow: visible; }
+.landmark.volcano.rest { opacity: .92; }
+.vol-smoke { position: absolute; left: var(--top-x, 50%); top: var(--top-y, 20%); width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: radial-gradient(circle, rgba(241,245,249,.95), rgba(203,213,225,.55)); filter: blur(1.2px); opacity: 0; animation: vol-puff 4.2s ease-out infinite; pointer-events: none; }
+.vol-smoke.s2 { animation-delay: 1.4s; }
+.vol-smoke.s3 { animation-delay: 2.8s; }
+.vol-smoke.ash { background: radial-gradient(circle, rgba(148,163,184,.95), rgba(71,85,105,.55)); }
+.vol-glow { animation: vol-glow 1.8s ease-in-out infinite; filter: drop-shadow(0 0 3px #f97316); }
+@keyframes vol-puff { 0% { transform: translate(0,0) scale(.5); opacity: 0; } 15% { opacity: .9; } 100% { transform: translate(7px,-26px) scale(2.1); opacity: 0; } }
+@keyframes vol-glow { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+#map.zoom-low .landmark.volcano { width: 30px; height: 27px; }
+#map.zoom-low .vol-smoke { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
+@media (prefers-reduced-motion: reduce) { .vol-smoke, .vol-glow { animation: none; } .vol-smoke.s2, .vol-smoke.s3 { display: none; } .vol-smoke { opacity: .6; } }
