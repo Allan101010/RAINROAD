@@ -135,6 +135,47 @@ class CameraTrainingTests(unittest.TestCase):
             self.assertNotIn("old", path.read_text(encoding="utf-8"))
 
 
+class HomeCameraTests(unittest.TestCase):
+    def test_tablet_features_match_bot_features(self):
+        from PIL import Image
+        scripts = str(Path(__file__).resolve().parents[1] / "scripts")
+        tablet = str(Path(__file__).resolve().parents[1] / "tools" / "home-cameras")
+        for folder in (scripts, tablet):
+            if folder not in sys.path:
+                sys.path.insert(0, folder)
+        import camera_training as ct
+        import camaras_casa as tablet_script
+        img = Image.new("RGB", (200, 150), (90, 120, 160))
+        for x in range(0, 200, 7):
+            img.putpixel((x, 40), (255, 255, 255))
+        self.assertEqual(ct.extract_features(img), tablet_script.extract_features(img))
+
+    def test_parse_home_messages_filters_bad_data(self):
+        import camera_training as ct
+        now = cams.utc_now()
+        stamp = now.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        feats = {k: 1.0 for k in ct.FEATURE_KEYS}
+        good = {"v": 1, "cam": "casa-patio", "t": stamp, "q": "usable", "f": feats}
+        old = dict(good, t=(now - timedelta(hours=3)).replace(microsecond=0).isoformat().replace("+00:00", "Z"))
+        badcam = dict(good, cam="../etc")
+        missing = dict(good, f={"luma": 1.0})
+        nan = dict(good, f=dict(feats, luma=1e9))
+        lines = "\n".join(json.dumps({"event": "message", "message": json.dumps(m)}) for m in (good, old, badcam, missing, nan))
+        lines += "\n" + json.dumps({"event": "open"}) + "\nbasura"
+        out = ct.parse_home_messages(lines, now)
+        self.assertEqual([m["cam"] for m in out], ["home-casa-patio"])
+
+    def test_append_rows_dedupes(self):
+        import tempfile
+        import camera_training as ct
+        now = cams.utc_now()
+        row = {"t": now.replace(microsecond=0).isoformat().replace("+00:00", "Z"), "cam": "home-a"}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "x.jsonl"
+            ct.append_rows([row], now, path)
+            self.assertEqual(ct.append_rows([row], now, path), 1)
+
+
 class CameraSourcesTests(unittest.TestCase):
     def test_config_file_matches_loaded_constants(self):
         raw = json.loads(cams.CAMERA_SOURCES_PATH.read_text(encoding="utf-8"))

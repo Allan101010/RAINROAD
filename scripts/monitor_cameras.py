@@ -16,6 +16,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import re
 import statistics
 import sys
@@ -1594,6 +1595,16 @@ def main() -> int:
             if item.get("id") in camera_features and item.get("availability_status") == "online"
             and item.get("lat") is not None and item.get("lon") is not None
         ]
+        home_topic = os.environ.get("HOME_CAM_TOPIC", "").strip()
+        if home_topic:
+            try:
+                home_lat = float(os.environ["HOME_CAM_LAT"]) if os.environ.get("HOME_CAM_LAT") else None
+                home_lon = float(os.environ["HOME_CAM_LON"]) if os.environ.get("HOME_CAM_LON") else None
+            except ValueError:
+                home_lat = home_lon = None
+            home_rows = camera_training.fetch_home_rows(session, home_topic, home_lat, home_lon, stations, flashes, now_utc)
+            logging.info("Cámaras de casa: %s lecturas nuevas.", len(home_rows))
+            rows.extend(home_rows)
         total = camera_training.append_rows(rows, now_utc)
         logging.info("Datos de entrenamiento: %s filas nuevas (%s en total).", len(rows), total)
     except Exception as exc:

@@ -1,0 +1,7 @@
+{
+  "ntfy_topic": "CAMBIA-ESTO-por-un-nombre-largo-y-secreto",
+  "intervalo_segundos": 300,
+  "cameras": [
+    { "id": "casa-patio", "rtsp": "rtsp://USUARIO:CLAVE@192.168.1.50:554/stream1" }
+  ]
+}

@@ -53,6 +53,10 @@ jobs:
           git show origin/camera-training:camera-features.jsonl > training-data/camera-features.jsonl 2>/dev/null || rm -f training-data/camera-features.jsonl
 
       - name: Consultar cámaras y estaciones
+        env:
+          HOME_CAM_TOPIC: ${{ secrets.HOME_CAM_TOPIC }}
+          HOME_CAM_LAT: ${{ secrets.HOME_CAM_LAT }}
+          HOME_CAM_LON: ${{ secrets.HOME_CAM_LON }}
         run: python scripts/monitor_cameras.py
 
       - name: Publicar datos de entrenamiento de cámaras

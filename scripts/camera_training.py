@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -110,6 +111,63 @@ def build_row(camera: dict, features: dict, stations: list[dict], flashes, now: 
     }
 
 
+FEATURE_KEYS = ("luma", "contrast", "sky_luma", "sky_contrast", "ground_luma", "ground_contrast",
+                "edges", "sky_edges", "saturation", "sky_blue_ratio", "bright_frac", "dark_frac")
+HOME_MAX_SKEW_MINUTES = 30
+
+
+def parse_home_messages(text: str, now: datetime) -> list[dict]:
+    """Lee los mensajes de la tablet desde ntfy (una línea JSON por mensaje) y descarta lo dudoso."""
+    messages = []
+    for line in text.splitlines():
+        try:
+            envelope = json.loads(line)
+            if envelope.get("event") != "message":
+                continue
+            data = json.loads(envelope.get("message", ""))
+            cam = str(data.get("cam", ""))
+            features = data.get("f", {})
+            stamp = datetime.fromisoformat(str(data.get("t", "")).replace("Z", "+00:00"))
+            if data.get("v") != 1 or not re.fullmatch(r"[a-z0-9-]{1,40}", cam):
+                continue
+            if abs((now - stamp).total_seconds()) > HOME_MAX_SKEW_MINUTES * 60:
+                continue
+            clean = {}
+            for key in FEATURE_KEYS:
+                value = float(features[key])
+                if not math.isfinite(value) or abs(value) > 1000:
+                    raise ValueError(key)
+                clean[key] = value
+            quality = data.get("q") if data.get("q") in ("usable", "low_visibility") else "usable"
+            messages.append({"cam": "home-" + cam, "t": stamp.astimezone(timezone.utc), "q": quality, "f": clean})
+        except (ValueError, KeyError, TypeError, AttributeError):
+            continue
+    return messages
+
+
+def fetch_home_rows(session: requests.Session, topic: str, lat: float | None, lon: float | None,
+                    stations: list[dict], flashes, now: datetime) -> list[dict]:
+    """Filas de las cámaras de casa, con las estaciones y rayos cercanos al lugar (si se conoce)."""
+    try:
+        response = session.get(f"https://ntfy.sh/{topic}/json", params={"poll": "1", "since": "20m"}, timeout=20)
+        response.raise_for_status()
+    except Exception:
+        return []
+    rows = []
+    for message in parse_home_messages(response.text, now):
+        rows.append({
+            "t": message["t"].replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            "cam": message["cam"],
+            "hour": message["t"].astimezone(LOCAL_TZ).hour,
+            "q": message["q"],
+            "age": None,
+            "f": message["f"],
+            "st": nearby_stations(lat, lon, stations) if lat is not None and lon is not None else [],
+            "lg": lightning_near(lat, lon, flashes, now) if lat is not None and lon is not None else None,
+        })
+    return rows
+
+
 def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> int:
     """Agrega filas al archivo local y descarta lo anterior a KEEP_DAYS."""
     path = path or DATA_PATH
@@ -123,7 +181,15 @@ def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> in
                     kept.append(line)
             except ValueError:
                 continue
-    kept.extend(json.dumps(row, separators=(",", ":"), ensure_ascii=False) for row in rows)
+    existing = set()
+    for line in kept:
+        try:
+            item = json.loads(line)
+            existing.add((item.get("cam"), item.get("t")))
+        except ValueError:
+            continue
+    kept.extend(json.dumps(row, separators=(",", ":"), ensure_ascii=False) for row in rows
+                if (row.get("cam"), row.get("t")) not in existing)
     path.write_text("\n".join(kept) + ("\n" if kept else ""), encoding="utf-8")
     return len(kept)
 
