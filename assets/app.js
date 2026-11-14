@@ -810,25 +810,24 @@ function renderCameraAlerts() {
   }
 
   stack.hidden = false;
-  stack.innerHTML = active.slice(0, 4).map(item => {
-    const detail = Number(item.rain_last_hour_mm).toFixed(1) + " mm en la última hora";
-    const alertKey = cameraAlertKey(item);
-    return `<div class="camera-alert-item rain">
-      <span class="camera-alert-icon">🌧️</span>
-      <div class="camera-alert-content">
-        <strong>Lluvia medida por estación · ${escapeHtml(item.station_name || item.site_name || "Estación IMN")}</strong>
-        <small>${escapeHtml(item.site_name || item.station_name || "")} · ${escapeHtml(detail)}</small>
-        <a href="${escapeHtml(safeHttpUrl(item.page_url, "https://www.imn.ac.cr/"))}" target="_blank" rel="noopener">Ver estación IMN ↗</a>
-      </div>
-      <button class="camera-alert-close" type="button" data-dismiss-camera-alert="${escapeHtml(alertKey)}" aria-label="Cerrar alerta" title="Cerrar alerta">×</button>
-    </div>`;
+  const chips = active.slice(0, 8).map(item => {
+    const name = String(item.station_name || item.site_name || "Estación IMN").replace(/^Estación IMN\s*·\s*/, "");
+    const mm = Number(item.rain_last_hour_mm).toFixed(1);
+    return `<a class="rain-chip" href="${escapeHtml(safeHttpUrl(item.page_url, "https://www.imn.ac.cr/"))}" target="_blank" rel="noopener">🌧️ <b>${escapeHtml(name)}</b> ${mm} mm/h</a>`;
   }).join("");
+  const keys = active.slice(0, 8).map(cameraAlertKey).join("|");
+  // El contenido se duplica para que el desplazamiento hacia la derecha sea continuo.
+  stack.innerHTML = `<div class="rain-ticker" role="status">
+    <span class="rain-ticker-label">Lluvia medida</span>
+    <div class="rain-ticker-window"><div class="rain-ticker-track" style="animation-duration:${Math.max(18, active.length * 9)}s"><div class="rain-ticker-set">${chips}</div><div class="rain-ticker-set" aria-hidden="true">${chips}</div></div></div>
+    <button class="rain-ticker-close" type="button" data-dismiss-camera-alert="${escapeHtml(keys)}" aria-label="Ocultar avisos de lluvia" title="Ocultar">×</button>
+  </div>`;
 }
 
 $("cameraAlertStack").addEventListener("click", event => {
   const closeButton = event.target.closest("[data-dismiss-camera-alert]");
   if (!closeButton) return;
-  dismissedCameraAlertIds.add(closeButton.getAttribute("data-dismiss-camera-alert"));
+  closeButton.getAttribute("data-dismiss-camera-alert").split("|").forEach(key => dismissedCameraAlertIds.add(key));
   renderCameraAlerts();
 });
 

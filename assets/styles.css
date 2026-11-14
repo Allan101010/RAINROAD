@@ -1139,3 +1139,17 @@ body.map-focus .route-panel { max-height: 22dvh; overflow-y: auto; }
 .layer-group .layer-check input:checked::after { transform: translateX(20px); }
 .layer-group .layer-check input:focus-visible { outline: 2px solid #9fd3ff; outline-offset: 2px; }
 .layer-group .layer-check + .layer-check { border-top: 1px solid rgba(255,255,255,.08); }
+
+/* Avisos de lluvia: rótulo que se desplaza hacia la derecha, discreto */
+.camera-alert-stack { top: 66px; bottom: auto; left: 12px; right: 12px; width: auto; }
+.rain-ticker { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 4px 0 10px; border: 1px solid rgba(125,211,252,.35); border-radius: 16px; background: rgba(16,24,39,.82); color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25); backdrop-filter: blur(6px); pointer-events: auto; font-size: 12px; }
+.rain-ticker-label { flex: 0 0 auto; font-weight: 800; font-size: 11px; color: #7dd3fc; white-space: nowrap; }
+.rain-ticker-window { flex: 1 1 auto; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.rain-ticker-track { display: flex; width: max-content; animation: rain-ticker-move linear infinite; }
+.rain-ticker-window:active .rain-ticker-track { animation-play-state: paused; }
+.rain-ticker-set { display: flex; gap: 22px; padding-right: 22px; white-space: nowrap; }
+.rain-chip { color: #fff; text-decoration: none; }
+.rain-chip b { font-weight: 750; }
+.rain-ticker-close { flex: 0 0 26px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; color: #cbd5e1; background: rgba(255,255,255,.1); font-size: 16px; line-height: 1; }
+@keyframes rain-ticker-move { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .rain-ticker-track { animation: none; } .rain-ticker-set[aria-hidden] { display: none; } .rain-ticker-window { overflow-x: auto; } }
