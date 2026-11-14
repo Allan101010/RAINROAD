@@ -177,19 +177,19 @@
     const branch = [pts[bi]];
     let bx = pts[bi][0], by = pts[bi][1];
     for (let i = 0; i < 4; i++) { by += 12 + Math.random() * 12; bx += (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 14); branch.push([bx, by]); }
-    return { pts, branch, life: 30 };
+    return { pts, branch, life: 42 };
   }
   function drawBolt() {
     const l = bolt.life;
-    const a = l > 24 ? 1 : l > 20 ? 0.2 : l > 16 ? 0.9 : l / 16;
-    ctx.fillStyle = "rgba(200,220,255," + (0.13 * a) + ")";
+    const a = l > 34 ? 1 : l > 29 ? 0.3 : l > 22 ? 1 : l / 22;
+    ctx.fillStyle = "rgba(200,220,255," + (0.2 * a) + ")";
     ctx.fillRect(0, 0, W, H);
     ctx.save();
-    ctx.shadowColor = "rgba(160,200,255," + a + ")"; ctx.shadowBlur = 14;
-    ctx.strokeStyle = "rgba(235,244,255," + (0.9 * a) + ")"; ctx.lineWidth = 2; ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(160,200,255," + a + ")"; ctx.shadowBlur = 22;
+    ctx.strokeStyle = "rgba(245,250,255," + a + ")"; ctx.lineWidth = 3.2; ctx.lineJoin = "round";
     for (const path of [bolt.pts, bolt.branch]) {
       ctx.beginPath(); path.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.8;
     }
     ctx.restore();
     bolt.life--;
@@ -233,8 +233,8 @@
     ctx.globalAlpha = 1;
     if (state.intensity >= 4) {
       if (!bolt && now > nextBoltAt) {
-        if (nextBoltAt) bolt = makeBolt();
-        nextBoltAt = now + 6000 + Math.random() * 9000;
+        bolt = makeBolt();
+        nextBoltAt = now + (nextBoltAt ? 6000 + Math.random() * 9000 : 2500);
       }
       if (bolt) drawBolt();
     }
@@ -275,6 +275,7 @@
       state = classify(current.weather_code, current.is_day);
       apply();
     },
+    flash() { if (rafId) bolt = makeBolt(); },
     toggle() {
       enabled = !enabled;
       try { localStorage.setItem(KEY, enabled ? "on" : "off"); } catch (e) {}
