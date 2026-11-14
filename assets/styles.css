@@ -1303,3 +1303,5 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 .map-toolbar.own-rain-mode .timeline-row { display: none; }
 body.map-focus .own-rain-stats { margin-top: 8px; }
 body.map-focus .radar-title { font-size: 14px; }
+
+.radar-time.warn { color: #fbbf24; }

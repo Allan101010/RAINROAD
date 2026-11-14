@@ -1276,6 +1276,11 @@ function showOwnRainSource() {
   $("mapStatusChip").textContent = storms
     ? "⛈️ " + storms + (storms === 1 ? " zona con tormenta" : " zonas con tormenta") + " · lluvia intensa medida"
     : cellsNow ? "🌧️ Lluvia medida en " + cellsNow + (cellsNow === 1 ? " estación" : " estaciones") : "☀️ Sin lluvia medida ahora · estaciones IMN";
+  const stale = genAge != null && genAge > 30;
+  $("radarTime").classList.toggle("warn", stale);
+  if (stale && !cellsNow && !storms) {
+    $("mapStatusChip").textContent = "⏳ Datos de hace " + (genAge >= 90 ? Math.round(genAge / 60) + " h" : genAge + " min") + " · pueden estar desactualizados";
+  }
 }
 
 async function loadRadarSource() {
