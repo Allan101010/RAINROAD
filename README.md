@@ -30,3 +30,9 @@ python -m unittest discover -s tests -v
 [Acciones y pruebas automatizadas](https://github.com/Allan101010/RAINROAD/actions)
 
 Historial: una versión anterior (commit `5bb27e9`) incluía un juez de IA de visión opcional para detectar lluvia en las cámaras; se retiró para simplificar.
+
+
+## Instalar en el teléfono y avisos de lluvia
+
+- **Instalar:** abre la página en Chrome (Android) y elige «Añadir a pantalla de inicio». La app se actualiza sola cada vez que se publica un cambio.
+- **Avisos:** instala la app gratuita **ntfy** y suscríbete a los canales de `config/notify-zones.json` (uno por zona). El monitor envía un aviso cuando una estación del IMN de esa zona pasa a medir lluvia, y no repite mientras siga lloviendo. El nombre del canal actúa como contraseña: no lo compartas.

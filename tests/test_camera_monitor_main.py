@@ -55,6 +55,8 @@ class MonitorMainTests(unittest.TestCase):
              "snapshot_url": "https://e.test/1.jpg", "live_video_page": True},
         ]
         freshness = {"delayed": ("delayed", 35), "unknown": ("unknown", None), "stale": ("stale", 300)}
+        self.notify_calls = []
+        m.notify_new_rain = lambda cur, prev, sess: self.notify_calls.append((cur, prev)) or 0
         m.session_with_headers = lambda: object()
         m.load_catalog = lambda session: catalog
         m.get_page = lambda session, url: ("<html></html>", url)
@@ -100,6 +102,13 @@ class MonitorMainTests(unittest.TestCase):
         self.assertEqual(dry["station_alerts"], [])
         self.assertEqual([a["station_id"] for a in wet["station_alerts"]], ["imn-x"])
         self.assertEqual(wet["station_alerts"][0]["rain_last_hour_mm"], 1.2)
+
+    def test_monitor_hands_new_station_rain_to_notifier(self):
+        previous = {"generated_at": "2000-01-01T00:00:00Z", "station_alerts": []}
+        self.run_monitor(previous=previous, rain=True)
+        current, before = self.notify_calls[0]
+        self.assertEqual([a["station_id"] for a in current], ["imn-x"])
+        self.assertEqual(before, [])
 
     def test_camera_back_from_offline_is_marked_recovered(self):
         previous = {"generated_at": "2000-01-01T00:00:00Z", "cameras": [

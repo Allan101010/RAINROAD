@@ -29,6 +29,11 @@ import requests
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps, ImageStat
 
+try:
+    from scripts.notify_zones import notify_new_rain
+except ImportError:  # ejecución directa: python scripts/monitor_cameras.py
+    from notify_zones import notify_new_rain
+
 BASE_URL = "https://webcamscostarica.com/"
 CATALOG_SCHEMA_VERSION = 4
 CATALOG_PATH = Path("camera-catalog.json")
@@ -1320,6 +1325,10 @@ def main() -> int:
         "cameras": results,
         "stations": stations,
     }
+
+    sent = notify_new_rain(station_alerts, previous_payload.get("station_alerts", []), session)
+    if sent:
+        logging.info("Avisos de lluvia enviados: %s.", sent)
 
     old_time = previous_publish_time(previous_payload)
     heartbeat_due = old_time is None or (utc_now() - old_time) >= timedelta(hours=1)

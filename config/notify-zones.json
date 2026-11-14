@@ -1,0 +1,43 @@
+{
+  "server": "https://ntfy.sh",
+  "note": "Cada zona publica en su propio canal de ntfy. El nombre del canal funciona como contraseña: no lo compartas.",
+  "zones": [
+    {
+      "id": "alajuela",
+      "name": "Alajuela",
+      "topic": "raintrackcr-alajuela-838238f95fbb",
+      "places": [
+        "Río Segundo",
+        "aeropuerto",
+        "INVU de Alajuela",
+        "La Tropicana",
+        "Alajuela centro",
+        "Itiquís",
+        "Tambor",
+        "Quebradas",
+        "Poás",
+        "Santa Rosa de Poás"
+      ],
+      "station_ids": [
+        "imn-aeropuerto-sjo-07"
+      ]
+    },
+    {
+      "id": "san-jose",
+      "name": "San José",
+      "topic": "raintrackcr-sanjose-364520d71890",
+      "places": [
+        "Uruca",
+        "Calle Blancos",
+        "Moravia",
+        "Tibás",
+        "General Cañas",
+        "La Sabana",
+        "San José centro"
+      ],
+      "station_ids": [
+        "imn-aranjuez"
+      ]
+    }
+  ]
+}
