@@ -233,8 +233,14 @@ function formatDayLength(seconds) {
   return hours + " h " + String(minutes).padStart(2, "0") + " min";
 }
 
-function weatherInfo(code) {
+function weatherInfo(code, isDay = true) {
   const c = Number(code);
+  if (!isDay) {
+    // De noche no se muestra sol: se usa la luna.
+    if (c === 0) return { icon: "🌙", text: "Despejado" };
+    if (c === 1) return { icon: "🌙", text: "Mayormente despejado" };
+    if (c === 2) return { icon: "☁️", text: "Parcialmente nublado" };
+  }
   if (c === 0) return { icon: "☀️", text: "Despejado" };
   if (c === 1) return { icon: "🌤️", text: "Mayormente despejado" };
   if (c === 2) return { icon: "⛅", text: "Parcialmente nublado" };
@@ -1861,6 +1867,7 @@ async function getWeatherData(location) {
       "rain",
       "showers",
       "weather_code",
+      "is_day",
       "wind_speed_10m"
     ].join(","),
     hourly: [
@@ -1871,6 +1878,7 @@ async function getWeatherData(location) {
       "rain",
       "showers",
       "weather_code",
+      "is_day",
       "wind_speed_10m"
     ].join(","),
     daily: [
@@ -1906,7 +1914,7 @@ function formatCurrentPrecipitationPeriod(intervalSeconds) {
 function renderWeatherCard(containerId, location, data, isHome) {
   const container = $(containerId);
   const current = data.current;
-  const info = weatherInfo(current.weather_code);
+  const info = weatherInfo(current.weather_code, current.is_day !== 0);
   const updated = formatLocalHour(current.time);
   const rainNow = Number(current.precipitation || 0);
   const rainPeriod = formatCurrentPrecipitationPeriod(current.interval);
@@ -1960,6 +1968,7 @@ function getNext24Hours(data) {
       precipitation: Number(hourly.precipitation?.[i] ?? 0),
       temperature: Number(hourly.temperature_2m?.[i] ?? 0),
       weatherCode: Number(hourly.weather_code?.[i] ?? 0),
+      isDay: hourly.is_day?.[i] !== 0,
       wind: Number(hourly.wind_speed_10m?.[i] ?? 0)
     });
   }
@@ -2024,7 +2033,7 @@ function renderForecast(location, data) {
   }
 
   $("hourlyGrid").innerHTML = hours.map(hour => {
-    const info = weatherInfo(hour.weatherCode);
+    const info = weatherInfo(hour.weatherCode, hour.isDay !== false);
     return `
       <article class="hour-card">
         <div class="hour-time">${escapeHtml(formatLocalHour(hour.time))}</div>
