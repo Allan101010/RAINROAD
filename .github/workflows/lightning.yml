@@ -1,0 +1,41 @@
+name: RainTrack CR - rayos GLM
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: "Segundos que se queda corriendo"
+        default: "570"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raintrack-lightning
+  cancel-in-progress: false
+
+jobs:
+  lightning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements-lightning.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-lightning.txt
+
+      - name: Recuperar historial reciente de rayos
+        run: |
+          git fetch origin lightning-data:refs/remotes/origin/lightning-data || true
+          git show origin/lightning-data:lightning.json > lightning.json 2>/dev/null || rm -f lightning.json
+
+      - name: Leer rayos del satélite y publicar
+        run: python scripts/glm_lightning.py --duration "${{ github.event.inputs.duration || 570 }}"
