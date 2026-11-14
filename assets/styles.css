@@ -1189,3 +1189,8 @@ body.map-focus .maplibregl-ctrl-bottom-right { bottom: calc(22dvh + 20px + env(s
 .camera-marker.station-marker.temp.extreme-hi { border-color: #fecaca; box-shadow: 0 0 0 4px rgba(239,68,68,.55), 0 2px 10px rgba(0,0,0,.4); z-index: 3; }
 .camera-marker.station-marker.temp.extreme-lo { border-color: #bfdbfe; box-shadow: 0 0 0 4px rgba(59,130,246,.55), 0 2px 10px rgba(0,0,0,.4); z-index: 3; }
 .rain-chip.temp-chip b { color: #fde68a; }
+/* Ampliado: la ficha de detalle ocupa el lugar de la barra inferior (sin encimarse) */
+body.map-focus:has(.map-shell.has-map-detail) .map-toolbar { display: none !important; }
+body.map-focus:has(.map-shell.has-map-detail) .maplibregl-ctrl-bottom-left,
+body.map-focus:has(.map-shell.has-map-detail) .maplibregl-ctrl-bottom-right { display: none; }
+body.map-focus .map-detail-sheet { z-index: 10001; bottom: 0; max-height: 62dvh; padding-bottom: env(safe-area-inset-bottom, 0px); }
