@@ -882,9 +882,9 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 
 function updateAmbientLocalRain() {
   if (!window.RainTrackAmbient) return;
-  // Rayos reales (satélite) a menos de 20 km en los últimos 15 min confirman tormenta en tu zona.
+  // Rayos reales (satélite) a menos de 20 km en los últimos 10 min confirman tormenta en tu zona.
   if (homeLocation && window.RainTrackLightning &&
-      window.RainTrackLightning.nearby(homeLocation.lat, homeLocation.lon, 20, 15) >= 2) {
+      window.RainTrackLightning.nearby(homeLocation.lat, homeLocation.lon, 20, 10) >= 2) {
     window.RainTrackAmbient.setLocalRain(true, true);
     return;
   }

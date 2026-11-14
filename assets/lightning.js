@@ -9,7 +9,7 @@
   const GLOW_ID = "raintrack-lightning-glow";
   const DOT_ID = "raintrack-lightning-dot";
   const REFRESH_MS = 30000;
-  const MAX_AGE_MIN = 30;
+  const MAX_AGE_MIN = 10;
 
   let payload = null;
   let timer = null;
@@ -74,13 +74,13 @@
     const firstSymbol = map.getStyle().layers.find(layer => layer.type === "symbol");
     const before = firstSymbol ? firstSymbol.id : undefined;
     const ageColor = ["interpolate", ["linear"], ["get", "age"],
-      0, "#ffffff", 2, "#fff176", 10, "#ffb300", 20, "#ef6c00", MAX_AGE_MIN, "#8d6e63"];
+      0, "#ffffff", 1, "#fff176", 4, "#ffb300", 7, "#ef6c00", MAX_AGE_MIN, "#8d6e63"];
     map.addLayer({
       id: GLOW_ID, type: "circle", source: SOURCE_ID,
       paint: {
-        "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 20, 5, 13, 12, 6],
+        "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 20, 3, 13, 8, 6],
         "circle-color": ageColor,
-        "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.4, 5, 0.18, 12, 0],
+        "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.4, 3, 0.18, 8, 0],
         "circle-blur": 1
       }
     }, before);
@@ -88,14 +88,14 @@
     map.addLayer({
       id: DOT_ID, type: "symbol", source: SOURCE_ID,
       layout: {
-        "icon-image": ["step", ["get", "age"], "rt-bolt-0", 2, "rt-bolt-1", 10, "rt-bolt-2", 20, "rt-bolt-3"],
-        "icon-size": ["interpolate", ["linear"], ["get", "age"], 0, 0.95, 5, 0.8, MAX_AGE_MIN, 0.5],
+        "icon-image": ["step", ["get", "age"], "rt-bolt-0", 1, "rt-bolt-1", 4, "rt-bolt-2", 7, "rt-bolt-3"],
+        "icon-size": ["interpolate", ["linear"], ["get", "age"], 0, 0.95, 3, 0.8, MAX_AGE_MIN, 0.5],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-anchor": "center"
       },
       paint: {
-        "icon-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 1, 15, 0.85, MAX_AGE_MIN, 0.4]
+        "icon-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 1, 5, 0.85, MAX_AGE_MIN, 0.4]
       }
     });
   }
@@ -104,9 +104,9 @@
     const el = info();
     if (!el) return;
     if (!payload) { el.textContent = "Rayos reales del satélite GOES-19 (NOAA). Cargando…"; return; }
-    const recent = ((payload.flashes) || []).filter(f => ageMinutes(f[0]) <= 15).length;
+    const recent = ((payload.flashes) || []).filter(f => ageMinutes(f[0]) <= MAX_AGE_MIN).length;
     const readAge = payload.generated_at ? Math.round((Date.now() - Date.parse(payload.generated_at)) / 60000) : null;
-    let text = `${recent} destellos en los últimos 15 min`;
+    let text = `${recent} destellos en los últimos ${MAX_AGE_MIN} min`;
     if (readAge != null) text += ` · lectura hace ${readAge} min`;
     if (readAge != null && readAge > 15) text += " (datos atrasados)";
     el.textContent = text + " · satélite GOES-19, precisión de varios km.";
