@@ -1112,9 +1112,27 @@ def resolve_snapshot_url(session: requests.Session, camera: dict) -> tuple[str |
         return None, "offline"
 
 
+WEATHERLINK_NEOJACO_ID = "893d2aa1a69d47928c05b4c1c8e1b6c0"
+
+
+def probe_weatherlink(session: requests.Session) -> None:
+    """Sondeo informativo del panel público NEOJACO (solo escribe en el registro)."""
+    for url in (
+        f"https://www.weatherlink.com/embeddablePage/getData/{WEATHERLINK_NEOJACO_ID}",
+        f"https://www.weatherlink.com/embeddablePage/show/{WEATHERLINK_NEOJACO_ID}/slim",
+    ):
+        try:
+            response = session.get(url, timeout=HTTP_TIMEOUT, headers={"Accept": "application/json, text/html"})
+            logging.info("WEATHERLINK %s -> %s %s %s", url[-60:], response.status_code,
+                         response.headers.get("content-type"), response.text[:1800].replace("\n", " "))
+        except Exception as exc:  # solo diagnóstico
+            logging.info("WEATHERLINK %s falló: %s", url[-60:], exc)
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     session = session_with_headers()
+    probe_weatherlink(session)
     catalog = load_catalog(session)
     previous_payload = read_previous_payload()
     previous_rows = {
