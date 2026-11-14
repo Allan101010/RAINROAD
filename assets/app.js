@@ -1250,8 +1250,12 @@ function showOwnRainSource() {
   $("radarStatus").className = "muted";
   $("radarTime").textContent = "Última lectura de estaciones: " + when + " · solo donde hay estación midiendo";
   $("frameLabel").textContent = "--";
-  $("mapStatusChip").textContent = "🌧️ Lluvia medida · estaciones IMN";
   if (window.RainTrackOwnRain) { window.RainTrackOwnRain.rebuild(); window.RainTrackOwnRain.sync(); }
+  const storms = window.RainTrackOwnRain ? window.RainTrackOwnRain.stormCount() : 0;
+  const cellsNow = window.RainTrackOwnRain ? window.RainTrackOwnRain.cellCount() : 0;
+  $("mapStatusChip").textContent = storms
+    ? "⛈️ " + storms + (storms === 1 ? " zona con tormenta" : " zonas con tormenta") + " · lluvia intensa medida"
+    : cellsNow ? "🌧️ Lluvia medida en " + cellsNow + (cellsNow === 1 ? " estación" : " estaciones") : "☀️ Sin lluvia medida ahora · estaciones IMN";
 }
 
 async function loadRadarSource() {

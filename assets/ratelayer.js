@@ -3,6 +3,7 @@
 (function () {
   "use strict";
   const KEY = "raintrack-ownrain";
+  const STORM_MM = 8; // lluvia intensa: se trata como tormenta (el IMN no publica rayos con coordenadas)
   let canvas, ctx, raf = null, W = 0, H = 0, dpr = 1, cells = [], lastCellsAt = 0;
 
   const pref = () => { try { return localStorage.getItem(KEY) !== "0"; } catch (e) { return true; } };
@@ -26,7 +27,8 @@
       const drops = prev && prev.drops.length === n ? prev.drops : Array.from({ length: n }, () => ({
         a: Math.random() * 6.283, r: Math.sqrt(Math.random()), p: Math.random(), v: 0.012 + Math.random() * 0.012
       }));
-      return { id: s.id, lat: Number(s.lat), lon: Number(s.lon), mm, drops };
+      return { id: s.id, lat: Number(s.lat), lon: Number(s.lon), mm, drops, storm: mm >= STORM_MM,
+               nextBolt: prev ? prev.nextBolt : performance.now() + 800 + Math.random() * 3000, bolt: prev ? prev.bolt : null };
     });
   }
 
@@ -46,9 +48,10 @@
       if (pt.x < -R || pt.x > W + R || pt.y < -R || pt.y > H + R) continue;
       const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, R);
       const strong = Math.min(0.32, 0.12 + c.mm * 0.03);
-      g.addColorStop(0, "rgba(56,130,246," + strong + ")");
-      g.addColorStop(0.7, "rgba(56,130,246," + (strong * 0.5) + ")");
-      g.addColorStop(1, "rgba(56,130,246,0)");
+      const rgb = c.storm ? "88,80,236" : "56,130,246";
+      g.addColorStop(0, "rgba(" + rgb + "," + (c.storm ? Math.min(0.4, strong + 0.06) : strong) + ")");
+      g.addColorStop(0.7, "rgba(" + rgb + "," + (strong * 0.5) + ")");
+      g.addColorStop(1, "rgba(" + rgb + ",0)");
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(pt.x, pt.y, R, 0, 6.283); ctx.fill();
       ctx.lineCap = "round"; ctx.lineWidth = R < 30 ? 1.1 : 1.5;
@@ -61,7 +64,39 @@
         ctx.strokeStyle = "rgba(205,230,255," + (0.35 + 0.4 * (1 - d.p)) + ")";
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - len * 0.15, y - len); ctx.stroke();
       }
+      if (c.storm) drawStorm(c, pt, R, now);
     }
+  }
+
+  function makeBolt(pt, R) {
+    const pts = [[pt.x + (Math.random() - 0.5) * R * 0.6, pt.y - R * 0.85]];
+    const step = Math.max(5, R / 7), endY = pt.y + R * 0.15;
+    while (pts[pts.length - 1][1] < endY) {
+      const [x, y] = pts[pts.length - 1];
+      pts.push([x + (Math.random() - 0.5) * step * 1.6, y + step * (0.8 + Math.random() * 0.6)]);
+    }
+    return { pts, life: 30 };
+  }
+  function drawStorm(c, pt, R, now) {
+    if (!c.bolt && now > c.nextBolt) {
+      c.bolt = makeBolt(pt, R);
+      c.nextBolt = now + 3000 + Math.random() * 7000;
+    }
+    if (!c.bolt) return;
+    const l = c.bolt.life;
+    const a = l > 24 ? 1 : l > 20 ? 0.25 : l > 15 ? 0.9 : l / 15;
+    const fg = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, R);
+    fg.addColorStop(0, "rgba(220,230,255," + (0.38 * a) + ")");
+    fg.addColorStop(1, "rgba(160,180,255,0)");
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(pt.x, pt.y, R, 0, 6.283); ctx.fill();
+    if (R >= 22) {
+      ctx.save();
+      ctx.shadowColor = "rgba(170,190,255," + a + ")"; ctx.shadowBlur = 12;
+      ctx.strokeStyle = "rgba(250,252,255," + a + ")"; ctx.lineWidth = Math.max(1.2, Math.min(2.6, R / 28)); ctx.lineJoin = "round";
+      ctx.beginPath(); c.bolt.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+      ctx.restore();
+    }
+    if (--c.bolt.life <= 0) c.bolt = null;
   }
 
   function resize() {
@@ -105,5 +140,5 @@
       if (typeof map !== "undefined" && map && mapReady) { clearInterval(wait); sync(); }
     }, 500);
   });
-  window.RainTrackOwnRain = { sync, rebuild: buildCells };
+  window.RainTrackOwnRain = { sync, rebuild: buildCells, stormCount: () => cells.filter(c => c.storm).length, cellCount: () => cells.length };
 })();
