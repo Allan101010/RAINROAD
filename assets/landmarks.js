@@ -9,17 +9,17 @@
     { n: "Volcán Turrialba", lat: 10.019, lon: -83.756, alt: "3.340 m", st: "a", t: "Volcán activo con desgasificación y episodios de ceniza en los últimos años." },
     { n: "Volcán Arenal", lat: 10.463, lon: -84.703, alt: "1.670 m", st: "r", t: "Cono casi perfecto junto a La Fortuna. En reposo desde 2010, tras décadas de actividad continua." },
     { n: "Volcán Rincón de la Vieja", lat: 10.83, lon: -85.324, alt: "1.916 m", st: "a", t: "Volcán activo con fumarolas, pailas de barro y aguas termales. Guanacaste." },
-    { n: "Volcán Tenorio", lat: 10.673, lon: -85.015, alt: "1.916 m", st: "r", t: "Famoso por el Río Celeste. Parque Nacional Volcán Tenorio." },
-    { n: "Volcán Barva", lat: 10.135, lon: -84.11, alt: "2.906 m", st: "r", t: "El mayor del Parque Nacional Braulio Carrillo, con bosque nuboso y lagunas." },
-    { n: "Volcán Miravalles", lat: 10.717, lon: -85.15, alt: "2.028 m", st: "r", t: "Aprovechado para energía geotérmica. Guanacaste." },
-    { n: "Volcán Orosí", lat: 10.98, lon: -85.47, alt: "1.659 m", st: "r", t: "Parte del Área de Conservación Guanacaste, al norte del país." }
+    { n: "Volcán Tenorio", low: true, lat: 10.673, lon: -85.015, alt: "1.916 m", st: "r", t: "Famoso por el Río Celeste. Parque Nacional Volcán Tenorio." },
+    { n: "Volcán Barva", low: true, lat: 10.135, lon: -84.11, alt: "2.906 m", st: "r", t: "El mayor del Parque Nacional Braulio Carrillo, con bosque nuboso y lagunas." },
+    { n: "Volcán Miravalles", low: true, lat: 10.717, lon: -85.15, alt: "2.028 m", st: "r", t: "Aprovechado para energía geotérmica. Guanacaste." },
+    { n: "Volcán Orosí", low: true, lat: 10.98, lon: -85.47, alt: "1.659 m", st: "r", t: "Parte del Área de Conservación Guanacaste, al norte del país." }
   ];
   // major: provincia (siempre visible); lo demás aparece al acercar el mapa
   const LANDMARKS = [
     { e: "🎭", n: "Teatro Nacional", p: "San José", lat: 9.9337, lon: -84.0772, major: true, t: "Joya neoclásica de 1897 en el centro de San José." },
-    { e: "🥭", n: "Alajuela, Ciudad de los Mangos", p: "Alajuela", lat: 10.0162, lon: -84.214, major: true, t: "Cuna de Juan Santamaría, héroe nacional, y famosa por sus mangos." },
-    { e: "⛪", n: "Basílica de Nuestra Señora de los Ángeles", p: "Cartago", lat: 9.8644, lon: -83.9192, major: true, t: "Santuario de la patrona de Costa Rica; cada 2 de agosto llega la romería." },
-    { e: "☕", n: "El Fortín y el café de Heredia", p: "Heredia", lat: 9.9985, lon: -84.1166, major: true, t: "La ciudad de las flores, con su Fortín y una larga tradición cafetalera." },
+    { e: "🥭", n: "Alajuela, Ciudad de los Mangos", low: true, p: "Alajuela", lat: 10.0162, lon: -84.214, major: true, t: "Cuna de Juan Santamaría, héroe nacional, y famosa por sus mangos." },
+    { e: "⛪", n: "Basílica de Nuestra Señora de los Ángeles", low: true, p: "Cartago", lat: 9.8644, lon: -83.9192, major: true, t: "Santuario de la patrona de Costa Rica; cada 2 de agosto llega la romería." },
+    { e: "☕", n: "El Fortín y el café de Heredia", low: true, p: "Heredia", lat: 9.9985, lon: -84.1166, major: true, t: "La ciudad de las flores, con su Fortín y una larga tradición cafetalera." },
     { e: "🌳", n: "Liberia, la Ciudad Blanca", p: "Guanacaste", lat: 10.6347, lon: -85.4377, major: true, t: "Capital de Guanacaste, tierra de sabana, sabaneros y del árbol nacional." },
     { e: "⚓", n: "Puerto de Puntarenas", p: "Puntarenas", lat: 9.9763, lon: -84.8384, major: true, t: "El puerto histórico del Pacífico, con su paseo de los turistas." },
     { e: "🌴", n: "Parque Vargas, Limón", p: "Limón", lat: 9.9915, lon: -83.0258, major: true, t: "Corazón del Caribe costarricense y de su Carnaval." },
@@ -58,7 +58,7 @@
       VOLCANOES.forEach(v => {
         const el = document.createElement("button");
         el.type = "button";
-        el.className = "landmark volcano " + (v.st === "a" ? "active" : "rest");
+        el.className = "landmark volcano " + (v.st === "a" ? "active" : "rest") + (v.low ? " low-hide" : "");
         el.innerHTML = `<span class="vol-icon">🌋</span>${v.st === "a" ? '<i class="vol-smoke"></i>' : ""}`;
         el.setAttribute("aria-label", v.n);
         add(el, v.lon, v.lat, {
@@ -75,7 +75,7 @@
       LANDMARKS.forEach(l => {
         const el = document.createElement("button");
         el.type = "button";
-        el.className = "landmark emblem" + (l.major ? " major" : " minor");
+        el.className = "landmark emblem" + (l.major ? " major" : " minor") + (l.low ? " low-hide" : "");
         el.textContent = l.e;
         el.setAttribute("aria-label", l.n);
         add(el, l.lon, l.lat, {
