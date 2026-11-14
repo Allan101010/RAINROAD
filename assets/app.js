@@ -838,7 +838,7 @@ async function loadCameraMonitoringData() {
     if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
     cameraMonitorData = await response.json();
     renderCameraAlerts();
-    if (mapReady && $("camerasToggle").checked) addCameraMarkers();
+    if (mapReady && ($("camerasToggle").checked || $("stationsToggle").checked)) addCameraMarkers();
   } catch (error) {
     console.info("Monitor visual de cámaras pendiente:", error.message);
     renderCameraAlerts();
@@ -848,9 +848,11 @@ async function loadCameraMonitoringData() {
 function addCameraMarkers() {
   if (!mapReady) return;
   clearCameraMarkers();
-  if (!$("camerasToggle").checked) return;
+  const showCameras = $("camerasToggle").checked;
+  const showStations = $("stationsToggle").checked;
+  if (!showCameras && !showStations) return;
 
-  PUBLIC_CAMERAS.forEach(camera => {
+  (showCameras ? PUBLIC_CAMERAS : []).forEach(camera => {
     const status = cameraStatusForSite(camera.slug);
     const allSiteCameras = cameraMonitorData && Array.isArray(cameraMonitorData.cameras)
       ? cameraMonitorData.cameras.filter(item => item.site_slug === camera.slug)
@@ -992,7 +994,7 @@ function addCameraMarkers() {
   const stationRows = cameraMonitorData && Array.isArray(cameraMonitorData.stations)
     ? cameraMonitorData.stations
     : [];
-  PUBLIC_STATIONS.forEach(station => {
+  (showStations ? PUBLIC_STATIONS : []).forEach(station => {
     if (station.externalWidget) {
       const element = document.createElement("button");
       element.type = "button";
@@ -2546,6 +2548,7 @@ $('imnCardClose').addEventListener('click', () => {
   setImnVisibility(false);
 });
 $('camerasToggle').addEventListener('change', addCameraMarkers);
+$('stationsToggle').addEventListener('change', addCameraMarkers);
 
 // ------------------------------------------------------------
 // EVENTOS DEL PLANIFICADOR DE RUTAS

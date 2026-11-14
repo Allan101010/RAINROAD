@@ -59,7 +59,7 @@ class MonitorMainTests(unittest.TestCase):
         ]
         freshness = {"delayed": ("delayed", 35), "unknown": ("unknown", None), "stale": ("stale", 300)}
         self.notify_calls = []
-        m.notify_new_rain = lambda cur, prev, sess: self.notify_calls.append((cur, prev)) or 0
+        m.notify_new_rain = lambda cur, prev, sess, **kw: self.notify_calls.append((cur, prev)) or 0
         m.session_with_headers = lambda: object()
         m.load_catalog = lambda session: catalog
         m.get_page = lambda session, url: ("<html></html>", url)

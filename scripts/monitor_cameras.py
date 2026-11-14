@@ -1352,7 +1352,9 @@ def main() -> int:
         "stations": stations,
     }
 
-    sent = notify_new_rain(station_alerts, previous_payload.get("station_alerts", []), session)
+    notify_state = dict(previous_payload.get("notify_state") or {})
+    sent = notify_new_rain(station_alerts, previous_payload.get("station_alerts", []), session, state=notify_state)
+    payload["notify_state"] = notify_state
     if sent:
         logging.info("Avisos de lluvia enviados: %s.", sent)
 

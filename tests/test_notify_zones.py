@@ -28,6 +28,27 @@ class FakeSession:
         return type("R", (), {"raise_for_status": lambda self: None})()
 
 
+class GroupingTests(unittest.TestCase):
+    CFG = {"server": "https://ntfy.test", "zones": [
+        {"id": "a", "name": "Alajuela", "topic": "t-a", "places": [], "station_ids": ["s1", "s2", "s3"]}]}
+
+    def test_many_stations_make_one_message(self):
+        s = FakeSession()
+        sent = nz.notify_new_rain([alert("s1", 0.2), alert("s2", 3.0), alert("s3", 1.0)], [], s, self.CFG)
+        self.assertEqual(sent, 1)
+        body = s.posts[0][1]
+        self.assertIn("3 estaciones", body["title"])
+        self.assertLess(body["message"].index("s2"), body["message"].index("s3"))
+
+    def test_cooldown_blocks_second_alert_then_allows_later(self):
+        from datetime import datetime, timedelta, timezone
+        t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        s, state = FakeSession(), {}
+        self.assertEqual(nz.notify_new_rain([alert("s1")], [], s, self.CFG, state, t0), 1)
+        self.assertEqual(nz.notify_new_rain([alert("s2")], [], s, self.CFG, state, t0 + timedelta(minutes=10)), 0)
+        self.assertEqual(nz.notify_new_rain([alert("s2")], [], s, self.CFG, state, t0 + timedelta(minutes=60)), 1)
+
+
 class NotifyTests(unittest.TestCase):
     def test_only_new_rain_is_sent_to_its_zone(self):
         s = FakeSession()
