@@ -1331,30 +1331,9 @@ def fetch_weatherlink_station(session: requests.Session) -> dict:
     return result
 
 
-def probe_glm(session: requests.Session) -> None:
-    """Sondeo temporal: ¿permite el bucket de NOAA que un navegador lo lea (CORS)? ¿Qué tan frescos son los archivos GLM?"""
-    now = utc_now()
-    for bucket in ("noaa-goes19", "noaa-goes16"):
-        prefix = f"GLM-L2-LCFA/{now.year}/{now.timetuple().tm_yday:03d}/{now.hour:02d}/"
-        url = f"https://{bucket}.s3.amazonaws.com/?list-type=2&prefix={prefix}"
-        try:
-            r = session.get(url, timeout=HTTP_TIMEOUT, headers={"Origin": "https://allan101010.github.io"})
-            h = {k: v for k, v in r.headers.items() if k.lower().startswith("access-control") or k.lower() in ("content-type", "server", "vary")}
-            keys = re.findall(r"<Key>([^<]+)</Key>", r.text)
-            sizes = re.findall(r"<Size>(\d+)</Size>", r.text)
-            logging.info("GLM %s status=%s hora_utc=%s headers=%s archivos=%s", bucket, r.status_code, now.isoformat(), h, len(keys))
-            for key, size in list(zip(keys, sizes))[-3:]:
-                logging.info("GLM %s ultimo %s bytes=%s", bucket, key, size)
-            if not keys:
-                logging.info("GLM %s cuerpo %s", bucket, r.text[:400].replace("\n", " "))
-        except Exception as exc:
-            logging.info("GLM %s falló: %s", bucket, exc)
-
-
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     session = session_with_headers()
-    probe_glm(session)
     catalog = load_catalog(session)
     previous_payload = read_previous_payload()
     previous_rows = {
