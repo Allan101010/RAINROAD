@@ -2081,6 +2081,10 @@ async function loadWeatherForLocation(location, type) {
   const isHome = type === "home";
   const cardId = isHome ? "homeWeatherCard" : "destinationWeatherCard";
   const solarId = isHome ? "homeSolarCard" : "destinationSolarCard";
+  if (!isHome) {
+    $(cardId).hidden = false;
+    $(solarId).hidden = false;
+  }
 
   $(cardId).innerHTML = `<div class="place-name">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle loading">Consultando condiciones meteorológicas…</p>`;
   $(solarId).innerHTML = `<div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div><p class="subtitle loading">Calculando amanecer y atardecer…</p>`;
@@ -2113,6 +2117,8 @@ function returnToHome() {
   destinationWeatherData = null;
   $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
   $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
+  $("destinationWeatherCard").hidden = true;
+  $("destinationSolarCard").hidden = true;
 
   if (homeLocation) {
     $("mapLocationChip").textContent = "📍 Mi ubicación actual";
@@ -2329,6 +2335,8 @@ function requestCurrentLocation(preserveDestination = false, automatic = false) 
         destinationWeatherData = null;
         $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
         $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
+  $("destinationWeatherCard").hidden = true;
+  $("destinationSolarCard").hidden = true;
       }
 
       $("homeLocationDescription").textContent = accuracy
@@ -2453,12 +2461,27 @@ $("routeClearBtn").addEventListener("click", closeRouteAnalysis);
 // ------------------------------------------------------------
 // CONTROLES DESPLEGABLES Y ACTUALIZACIÓN AUTOMÁTICA
 // ------------------------------------------------------------
-$("forecastToggle").addEventListener("click", () => {
-  const panel = $("forecastPanel");
-  panel.hidden = !panel.hidden;
-  $("forecastToggle").setAttribute("aria-expanded", String(!panel.hidden));
-  $("forecastToggle").textContent = panel.hidden ? "Mostrar ▼" : "Ocultar ▲";
-});
+// Secciones plegables: empiezan ocultas y se recuerda la última elección en este dispositivo.
+function setupCollapsible(buttonId, panelId, storageKey) {
+  const button = $(buttonId);
+  const panel = $(panelId);
+  const apply = open => {
+    panel.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+    button.textContent = open ? "Ocultar ▲" : "Mostrar ▼";
+  };
+  let saved = false;
+  try { saved = localStorage.getItem(storageKey) === "open"; } catch (error) { /* sin almacenamiento */ }
+  apply(saved);
+  button.addEventListener("click", () => {
+    const open = panel.hidden;
+    apply(open);
+    try { localStorage.setItem(storageKey, open ? "open" : "closed"); } catch (error) { /* sin almacenamiento */ }
+  });
+}
+setupCollapsible("conditionsToggle", "conditionsPanel", "raintrackcr_section_conditions_v1");
+setupCollapsible("forecastToggle", "forecastPanel", "raintrackcr_section_forecast_v1");
+setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
 
 $("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
 $("librewxrColorScheme").value = String(librewxrColorScheme);

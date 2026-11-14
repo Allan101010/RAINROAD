@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.22</title>
+  <title>RainTrack CR v1.8.23</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.22">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.23">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.22</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.23</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -224,25 +224,28 @@
     <section class="section">
       <div class="section-head">
         <h2>Condiciones meteorológicas</h2>
+        <button class="btn small-btn" id="conditionsToggle" type="button" aria-expanded="false">Mostrar ▼</button>
       </div>
+      <div id="conditionsPanel" hidden>
       <div class="weather-grid">
         <article class="panel weather-card" id="homeWeatherCard">
           <div class="place-name">Mi ubicación actual</div>
           <p class="subtitle">Esperando la ubicación GPS para consultar las condiciones del lugar donde estás.</p>
         </article>
-        <article class="panel weather-card" id="destinationWeatherCard">
+        <article class="panel weather-card" id="destinationWeatherCard" hidden>
           <div class="place-name">Destino seleccionado</div>
           <p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>
         </article>
+      </div>
       </div>
     </section>
 
     <section class="section">
       <div class="section-head">
         <h2 id="forecastTitle">Pronóstico por hora · Mi ubicación actual</h2>
-        <button class="btn small-btn" id="forecastToggle" type="button" aria-expanded="true">Ocultar ▲</button>
+        <button class="btn small-btn" id="forecastToggle" type="button" aria-expanded="false">Mostrar ▼</button>
       </div>
-      <div id="forecastPanel">
+      <div id="forecastPanel" hidden>
         <div class="forecast-summary" id="rainSummary">
           <div class="summary-title">Resumen de lluvia</div>
           <p class="summary-line muted">Esperando la ubicación GPS o la selección de un destino.</p>
@@ -255,16 +258,19 @@
     <section class="section">
       <div class="section-head">
         <h2>🌅 Amanecer y atardecer</h2>
+        <button class="btn small-btn" id="solarToggle" type="button" aria-expanded="false">Mostrar ▼</button>
       </div>
+      <div id="solarPanel" hidden>
       <div class="solar-grid">
         <article class="panel solar-card" id="homeSolarCard">
           <div class="solar-place">Mi ubicación actual</div>
           <p class="subtitle">Los horarios de amanecer y atardecer aparecerán cuando se detecte tu ubicación.</p>
         </article>
-        <article class="panel solar-card" id="destinationSolarCard">
+        <article class="panel solar-card" id="destinationSolarCard" hidden>
           <div class="solar-place">Destino seleccionado</div>
           <p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>
         </article>
+      </div>
       </div>
     </section>
 
@@ -286,6 +292,6 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.22"></script>
+  <script src="assets/app.js?v=1.8.23"></script>
 </body>
 </html>
