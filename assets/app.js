@@ -785,6 +785,20 @@ function cameraAlertKey(item) {
   return kind + ":" + id;
 }
 
+function stationShortName(item) {
+  return String(item.station_name || item.site_name || "Estación IMN").replace(/^Estación IMN\s*·\s*/, "");
+}
+
+// Estación más cálida y más fría del momento (solo lecturas recientes y plausibles).
+function computeTempExtremes() {
+  const rows = cameraMonitorData && Array.isArray(cameraMonitorData.stations) ? cameraMonitorData.stations : [];
+  const valid = rows.filter(item => item.availability_status === "online" && item.temperature_c != null
+    && Number.isFinite(Number(item.temperature_c)) && Number(item.temperature_c) > -5 && Number(item.temperature_c) < 45);
+  if (valid.length < 2) return null;
+  const sorted = [...valid].sort((a, b) => Number(a.temperature_c) - Number(b.temperature_c));
+  return { low: sorted[0], high: sorted[sorted.length - 1] };
+}
+
 function renderCameraAlerts() {
   const stack = $("cameraAlertStack");
   if (!stack) return;
@@ -802,24 +816,35 @@ function renderCameraAlerts() {
     : [])
     .filter(item => !dismissedCameraAlertIds.has(cameraAlertKey(item)));
 
-  if (!active.length) {
+  const extremes = $("tempToggle").checked ? computeTempExtremes() : null;
+  const tempKeys = extremes ? ["temp:high", "temp:low"].filter(k => !dismissedCameraAlertIds.has(k)) : [];
+
+  if (!active.length && !tempKeys.length) {
     stack.hidden = true;
     stack.innerHTML = "";
     return;
   }
 
   stack.hidden = false;
-  const chips = active.slice(0, 8).map(item => {
-    const name = String(item.station_name || item.site_name || "Estación IMN").replace(/^Estación IMN\s*·\s*/, "");
+  const link = item => escapeHtml(safeHttpUrl(item.page_url, "https://www.imn.ac.cr/"));
+  const rainChips = active.slice(0, 8).map(item => {
     const mm = Number(item.rain_last_hour_mm).toFixed(1);
-    return `<a class="rain-chip" href="${escapeHtml(safeHttpUrl(item.page_url, "https://www.imn.ac.cr/"))}" target="_blank" rel="noopener">🌧️ <b>${escapeHtml(name)}</b> ${mm} mm/h</a>`;
-  }).join("");
-  const keys = active.slice(0, 8).map(cameraAlertKey).join("|");
+    return `<a class="rain-chip" href="${link(item)}" target="_blank" rel="noopener">🌧️ <b>${escapeHtml(stationShortName(item))}</b> ${mm} mm/h</a>`;
+  });
+  const tempChips = tempKeys.map(key => {
+    const item = key === "temp:high" ? extremes.high : extremes.low;
+    const icon = key === "temp:high" ? "🔥 Más cálida" : "❄️ Más fría";
+    return `<a class="rain-chip temp-chip" href="${link(item)}" target="_blank" rel="noopener">${icon}: <b>${escapeHtml(stationShortName(item))}</b> ${Number(item.temperature_c).toFixed(1)}°C</a>`;
+  });
+  const chips = tempChips.concat(rainChips).join("");
+  const label = active.length && tempKeys.length ? "En vivo" : active.length ? "Lluvia medida" : "Temperatura";
+  const keys = active.slice(0, 8).map(cameraAlertKey).concat(tempKeys).join("|");
+  const count = active.length + tempKeys.length;
   // El contenido se duplica para que el desplazamiento hacia la derecha sea continuo.
   stack.innerHTML = `<div class="rain-ticker" role="status">
-    <span class="rain-ticker-label">Lluvia medida</span>
-    <div class="rain-ticker-window"><div class="rain-ticker-track" style="animation-duration:${Math.max(18, active.length * 9)}s"><div class="rain-ticker-set">${chips}</div><div class="rain-ticker-set" aria-hidden="true">${chips}</div></div></div>
-    <button class="rain-ticker-close" type="button" data-dismiss-camera-alert="${escapeHtml(keys)}" aria-label="Ocultar avisos de lluvia" title="Ocultar">×</button>
+    <span class="rain-ticker-label">${label}</span>
+    <div class="rain-ticker-window"><div class="rain-ticker-track" style="animation-duration:${Math.max(18, count * 9)}s"><div class="rain-ticker-set">${chips}</div><div class="rain-ticker-set" aria-hidden="true">${chips}</div></div></div>
+    <button class="rain-ticker-close" type="button" data-dismiss-camera-alert="${escapeHtml(keys)}" aria-label="Ocultar avisos" title="Ocultar">×</button>
   </div>`;
 }
 
@@ -858,6 +883,7 @@ function addCameraMarkers() {
   const showCameras = $("camerasToggle").checked;
   const tempMode = $("tempToggle").checked;
   const showStations = $("stationsToggle").checked || tempMode;
+  const extremesNow = tempMode ? computeTempExtremes() : null;
   if (!showCameras && !showStations) return;
 
   (showCameras ? PUBLIC_CAMERAS : []).forEach(camera => {
@@ -1046,6 +1072,8 @@ function addCameraMarkers() {
       element.className = "camera-marker station-marker temp" + (rainObserved ? " rainy" : "");
       element.textContent = Math.round(tempValue) + "°";
       element.style.background = temperatureColor(tempValue);
+      if (extremesNow && extremesNow.high.id === station.id) element.classList.add("extreme-hi");
+      if (extremesNow && extremesNow.low.id === station.id) element.classList.add("extreme-lo");
     }
     element.setAttribute("aria-label", "Abrir estación meteorológica: " + station.name);
 
@@ -2566,7 +2594,12 @@ $('imnCardClose').addEventListener('click', () => {
 });
 $('camerasToggle').addEventListener('change', addCameraMarkers);
 $('stationsToggle').addEventListener('change', addCameraMarkers);
-$('tempToggle').addEventListener('change', addCameraMarkers);
+$('tempToggle').addEventListener('change', () => {
+  dismissedCameraAlertIds.delete("temp:high");
+  dismissedCameraAlertIds.delete("temp:low");
+  renderCameraAlerts();
+  addCameraMarkers();
+});
 
 // ------------------------------------------------------------
 // EVENTOS DEL PLANIFICADOR DE RUTAS
