@@ -1262,7 +1262,7 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 @keyframes vol-puff { 0% { transform: translate(0,0) scale(.5); opacity: 0; } 15% { opacity: .9; } 100% { transform: translate(7px,-26px) scale(2.1); opacity: 0; } }
 #map.zoom-low .landmark.volcano { width: 30px; height: 27px; }
 #map.zoom-low .vol-smoke { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
-@media (prefers-reduced-motion: reduce) { .vol-smoke, 
+@media (prefers-reduced-motion: reduce) { .vol-smoke { animation: none; } .vol-smoke.s2, .vol-smoke.s3 { display: none; } .vol-smoke { opacity: .6; } }
 /* Volcanes: tamaños, humo por intensidad y foto en la ficha */
 .landmark.volcano { width: 48px; height: 44px; }
 .vol-smoke.soft { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
