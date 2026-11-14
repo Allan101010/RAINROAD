@@ -66,3 +66,15 @@ En el repositorio: Settings → Secrets and variables → Actions → New reposi
 ## Privacidad
 - Salen solo 12 números por cámara cada 5 minutos. Nada de imágenes ni de tu dirección RTSP.
 - La clave de tus cámaras queda únicamente en `config.json`, dentro de tu tablet.
+
+## Actualizar el programa de la tablet
+
+En Termux: detén el programa con `Ctrl` + `c`, luego
+
+```
+cd ~/RAINROAD && git pull
+cd tools/home-cameras && python camaras_casa.py
+```
+
+Tu `config.json` no se toca. Desde la versión con "movimiento", cada ronda saca 3 fotos seguidas
+(medio segundo entre una y otra) y manda cuánto cambió la imagen en la calle; las fotos se borran.

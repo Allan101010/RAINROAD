@@ -113,6 +113,7 @@ def build_row(camera: dict, features: dict, stations: list[dict], flashes, now: 
 
 FEATURE_KEYS = ("luma", "contrast", "sky_luma", "sky_contrast", "ground_luma", "ground_contrast",
                 "edges", "sky_edges", "saturation", "sky_blue_ratio", "bright_frac", "dark_frac")
+OPTIONAL_FEATURE_KEYS = ("motion", "motion_spread")  # solo las manda la tablet nueva
 HOME_MAX_SKEW_MINUTES = 30
 
 
@@ -138,6 +139,12 @@ def parse_home_messages(text: str, now: datetime) -> list[dict]:
                 if not math.isfinite(value) or abs(value) > 1000:
                     raise ValueError(key)
                 clean[key] = value
+            for key in OPTIONAL_FEATURE_KEYS:
+                if key in features:
+                    value = float(features[key])
+                    if not math.isfinite(value) or abs(value) > 1000:
+                        raise ValueError(key)
+                    clean[key] = value
             quality = data.get("q") if data.get("q") in ("usable", "low_visibility") else "usable"
             messages.append({"cam": "home-" + cam, "t": stamp.astimezone(timezone.utc), "q": quality, "f": clean})
         except (ValueError, KeyError, TypeError, AttributeError):

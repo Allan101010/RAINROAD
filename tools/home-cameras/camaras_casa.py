@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """RainTrack CR - lector de cámaras de casa (para una tablet/teléfono Android con Termux).
 
-Cada pocos minutos saca UNA foto de cada cámara por RTSP (dentro de tu red de casa), calcula un
-resumen numérico (brillo, contraste, cielo, bordes...) y envía SOLO esos números a un tema
-privado de ntfy. La foto se borra al instante y nunca sale de tu casa.
+Cada pocos minutos saca 3 fotos seguidas (medio segundo entre una y otra) de cada cámara por RTSP
+(dentro de tu red de casa), calcula un resumen numérico (brillo, contraste, color, cuánto se mueve la
+imagen...) y envía SOLO esos números a un tema privado de ntfy. Las fotos se borran al instante y
+nunca salen de tu casa.
 
 Uso:  python camaras_casa.py            (queda corriendo)
       python camaras_casa.py --una-vez  (una sola ronda, para probar)
@@ -20,7 +21,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PIL import Image, ImageFilter, ImageOps, ImageStat
+from PIL import Image, ImageChops, ImageFilter, ImageOps, ImageStat
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
 
@@ -64,16 +65,63 @@ def quality_of(features: dict) -> str:
     return "usable"
 
 
-def grab_frame(rtsp_url: str, timeout: int = 25) -> Image.Image:
-    """Saca un solo fotograma con ffmpeg. La URL (con tu contraseña) nunca se imprime."""
+BURST_FRAMES = 3
+BURST_FPS = 2  # una foto cada medio segundo
+
+
+def motion_features(frames: list[Image.Image]) -> dict:
+    """Cuánto cambia la imagen entre fotos seguidas, solo en los 2/3 de abajo (suelo/calle).
+
+    La lluvia cambia muchos puntos repartidos por toda la imagen; un gato o un carro cambian una
+    zona. Se usa el menor de los cambios entre pares de fotos para que un objeto que pasa una vez
+    no cuente como lluvia. "motion" = cambio medio; "motion_spread" = parte de la imagen (en
+    bloques) que cambió de forma notable.
+    """
+    width, height, block = 128, 96, 8
+    grays = [ImageOps.grayscale(f.convert("RGB").resize((width, height))).crop((0, height // 3, width, height))
+             for f in frames]
+    best = None
+    for first, second in zip(grays, grays[1:]):
+        diff = ImageChops.difference(first, second)
+        mean = float(ImageStat.Stat(diff).mean[0])
+        blocks = diff.resize((width // block, diff.height // block), Image.BOX)
+        values = list(blocks.getdata())
+        spread = sum(1 for v in values if v >= 2.0) / max(1, len(values))
+        pair = (mean, spread)
+        if best is None or pair[0] < best[0]:
+            best = pair
+    if best is None:
+        return {}
+    return {"motion": round(best[0], 2), "motion_spread": round(best[1], 3)}
+
+
+def grab_burst(rtsp_url: str, timeout: int = 30) -> list[Image.Image]:
+    """Saca varias fotos seguidas con una sola conexión. La URL (con tu contraseña) nunca se imprime."""
     with tempfile.TemporaryDirectory() as tmp:
-        target = Path(tmp) / "frame.jpg"
+        pattern = str(Path(tmp) / "f%d.jpg")
         command = ["ffmpeg", "-y", "-loglevel", "error", "-rtsp_transport", "tcp", "-i", rtsp_url,
-                   "-frames:v", "1", "-q:v", "3", str(target)]
+                   "-vf", f"fps={BURST_FPS}", "-frames:v", str(BURST_FRAMES), "-q:v", "3", pattern]
         subprocess.run(command, check=True, timeout=timeout, capture_output=True)
-        with Image.open(target) as img:
-            img.load()
-            return img.copy()
+        frames = []
+        for path in sorted(Path(tmp).glob("f*.jpg")):
+            with Image.open(path) as img:
+                img.load()
+                frames.append(img.copy())
+        if not frames:
+            raise subprocess.CalledProcessError(1, "ffmpeg")
+        return frames
+
+
+def grab_frame(rtsp_url: str, timeout: int = 25) -> Image.Image:
+    """Una sola foto (se conserva por compatibilidad)."""
+    return grab_burst(rtsp_url, timeout)[0]
+
+
+def analyze(frames: list[Image.Image]) -> dict:
+    """Resumen completo: la foto del medio para las características y todas para el movimiento."""
+    features = extract_features(frames[len(frames) // 2])
+    features.update(motion_features(frames))
+    return features
 
 
 def build_message(camera_id: str, features: dict, now: datetime | None = None) -> dict:
@@ -99,10 +147,10 @@ def run_round(config: dict) -> int:
     for camera in config["cameras"]:
         name = camera["id"]
         try:
-            features = extract_features(grab_frame(camera["rtsp"]))
+            features = analyze(grab_burst(camera["rtsp"]))
             send(config["ntfy_topic"], build_message(name, features))
             sent += 1
-            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, contraste {features['contrast']})")
+            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')})")
         except subprocess.TimeoutExpired:
             print(f"{datetime.now():%H:%M:%S} {name}: la cámara no respondió a tiempo")
         except subprocess.CalledProcessError:

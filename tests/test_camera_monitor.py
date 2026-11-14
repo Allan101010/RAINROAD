@@ -203,6 +203,67 @@ class CameraSourcesTests(unittest.TestCase):
                 self.assertTrue(row["page_url"].startswith("https://"), row["id"])
 
 
+class HomeMotionTests(unittest.TestCase):
+    def setUp(self):
+        import random
+        scripts = str(Path(__file__).resolve().parents[1] / "scripts")
+        tablet = str(Path(__file__).resolve().parents[1] / "tools" / "home-cameras")
+        for folder in (scripts, tablet):
+            if folder not in sys.path:
+                sys.path.insert(0, folder)
+        import camaras_casa as tablet_script
+        import camera_training as ct
+        from PIL import Image
+        self.t, self.ct, self.Image, self.random = tablet_script, ct, Image, random
+
+    def base(self):
+        return self.Image.new("RGB", (200, 150), (110, 105, 100))
+
+    def rain_frame(self, seed):
+        img = self.base()
+        rng = self.random.Random(seed)
+        for _ in range(500):  # rayitas repartidas por toda la imagen
+            x, y = rng.randrange(0, 198), rng.randrange(0, 140)
+            for k in range(8):
+                img.putpixel((x + (k // 4), y + k), (235, 235, 240))
+        return img
+
+    def test_still_scene_has_no_motion(self):
+        result = self.t.motion_features([self.base(), self.base(), self.base()])
+        self.assertEqual(result["motion"], 0)
+        self.assertEqual(result["motion_spread"], 0)
+
+    def test_rain_changes_many_blocks(self):
+        result = self.t.motion_features([self.rain_frame(1), self.rain_frame(2), self.rain_frame(3)])
+        self.assertGreater(result["motion_spread"], 0.5)
+
+    def test_object_that_stays_is_not_counted_as_motion(self):
+        a, b, c = self.base(), self.base(), self.base()
+        for x in range(60, 100):
+            for y in range(70, 110):
+                b.putpixel((x, y), (250, 250, 250))  # algo aparece solo en la foto del medio
+        # el menor cambio entre pares evita que un solo evento cuente (a-b y b-c son iguales aquí,
+        # así que probamos con un objeto presente en dos fotos y ausente en la primera)
+        c = b.copy()
+        result = self.t.motion_features([a, b, c])
+        self.assertEqual(result["motion"], 0)
+
+    def test_bot_accepts_messages_with_and_without_motion(self):
+        from datetime import datetime, timezone
+        now = datetime(2026, 11, 14, 17, 5, tzinfo=timezone.utc)
+        feats = {k: 1.0 for k in self.ct.FEATURE_KEYS}
+        def line(extra):
+            data = {"v": 1, "cam": "casa", "t": "2026-11-14T17:04:00Z", "q": "usable", "f": {**feats, **extra}}
+            return json.dumps({"event": "message", "message": json.dumps(data)})
+        old = self.ct.parse_home_messages(line({}), now)
+        new = self.ct.parse_home_messages(line({"motion": 3.2, "motion_spread": 0.7}), now)
+        bad = self.ct.parse_home_messages(line({"motion": float("nan")}), now)
+        self.assertEqual(len(old), 1)
+        self.assertNotIn("motion", old[0]["f"])
+        self.assertEqual(new[0]["f"]["motion_spread"], 0.7)
+        self.assertEqual(bad, [])
+
+
 class HomeRainEstimateTests(unittest.TestCase):
     def setUp(self):
         scripts = str(Path(__file__).resolve().parents[1] / "scripts")
