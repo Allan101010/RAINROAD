@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.33</title>
+  <title>RainTrack CR v1.8.34</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.33">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.34">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.33</small></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.34</small></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -87,6 +87,8 @@
               <div class="layer-group-title">📍 Puntos en el mapa</div>
               <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span class="layer-label"><strong>📷 Cámaras</strong><small>Públicas y de volcanes · muestran si están en línea</small></span></label>
               <label class="layer-check"><input id="stationsToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Estaciones meteorológicas</strong><small>132 estaciones IMN + 1 panel WeatherLink · miden la lluvia</small></span></label>
+              <label class="layer-check"><input id="tempToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Temperatura actual</strong><small>Grados medidos por las estaciones del IMN, con color por rango</small></span></label>
+              <div class="temp-legend" aria-hidden="true"><span style="background:#2563eb">&lt;16°</span><span style="background:#0891b2">16</span><span style="background:#16a34a">20</span><span style="background:#ca8a04">24</span><span style="background:#ea580c">28</span><span style="background:#dc2626">32°+</span></div>
               <p class="layer-hint">Se revisan cada 10 minutos. La lluvia se informa solo con las estaciones, que la miden; las cámaras solo indican su estado. Las imágenes oscuras, demoradas o sin detalle se marcan como no legibles y no generan alertas. Algunas cámaras (SkylineWebcams, Aeropuerto de Cóbano) abren el video en su página original.</p>
             </div>
           </div>
@@ -297,6 +299,6 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/app.js?v=1.8.33"></script>
+  <script src="assets/app.js?v=1.8.34"></script>
 </body>
 </html>

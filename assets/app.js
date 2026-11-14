@@ -836,18 +836,28 @@ async function loadCameraMonitoringData() {
     if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
     cameraMonitorData = await response.json();
     renderCameraAlerts();
-    if (mapReady && ($("camerasToggle").checked || $("stationsToggle").checked)) addCameraMarkers();
+    if (mapReady && ($("camerasToggle").checked || $("stationsToggle").checked || $("tempToggle").checked)) addCameraMarkers();
   } catch (error) {
     console.info("Monitor visual de cámaras pendiente:", error.message);
     renderCameraAlerts();
   }
 }
 
+function temperatureColor(t) {
+  if (t < 16) return "#2563eb";
+  if (t < 20) return "#0891b2";
+  if (t < 24) return "#16a34a";
+  if (t < 28) return "#ca8a04";
+  if (t < 32) return "#ea580c";
+  return "#dc2626";
+}
+
 function addCameraMarkers() {
   if (!mapReady) return;
   clearCameraMarkers();
   const showCameras = $("camerasToggle").checked;
-  const showStations = $("stationsToggle").checked;
+  const tempMode = $("tempToggle").checked;
+  const showStations = $("stationsToggle").checked || tempMode;
   if (!showCameras && !showStations) return;
 
   (showCameras ? PUBLIC_CAMERAS : []).forEach(camera => {
@@ -1024,10 +1034,19 @@ function addCameraMarkers() {
     const availability = observation ? observation.availability_status : "not_available";
     const rainObserved = !!(observation && observation.rain_observed &&
       availability === "online");
+    const tempValue = observation && observation.temperature_c != null ? Number(observation.temperature_c) : NaN;
+    const tempUsable = Number.isFinite(tempValue) && (availability === "online" || availability === "delayed");
+    // Solo temperatura: se omiten las estaciones sin lectura reciente.
+    if (tempMode && !$("stationsToggle").checked && !tempUsable) return;
     const element = document.createElement("button");
     element.type = "button";
     element.className = "camera-marker station-marker " + (rainObserved ? "rain" : availability);
     element.textContent = rainObserved ? "🌧️" : "🌡️";
+    if (tempMode && tempUsable) {
+      element.className = "camera-marker station-marker temp" + (rainObserved ? " rainy" : "");
+      element.textContent = Math.round(tempValue) + "°";
+      element.style.background = temperatureColor(tempValue);
+    }
     element.setAttribute("aria-label", "Abrir estación meteorológica: " + station.name);
 
     const rainHour = observation && observation.rain_last_hour_mm != null && Number.isFinite(Number(observation.rain_last_hour_mm))
@@ -2547,6 +2566,7 @@ $('imnCardClose').addEventListener('click', () => {
 });
 $('camerasToggle').addEventListener('change', addCameraMarkers);
 $('stationsToggle').addEventListener('change', addCameraMarkers);
+$('tempToggle').addEventListener('change', addCameraMarkers);
 
 // ------------------------------------------------------------
 // EVENTOS DEL PLANIFICADOR DE RUTAS

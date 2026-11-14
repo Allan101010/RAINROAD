@@ -1181,3 +1181,8 @@ body.map-focus .maplibregl-ctrl-bottom-left,
 body.map-focus .maplibregl-ctrl-bottom-right { bottom: calc(22dvh + 20px + env(safe-area-inset-bottom, 0px)); }
 .camera-alert-stack { display: block; }
 .rain-ticker { min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; }
+
+.camera-marker.station-marker.temp { min-width: 40px; width: auto; padding: 0 7px; border: 2px solid #fff; border-radius: 16px; color: #fff; font-size: 13px; font-weight: 800; letter-spacing: -.02em; }
+.camera-marker.station-marker.temp.rainy { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,.45), 0 2px 10px rgba(0,0,0,.4); }
+.temp-legend { display: flex; gap: 4px; margin: 2px 0 8px; }
+.temp-legend span { flex: 1; padding: 3px 0; border-radius: 6px; color: #fff; font-size: 10px; font-weight: 800; text-align: center; }
