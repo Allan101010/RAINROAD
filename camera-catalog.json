@@ -1,6 +1,6 @@
 {
   "schema_version": 5,
-  "generated_at": "2026-11-14T03:08:50Z",
+  "generated_at": "2026-11-14T09:10:43Z",
   "cameras": [
     {
       "id": "playa-flamingo-flamingo-2",
@@ -27,6 +27,21 @@
       "camera_name": "Atardecer desde Las Brisas Vídeo en directo Orientada al oeste desde una casa en lo alto de la colina: es la vista del atardecer sobre la bahía.",
       "page_url": "https://webcamscostarica.com/playa-flamingo/?cam=flamingo-1",
       "snapshot_url": "https://webcamscostarica.com/snap/flamingo-1-960.jpg",
+      "source_type": "webcamscostarica",
+      "weather_relevant": true,
+      "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
+      "initial_status": "pending"
+    },
+    {
+      "id": "playa-hermosa-guanacaste-default",
+      "site_slug": "playa-hermosa-guanacaste",
+      "site_name": "Playa Hermosa de Guanacaste",
+      "zone": "Guanacaste",
+      "lat": 10.575,
+      "lon": -85.677,
+      "camera_name": "Playa Hermosa de Guanacaste ahora mismo",
+      "page_url": "https://webcamscostarica.com/playa-hermosa-guanacaste/",
+      "snapshot_url": "https://webcamscostarica.com/snap/hermosa-guanacaste-960.jpg",
       "source_type": "webcamscostarica",
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
@@ -299,7 +314,7 @@
       "lon": -85.058,
       "camera_name": "Reserva Karen Mogensen ahora mismo",
       "page_url": "https://webcamscostarica.com/reserva-karen-mogensen/",
-      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955214",
+      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955395",
       "source_type": "webcamscostarica",
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
@@ -696,21 +711,6 @@
       "coordinate_note": "Coordenada de referencia del puerto de Moín; no es la posición exacta del lente.",
       "weather_relevant": false,
       "initial_status": "pending"
-    },
-    {
-      "id": "playa-hermosa-guanacaste-default",
-      "site_slug": "playa-hermosa-guanacaste",
-      "site_name": "Playa Hermosa de Guanacaste",
-      "zone": "Guanacaste",
-      "lat": 10.575,
-      "lon": -85.677,
-      "camera_name": "Mientras tanto, en vivo cerca de aquí",
-      "page_url": "https://webcamscostarica.com/playa-hermosa-guanacaste/",
-      "snapshot_url": null,
-      "source_type": "webcamscostarica",
-      "weather_relevant": true,
-      "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
-      "initial_status": "offline"
     },
     {
       "id": "tamarindo-tamarindo-diria-1",
