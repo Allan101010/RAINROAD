@@ -95,15 +95,12 @@
     if (ctx) ctx.clearRect(0, 0, W, H);
   }
   function sync() {
-    const t = document.getElementById("ownRainToggle");
-    if (t && t.checked && typeof map !== "undefined" && map && mapReady) start(); else stop();
+    const sel = document.getElementById("radarSource");
+    const on = sel && sel.value === "raintrack";
+    if (on && typeof map !== "undefined" && map && mapReady) start(); else stop();
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const t = document.getElementById("ownRainToggle");
-    if (!t) return;
-    t.checked = pref();
-    t.addEventListener("change", () => { try { localStorage.setItem(KEY, t.checked ? "1" : "0"); } catch (e) {} sync(); });
     const wait = setInterval(() => {
       if (typeof map !== "undefined" && map && mapReady) { clearInterval(wait); sync(); }
     }, 500);

@@ -261,8 +261,9 @@ let destinationMarker = null;
 let radarMetadata = null;
 let radarFrames = [];
 const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
-let radarSourceKey = savedRadarSource === "librewxr"
-  ? savedRadarSource : "librewxr";
+let radarSourceKey = "librewxr";
+// "raintrack" = capa propia de lluvia medida por las estaciones del IMN (ver ratelayer.js).
+let ownRainSelected = savedRadarSource === "raintrack";
 const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
 let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
 let radarFrameIndex = 0;
@@ -864,6 +865,7 @@ async function loadCameraMonitoringData() {
     if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
     cameraMonitorData = await response.json();
     renderCameraAlerts();
+    if (mapReady && ownRainSelected) showOwnRainSource();
     if (mapReady && ($("camerasToggle").checked || $("stationsToggle").checked || $("tempToggle").checked)) addCameraMarkers();
   } catch (error) {
     console.info("Monitor visual de cámaras pendiente:", error.message);
@@ -1213,9 +1215,37 @@ function radarTileUrl(frame, metadata, config) {
   return host + path + "/256/{z}/{x}/{y}/" + librewxrColorScheme + "/" + config.smooth + "_" + config.snow + ".png";
 }
 
+function showOwnRainSource() {
+  stopRadarAnimation();
+  removeRadarLayer();
+  radarFrames = [];
+  $("frameSlider").disabled = true;
+  $("playRadar").disabled = true;
+  $("librewxrStyleControl").hidden = true;
+  $("radarLegend").hidden = true;
+  const gen = cameraMonitorData && cameraMonitorData.generated_at ? new Date(cameraMonitorData.generated_at) : null;
+  const when = gen && !Number.isNaN(gen.getTime())
+    ? gen.toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" }) : "esperando datos";
+  $("radarStatus").textContent = "RainTrack · lluvia medida por estaciones del IMN";
+  $("radarStatus").className = "muted";
+  $("radarTime").textContent = "Última lectura de estaciones: " + when + " · solo donde hay estación midiendo";
+  $("frameLabel").textContent = "--";
+  $("mapStatusChip").textContent = "🌧️ Lluvia medida · estaciones IMN";
+  if (window.RainTrackOwnRain) { window.RainTrackOwnRain.rebuild(); window.RainTrackOwnRain.sync(); }
+}
+
 async function loadRadarSource() {
   if (!mapReady) return;
   stopRadarAnimation();
+
+  if ($("radarSource").value === "raintrack") {
+    localStorage.setItem(SOURCE_STORAGE_KEY, "raintrack");
+    ownRainSelected = true;
+    showOwnRainSource();
+    return;
+  }
+  ownRainSelected = false;
+  if (window.RainTrackOwnRain) window.RainTrackOwnRain.sync();
 
   const selectedSource = $("radarSource").value;
   radarSourceKey = RADAR_SOURCES[selectedSource] ? selectedSource : "librewxr";
@@ -2674,7 +2704,7 @@ setupCollapsible("conditionsToggle", "conditionsPanel", "raintrackcr_section_con
 setupCollapsible("forecastToggle", "forecastPanel", "raintrackcr_section_forecast_v1");
 setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
 
-$("radarSource").value = RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr";
+$("radarSource").value = ownRainSelected ? "raintrack" : (RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr");
 $("librewxrColorScheme").value = String(librewxrColorScheme);
 $("radarSource").addEventListener("change", loadRadarSource);
 $("librewxrColorScheme").addEventListener("change", event => {
@@ -2732,7 +2762,7 @@ function startAutomaticUpdates() {
 // ------------------------------------------------------------
 // INICIO
 // ------------------------------------------------------------
-if ($("radarSource")) $("radarSource").value = radarSourceKey;
+if ($("radarSource")) $("radarSource").value = ownRainSelected ? "raintrack" : radarSourceKey;
 initMap();
 const restoredLocation = restoreSavedCurrentLocation();
 if (!restoredLocation) {

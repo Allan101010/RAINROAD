@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.45">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.46">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.45</small> <button class="ambient-toggle" id="ambientToggle" type="button" aria-pressed="true" title="Ambiente animado (lluvia, sol, luna)" aria-label="Ambiente animado">✨</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.46</small> <button class="ambient-toggle" id="ambientToggle" type="button" aria-pressed="true" title="Ambiente animado (lluvia, sol, luna)" aria-label="Ambiente animado">✨</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -58,8 +58,9 @@
             <label for="radarSource">Precipitación sobre el mapa</label>
             <select class="source-select" id="radarSource">
               <option value="librewxr">LibreWXR · precipitación estimada por satélite (principal)</option>
+              <option value="raintrack">RainTrack · lluvia medida por estaciones del IMN (propia)</option>
             </select>
-            <p class="layer-hint">LibreWXR muestra la precipitación estimada por satélite con pocos minutos de retraso.</p>
+            <p class="layer-hint">LibreWXR: precipitación estimada por satélite, cubre todo el mapa. RainTrack: lluvia animada solo donde una estación del IMN midió lluvia en la última hora (no inventa datos entre estaciones).</p>
             <div id="librewxrStyleControl">
               <label for="librewxrColorScheme">Estilo visual del radar LibreWXR</label>
               <select class="source-select" id="librewxrColorScheme">
@@ -71,11 +72,6 @@
               </select>
             </div>
             <button class="btn secondary small-btn" id="radarSourceRefresh" type="button" style="width:100%;margin:9px 0">↻ Actualizar fuente seleccionada</button>
-            <div class="layer-group">
-              <div class="layer-group-title">🌧️ Lluvia medida por RainTrack</div>
-              <label class="layer-check"><input id="ownRainToggle" type="checkbox"> <span class="layer-label"><strong>Lluvia en vivo de estaciones IMN</strong><small>Animación de lluvia alrededor de cada estación que midió lluvia en la última hora</small></span></label>
-              <p class="layer-hint">Solo se dibuja donde hay una estación midiendo; entre estaciones no se inventan datos. Más lluvia medida = zona y gotas más grandes.</p>
-            </div>
             <div class="layer-group">
               <div class="layer-group-title">🛰️ Imágenes oficiales del IMN</div>
               <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span class="layer-label"><strong>Mostrar producto satelital</strong><small>Se abre en una ventana dentro del mapa</small></span></label>
@@ -306,9 +302,9 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.45"></script>
-  <script src="assets/app.js?v=1.8.45"></script>
-  <script src="assets/landmarks.js?v=1.8.45"></script>
-  <script src="assets/ratelayer.js?v=1.8.45"></script>
+  <script src="assets/ambient.js?v=1.8.46"></script>
+  <script src="assets/app.js?v=1.8.46"></script>
+  <script src="assets/landmarks.js?v=1.8.46"></script>
+  <script src="assets/ratelayer.js?v=1.8.46"></script>
 </body>
 </html>
