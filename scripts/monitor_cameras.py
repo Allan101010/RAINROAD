@@ -1311,7 +1311,7 @@ def main() -> int:
                 "name": "IMN · estaciones automáticas",
                 "url": "https://www.imn.ac.cr/es/web/imn/estaciones-automaticas",
                 "type": "official_station_observations",
-                "note": "Se consultan 24 tablas HTML públicas de estaciones automáticas del IMN, con mayor cobertura en el Valle Central (Alajuela, San José y Heredia). El IMN advierte que sus datos son preliminares y pueden retrasarse."
+                "note": "Se consultan 132 tablas HTML públicas de estaciones automáticas del IMN de todo el país; la ubicación de varias es aproximada. El IMN advierte que sus datos son preliminares y pueden retrasarse."
             },
             {
                 "name": "Parapente Pura Vida",
