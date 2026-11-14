@@ -1,6 +1,6 @@
 {
   "schema_version": 4,
-  "generated_at": "2026-11-14T02:05:56Z",
+  "generated_at": "2026-11-14T02:09:44Z",
   "cameras": [
     {
       "id": "playa-flamingo-flamingo-2",
@@ -314,7 +314,7 @@
       "lon": -85.058,
       "camera_name": "Reserva Karen Mogensen ahora mismo",
       "page_url": "https://webcamscostarica.com/reserva-karen-mogensen/",
-      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955182",
+      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955184",
       "source_type": "webcamscostarica",
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
@@ -694,6 +694,22 @@
       "coordinate_note": "Coordenada de referencia de Tamarindo; no es la posición exacta del lente.",
       "weather_relevant": false,
       "reason": "Previsualización oficial de SkylineWebcams. Se verifica disponibilidad, pero no se utiliza para alertas automáticas de lluvia.",
+      "initial_status": "pending"
+    },
+    {
+      "id": "apm-moin-gate",
+      "site_slug": "puerto-moin",
+      "site_name": "Puerto de Moín · APM Terminals",
+      "zone": "Caribe",
+      "lat": 10.0035,
+      "lon": -83.156,
+      "camera_name": "APM Terminals Moín · entrada de camiones",
+      "page_url": "https://www.apmterminals.com/en/moin/e-services/truck-turn-times",
+      "source_type": "public_snapshot",
+      "snapshot_url": "https://cms-cd.apmterminals.com/apm/api/v1/gatecameras/gate-camera?id=cd1535f7-3f80-4352-986e-9b841537afd6",
+      "reason": "Cámara pública de la entrada de camiones del puerto; se verifica que la imagen cargue, pero no se usa para alertas de lluvia.",
+      "coordinate_note": "Coordenada de referencia del puerto de Moín; no es la posición exacta del lente.",
+      "weather_relevant": false,
       "initial_status": "pending"
     },
     {
