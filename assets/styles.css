@@ -1266,3 +1266,13 @@ body.map-focus .amb-sky, body.map-focus .amb-rain, body.map-focus .amb-stars { d
 #map.zoom-low .landmark.volcano { width: 30px; height: 27px; }
 #map.zoom-low .vol-smoke { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
 @media (prefers-reduced-motion: reduce) { .vol-smoke, .vol-glow { animation: none; } .vol-smoke.s2, .vol-smoke.s3 { display: none; } .vol-smoke { opacity: .6; } }
+
+/* Volcanes: tamaños, humo por intensidad y foto en la ficha */
+.landmark.volcano { width: 48px; height: 44px; }
+.vol-smoke.soft { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
+.vol-smoke.strong { width: 12px; height: 12px; margin: -6px 0 0 -6px; animation-duration: 3.6s; }
+.vol-smoke.ash { width: 14px; height: 14px; margin: -7px 0 0 -7px; animation-duration: 3.4s; }
+.vol-smoke.soft.s2, .vol-smoke.strong.s2, .vol-smoke.ash.s2 { animation-delay: 1.5s; }
+.vol-smoke.strong.s3, .vol-smoke.ash.s3 { animation-delay: 2.7s; }
+.vol-photo { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; background: #1b2438; }
+#map.zoom-low .landmark.volcano { width: 32px; height: 29px; }
