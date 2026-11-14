@@ -35,7 +35,7 @@ except ImportError:  # ejecución directa: python scripts/monitor_cameras.py
     from notify_zones import notify_new_rain
 
 BASE_URL = "https://webcamscostarica.com/"
-CATALOG_SCHEMA_VERSION = 4
+CATALOG_SCHEMA_VERSION = 5
 CATALOG_PATH = Path("camera-catalog.json")
 ALERTS_PATH = Path("camera-alerts.json")
 CATALOG_MAX_AGE = timedelta(hours=6)

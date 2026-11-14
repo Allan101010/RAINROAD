@@ -1850,34 +1850,34 @@
     },
     {
       "id": "skyline-moravia-panorama-sj",
-      "site_slug": "skyline-moravia",
-      "site_name": "Moravia · cámaras SkylineWebcams",
+      "site_slug": "skyline-moravia-panorama-sj",
+      "site_name": "Panorama de San José · SkylineWebcams",
       "zone": "Valle Central",
-      "lat": 9.96164,
-      "lon": -84.0488,
+      "lat": 9.9345,
+      "lon": -84.075,
       "camera_name": "Panorama de San José - Costa Rica",
       "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/panorama-san-jose.html",
       "snapshot_url": "https://embed.skylinewebcams.com/img/5609.jpg",
       "source_type": "skylinewebcams",
-      "coordinate_note": "Punto de referencia de San Vicente de Moravia; no es la posición exacta del lente."
+      "coordinate_note": "Ubicación de lo que muestra la cámara (San José centro, visto desde Moravia); no es la posición exacta del lente."
     },
     {
       "id": "skyline-moravia-irazu",
-      "site_slug": "skyline-moravia",
-      "site_name": "Moravia · cámaras SkylineWebcams",
+      "site_slug": "skyline-moravia-irazu",
+      "site_name": "Volcán Irazú · SkylineWebcams",
       "zone": "Valle Central",
-      "lat": 9.96164,
-      "lon": -84.0488,
+      "lat": 9.973,
+      "lon": -83.86,
       "camera_name": "Irazú - Costa Rica",
       "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/irazu.html",
       "snapshot_url": "https://embed.skylinewebcams.com/img/5607.jpg",
       "source_type": "skylinewebcams",
-      "coordinate_note": "Punto de referencia de Moravia indicado en la ficha; la vista apunta al Irazú."
+      "coordinate_note": "Ubicación de lo que muestra la cámara (volcán Irazú, visto desde Moravia); no es la posición exacta del lente."
     },
     {
       "id": "skyline-moravia-san-vicente",
-      "site_slug": "skyline-moravia",
-      "site_name": "Moravia · cámaras SkylineWebcams",
+      "site_slug": "skyline-moravia-san-vicente",
+      "site_name": "San Vicente de Moravia · SkylineWebcams",
       "zone": "Valle Central",
       "lat": 9.96164,
       "lon": -84.0488,
@@ -1885,20 +1885,20 @@
       "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/san-vicente.html",
       "snapshot_url": "https://embed.skylinewebcams.com/img/5606.jpg",
       "source_type": "skylinewebcams",
-      "coordinate_note": "Coordenada de referencia de San Vicente de Moravia; no es la posición exacta del lente."
+      "coordinate_note": "Punto de referencia de San Vicente de Moravia; no es la posición exacta del lente."
     },
     {
       "id": "skyline-moravia-braulio-carrillo",
-      "site_slug": "skyline-moravia",
-      "site_name": "Moravia · cámaras SkylineWebcams",
+      "site_slug": "skyline-moravia-braulio-carrillo",
+      "site_name": "Braulio Carrillo · SkylineWebcams",
       "zone": "Valle Central",
-      "lat": 9.96164,
-      "lon": -84.0488,
+      "lat": 10.08,
+      "lon": -84.0,
       "camera_name": "Panorama de Braulio Carrillo - Costa Rica",
       "page_url": "https://www.skylinewebcams.com/es/webcam/costa-rica/san-jose-province/moravia/heredia-braulio-carrillo.html",
       "snapshot_url": "https://embed.skylinewebcams.com/img/5608.jpg",
       "source_type": "skylinewebcams",
-      "coordinate_note": "Punto de referencia de Moravia indicado en la ficha; la vista apunta a Heredia y Braulio Carrillo."
+      "coordinate_note": "Ubicación de lo que muestra la cámara (zona de Braulio Carrillo, vista desde Moravia); no es la posición exacta del lente."
     },
     {
       "id": "skyline-cerro-bebedero",
