@@ -1301,3 +1301,6 @@ body.map-focus .own-rain-stats { margin-top: 8px; }
 body.map-focus .radar-title { font-size: 14px; }
 
 .radar-time.warn { color: #fbbf24; }
+
+/* Los globos de texto del mapa tienen fondo blanco: el texto debe ser oscuro aunque la página use tema oscuro. */
+.maplibregl-popup-content { color: #0f172a; font-size: 14px; line-height: 1.4; max-width: 260px; }
