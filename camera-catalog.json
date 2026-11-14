@@ -1,6 +1,6 @@
 {
   "schema_version": 4,
-  "generated_at": "2026-11-13T15:15:24Z",
+  "generated_at": "2026-11-14T00:20:53Z",
   "cameras": [
     {
       "id": "playa-flamingo-flamingo-2",
@@ -314,7 +314,7 @@
       "lon": -85.058,
       "camera_name": "Reserva Karen Mogensen ahora mismo",
       "page_url": "https://webcamscostarica.com/reserva-karen-mogensen/",
-      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14954857",
+      "snapshot_url": "https://meteo.unimore.it/meteo/ossgeo/karen/karen.jpg?_=14955130",
       "source_type": "webcamscostarica",
       "weather_relevant": true,
       "reason": "Candidata: la IA evaluará si el encuadre muestra entorno exterior útil para meteorología.",
