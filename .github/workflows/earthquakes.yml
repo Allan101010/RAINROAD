@@ -1,0 +1,43 @@
+name: RainTrack CR - temblores
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: "Segundos que se queda corriendo"
+        default: "570"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raintrack-quakes
+  cancel-in-progress: false
+
+jobs:
+  quakes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements-quakes.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-quakes.txt
+
+      - name: Recuperar temblores recientes
+        run: |
+          git fetch origin +quakes-data:refs/remotes/origin/quakes-data || true
+          git show origin/quakes-data:quakes.json > quakes.json 2>/dev/null || rm -f quakes.json
+
+      - name: Leer USGS y EMSC y publicar
+        env:
+          QUAKE_ALERT_TOPIC: ${{ secrets.QUAKE_ALERT_TOPIC }}
+        run: python scripts/quakes.py --duration "${{ github.event.inputs.duration || 570 }}"

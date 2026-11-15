@@ -100,3 +100,11 @@ jobs:
         run: |
           gh api "repos/${{ github.repository }}/actions/workflows/lightning.yml/dispatches" \
             -X POST -f ref=main
+
+      - name: Mantener activo el lector de temblores
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/workflows/earthquakes.yml/dispatches" \
+            -X POST -f ref=main

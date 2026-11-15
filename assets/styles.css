@@ -1304,3 +1304,33 @@ body.map-focus .radar-title { font-size: 14px; }
 
 /* Los globos de texto del mapa tienen fondo blanco: el texto debe ser oscuro aunque la página use tema oscuro. */
 .maplibregl-popup-content { color: #0f172a; font-size: 14px; line-height: 1.4; max-width: 260px; }
+
+/* Temblores y terremotos */
+.quake-alert-stack { position: absolute; z-index: 19; left: 12px; right: 12px; top: 66px; display: grid; gap: 6px; pointer-events: none; }
+.quake-alert-stack[hidden] { display: none !important; }
+.camera-alert-stack:not([hidden]) ~ .quake-alert-stack { top: 104px; }
+.quake-banner { display: flex; align-items: stretch; min-height: 32px; border: 1px solid rgba(147,197,253,.4); border-radius: 16px; background: rgba(16,24,39,.86); color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.28); backdrop-filter: blur(6px); pointer-events: auto; font-size: 12px; overflow: hidden; }
+.quake-banner-main { flex: 1 1 auto; min-width: 0; padding: 6px 6px 6px 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; line-height: 1.3; cursor: pointer; }
+.quake-banner-label { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: #93c5fd; }
+.quake-banner-close { flex: 0 0 34px; border: 0; background: rgba(255,255,255,.08); color: #e2e8f0; font-size: 18px; cursor: pointer; }
+.quake-banner.cr { border: 2px solid #fecaca; background: linear-gradient(135deg, rgba(185,28,28,.96), rgba(127,29,29,.96)); box-shadow: 0 0 0 0 rgba(239,68,68,.6), 0 6px 20px rgba(185,28,28,.5); font-size: 13.5px; animation: quake-glow 1.6s ease-in-out infinite; }
+.quake-banner.cr .quake-banner-label { color: #fee2e2; font-size: 12px; }
+@keyframes quake-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.55), 0 6px 20px rgba(185,28,28,.5); } 50% { box-shadow: 0 0 0 7px rgba(239,68,68,0), 0 6px 20px rgba(185,28,28,.5); } }
+
+.quake-marker { display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #fff; border-radius: 50%; color: #fff; font-weight: 800; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,.55); box-shadow: 0 2px 8px rgba(0,0,0,.45); cursor: pointer; }
+.quake-marker.cr { border-color: #fecaca; }
+.quake-marker.fresh { animation: quake-pulse 1.5s ease-out infinite; }
+@keyframes quake-pulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.75), 0 2px 8px rgba(0,0,0,.45); } 100% { box-shadow: 0 0 0 16px rgba(239,68,68,0), 0 2px 8px rgba(0,0,0,.45); } }
+.quake-popup { font-size: 13px; line-height: 1.45; }
+.quake-popup small { color: #475569; }
+
+.quake-list { display: grid; gap: 7px; margin-top: 10px; }
+.quake-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.04); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.quake-row.cr { border-color: rgba(248,113,113,.45); background: rgba(185,28,28,.12); }
+.quake-row.big { box-shadow: inset 4px 0 0 #ef4444; }
+.quake-row-mag { flex: 0 0 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f97316; color: #fff; font-weight: 800; font-size: 15px; }
+.quake-row.cr .quake-row-mag { background: #dc2626; }
+.quake-row-body { display: grid; gap: 2px; min-width: 0; }
+.quake-row-body small { opacity: .75; }
+.quake-more { justify-self: center; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .quake-banner.cr, .quake-marker.fresh { animation: none; } }

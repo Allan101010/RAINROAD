@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.70">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.71">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.70</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.71</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -87,6 +87,7 @@
             <div class="layer-group">
               <div class="layer-group-title">📍 Puntos en el mapa</div>
               <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span class="layer-label"><strong>📷 Cámaras</strong><small>Públicas y de volcanes · muestran si están en línea</small></span></label>
+              <label class="layer-check"><input id="quakeToggle" type="checkbox" checked> <span class="layer-label"><strong>🌍 Temblores y terremotos</strong><small>Desde M3.5 · USGS y EMSC · informa después del sismo</small></span></label>
               <label class="layer-check"><input id="stationsToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Estaciones meteorológicas</strong><small>132 estaciones IMN + 1 panel WeatherLink · miden la lluvia</small></span></label>
               <label class="layer-check"><input id="lightningToggle" type="checkbox" checked> <span class="layer-label"><strong>⚡ Rayos reales</strong><small id="lightningInfo">Rayos del satélite GOES-19 (NOAA). Cargando…</small></span></label>
               <label class="layer-check"><input id="volcanoToggle" type="checkbox"> <span class="layer-label"><strong>🌋 Volcanes</strong><small>Los principales volcanes del país con su altura y estado general</small></span></label>
@@ -111,6 +112,7 @@
         </div>
 
         <div class="camera-alert-stack" id="cameraAlertStack" aria-live="polite" hidden></div>
+        <div class="quake-alert-stack" id="quakeAlertStack" aria-live="polite" hidden></div>
 
         <section class="map-detail-sheet" id="mapDetailSheet" hidden role="dialog" aria-labelledby="mapDetailTitle">
           <div class="map-detail-grabber" aria-hidden="true"></div>
@@ -218,6 +220,17 @@
       <p class="source-note" id="radarSourceNote">La fuente principal es RainTrack (estaciones del IMN); LibreWXR es la secundaria. Revisa la hora de la lectura antes de interpretar la precipitación.</p>
     </section>
 
+    <section class="section" id="quakeSection">
+      <div class="section-head">
+        <div>
+          <h2>🌍 Temblores y terremotos</h2>
+          <p class="subtitle" id="quakeInfo">Cargando…</p>
+        </div>
+      </div>
+      <div class="quake-list" id="quakeList" aria-live="polite"></div>
+      <p class="source-note">Fuentes: USGS y EMSC (centros internacionales, datos abiertos). Las magnitudes son preliminares y pueden cambiar. Esta lista informa <strong>después</strong> del sismo, con minutos de retraso: no es una alerta temprana. Para alerta temprana usa la app «OVSICORI-UNA Alerta Terremotos»; para reportes oficiales, la RSN (UCR-ICE) y el OVSICORI-UNA.</p>
+    </section>
+
     <section class="section">
       <div class="section-head">
         <h2>🔎 Buscar otro destino</h2>
@@ -304,10 +317,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.70"></script>
-  <script src="assets/app.js?v=1.8.70"></script>
-  <script src="assets/landmarks.js?v=1.8.70"></script>
-  <script src="assets/ratelayer.js?v=1.8.70"></script>
-  <script src="assets/lightning.js?v=1.8.70"></script>
+  <script src="assets/ambient.js?v=1.8.71"></script>
+  <script src="assets/app.js?v=1.8.71"></script>
+  <script src="assets/landmarks.js?v=1.8.71"></script>
+  <script src="assets/ratelayer.js?v=1.8.71"></script>
+  <script src="assets/lightning.js?v=1.8.71"></script>
+  <script src="assets/quakes.js?v=1.8.71"></script>
 </body>
 </html>
