@@ -248,6 +248,20 @@ class HomeMotionTests(unittest.TestCase):
         result = self.t.motion_features([a, b, c])
         self.assertEqual(result["motion"], 0)
 
+    def test_median_rises_with_rain_but_not_with_one_moving_object(self):
+        rain = self.t.motion_features([self.rain_frame(1), self.rain_frame(2), self.rain_frame(3)])
+        self.assertGreater(rain["motion_median"], 1.0)
+        frames = []
+        for shift in (0, 30, 60):  # algo que se mueve por una zona (persona, animal)
+            img = self.base()
+            for x in range(20 + shift, 50 + shift):
+                for y in range(80, 130):
+                    img.putpixel((x, y), (250, 250, 250))
+            frames.append(img)
+        walker = self.t.motion_features(frames)
+        self.assertGreater(walker["motion"], 1.0)
+        self.assertEqual(walker["motion_median"], 0)
+
     def test_bot_accepts_messages_with_and_without_motion(self):
         from datetime import datetime, timezone
         now = datetime(2026, 11, 14, 17, 5, tzinfo=timezone.utc)
@@ -257,6 +271,8 @@ class HomeMotionTests(unittest.TestCase):
             return json.dumps({"event": "message", "message": json.dumps(data)})
         old = self.ct.parse_home_messages(line({}), now)
         new = self.ct.parse_home_messages(line({"motion": 3.2, "motion_spread": 0.7}), now)
+        newest = self.ct.parse_home_messages(line({"motion": 3.2, "motion_spread": 0.7, "motion_median": 1.4}), now)
+        self.assertEqual(newest[0]["f"]["motion_median"], 1.4)
         bad = self.ct.parse_home_messages(line({"motion": float("nan")}), now)
         self.assertEqual(len(old), 1)
         self.assertNotIn("motion", old[0]["f"])
@@ -317,9 +333,62 @@ class HomeRainEstimateTests(unittest.TestCase):
         self.assertEqual(self.ct.estimate_home_rain(self.row(20), [])["estimate"], "possible_rain")
         self.assertEqual(self.ct.estimate_home_rain(self.row(60), [])["estimate"], "no_rain")
 
-    def test_night_and_low_quality_give_no_opinion(self):
-        self.assertEqual(self.ct.estimate_home_rain(self.row(10, hour=22), [])["estimate"], "unknown")
-        self.assertEqual(self.ct.estimate_home_rain(self.row(10, q="low_visibility"), [])["estimate"], "unknown")
+    def test_lamp_on_and_low_quality_give_no_opinion(self):
+        lamp = self.ct.estimate_home_rain(self.row(25, hour=22), [])  # de noche en color: luz encendida
+        self.assertEqual((lamp["estimate"], lamp["reason"]), ("unknown", "lamp_on"))
+        dark = self.ct.estimate_home_rain(self.row(10, q="low_visibility"), [])
+        self.assertEqual((dark["estimate"], dark["reason"]), ("unknown", "low_quality"))
+
+    def night(self, minute, motion=0.25, spread=0.0, luma=80.0, hour=23, day="14"):
+        """Lectura de noche con infrarrojo (imagen en blanco y negro: saturación 0)."""
+        return {"t": f"2026-11-{day}T05:{minute:02d}:00Z", "cam": "home-casa", "hour": hour, "q": "usable",
+                "f": {"saturation": 0.0, "ground_luma": 88.0, "luma": luma, "motion": motion, "motion_spread": spread}}
+
+    def quiet_nights(self):
+        return [self.night(m, day="13") for m in range(0, 60, 4)]  # 15 lecturas tranquilas de otra noche
+
+    def test_night_quiet_scene_means_no_rain(self):
+        result = self.ct.estimate_home_rain(self.night(30), self.quiet_nights() + [self.night(25)])
+        self.assertEqual((result["estimate"], result["mode"], result["basis"]), ("no_rain", "ir", "night_motion"))
+
+    def test_night_rain_needs_motion_all_over_and_repeated(self):
+        history = self.quiet_nights()
+        first = self.night(25, motion=1.3, spread=0.4)
+        # una sola lectura movida (alguien o algo que pasa): todavía no
+        self.assertEqual(self.ct.estimate_home_rain(first, history + [self.night(20)])["estimate"], "no_rain")
+        # se repite a los 5 minutos: posible lluvia
+        second = self.night(30, motion=1.1, spread=0.35)
+        self.assertEqual(self.ct.estimate_home_rain(second, history + [self.night(20), first])["estimate"], "possible_rain")
+        # tolera una lectura floja en medio de la lluvia
+        third = self.night(35, motion=1.2, spread=0.3)
+        self.assertEqual(self.ct.estimate_home_rain(third, history + [first, self.night(30)])["estimate"], "possible_rain")
+        # y cuando deja de moverse, deja de avisar
+        self.assertEqual(self.ct.estimate_home_rain(self.night(40), history + [second, third])["estimate"], "no_rain")
+
+    def test_night_motion_in_one_spot_is_not_rain(self):
+        history = self.quiet_nights()
+        cat = self.night(25, motion=2.0, spread=0.05)
+        again = self.night(30, motion=2.2, spread=0.06)
+        self.assertEqual(self.ct.estimate_home_rain(again, history + [cat])["estimate"], "no_rain")
+
+    def test_night_does_not_opine_while_the_camera_adjusts_brightness(self):
+        history = self.quiet_nights()
+        first = self.night(25, motion=1.4, spread=0.25, luma=91.0)
+        second = self.night(30, motion=1.6, spread=0.29, luma=78.0)  # el brillo cayó 14 %: anochecer
+        result = self.ct.estimate_home_rain(second, history + [first])
+        self.assertEqual((result["estimate"], result["reason"]), ("unknown", "light_changing"))
+
+    def test_night_needs_history_and_motion_data(self):
+        few = [self.night(m, day="13") for m in range(0, 20, 4)]
+        self.assertEqual(self.ct.estimate_home_rain(self.night(30), few)["reason"], "learning")
+        old_tablet = self.night(30)
+        del old_tablet["f"]["motion"], old_tablet["f"]["motion_spread"]
+        self.assertEqual(self.ct.estimate_home_rain(old_tablet, self.quiet_nights())["reason"], "no_motion_data")
+
+    def test_color_image_at_dawn_or_dusk_uses_the_day_rule(self):
+        history = [self.row(40, ground=100) for _ in range(15)]
+        self.assertEqual(self.ct.estimate_home_rain(self.row(38, hour=6), history)["mode"], "day")
+        self.assertEqual(self.ct.estimate_home_rain(self.row(20, ground=70, hour=17), history)["estimate"], "possible_rain")
 
     def test_with_baseline_needs_grey_and_darker_ground(self):
         history = [self.row(40, ground=100) for _ in range(15)]

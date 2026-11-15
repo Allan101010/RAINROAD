@@ -86,8 +86,16 @@ En el repositorio: Settings → Secrets and variables → Actions → New reposi
 - `HOME_CAM_TOPIC`: el mismo nombre secreto del paso 5.
 - (Opcional) `HOME_CAM_LAT` y `HOME_CAM_LON`: coordenadas **aproximadas** de tu pueblo (el centro, no tu casa). Sirven para comparar con las estaciones cercanas.
 
+## Cuándo opina la cámara (lo decide el bot, las 24 horas)
+- **De día** (imagen a color): posible lluvia si el color se ve más apagado y el suelo más oscuro que lo normal en esa cámara.
+- **De noche con visión infrarroja** (imagen en blanco y negro): posible lluvia si la imagen se mueve por todas partes en dos lecturas seguidas. Una sola lectura movida no cuenta (alguien o algo que pasa).
+- **De noche con una luz encendida** la cámara sale del modo nocturno: no opina.
+- Tampoco opina con la imagen muy oscura, mientras la cámara ajusta el brillo al anochecer, ni la primera hora de noche (necesita 12 lecturas para saber cómo se ve normalmente).
+
+Es una estimación, no una medición.
+
 ## Privacidad
-- Salen solo 12 números por cámara cada 5 minutos. Nada de imágenes ni de tu dirección RTSP.
+- Salen solo unos 15 números por cámara cada 5 minutos. Nada de imágenes ni de tu dirección RTSP.
 - La clave de tus cámaras queda únicamente en `config.json`, dentro de tu tablet.
 
 ## Actualizar el programa de la tablet

@@ -8,7 +8,7 @@ Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, r
 - **Estaciones del IMN:** la lluvia se informa solo con sus mediciones. Si una estación mide lluvia, aparece un aviso en la página.
 - **Capa propia «RainTrack · lluvia medida»:** lluvia animada solo alrededor de estaciones del IMN que midieron precipitación en la última hora (no interpola entre estaciones). Se atenúa según la intensidad y la edad del dato; con ≥ 8 mm/h se dibuja como tormenta (los relámpagos son estimados, el IMN no publica rayos con coordenadas). LibreWXR queda como fuente secundaria.
 - **Mapa:** fondo oscuro/claro (botón 🌙/☀️ arriba), temperaturas actuales con la más alta y la más baja en el aviso superior, volcanes con su ícono propio y foto, e íconos emblemáticos con foto de Wikimedia Commons (cada ficha enlaza al autor y la licencia). La clasificación de volcanes es general, no un reporte en vivo: consultar OVSICORI.
-- **Cámaras públicas** (Webcams Costa Rica, OVSICORI, SkylineWebcams): se muestra si están en línea, qué tan reciente es su imagen y si es legible. Las cámaras públicas **no** generan alertas de lluvia. La cámara de la casa (tablet con Termux, `tools/home-cameras/`) da una estimación experimental de lluvia que se muestra en el mapa.
+- **Cámaras públicas** (Webcams Costa Rica, OVSICORI, SkylineWebcams): se muestra si están en línea, qué tan reciente es su imagen y si es legible. Las cámaras públicas **no** generan alertas de lluvia. La cámara de la casa (tablet con Termux, `tools/home-cameras/`) da una estimación experimental de lluvia las 24 horas que se muestra en el mapa: de día por el color y el suelo mojado, de noche (visión infrarroja) por el movimiento de la imagen; con una luz encendida de noche no opina.
 
 ## Cómo funciona
 

@@ -113,7 +113,7 @@ def build_row(camera: dict, features: dict, stations: list[dict], flashes, now: 
 
 FEATURE_KEYS = ("luma", "contrast", "sky_luma", "sky_contrast", "ground_luma", "ground_contrast",
                 "edges", "sky_edges", "saturation", "sky_blue_ratio", "bright_frac", "dark_frac")
-OPTIONAL_FEATURE_KEYS = ("motion", "motion_spread")  # solo las manda la tablet nueva
+OPTIONAL_FEATURE_KEYS = ("motion", "motion_spread", "motion_median")  # solo las manda la tablet nueva
 HOME_MAX_SKEW_MINUTES = 30
 
 
@@ -228,11 +228,18 @@ def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> in
 
 HOME_FRESH_MINUTES = 20
 HOME_BASELINE_MIN_ROWS = 12
-HOME_DAY_HOURS = range(8, 17)  # hora local en que el color de la imagen es confiable
+HOME_DAYLIGHT_HOURS = range(5, 18)  # horas con luz natural posible (la cámara trabaja en color)
 HOME_FALLBACK_SATURATION = 30.0
 HOME_GREY_RATIO = 0.6
 HOME_DARK_RATIO = 0.85
 HOME_COORD_DECIMALS = 2  # ~1 km: la ubicación exacta de la casa no se publica
+# De noche (visión infrarroja, imagen en blanco y negro) la lluvia se nota como movimiento en toda la imagen.
+HOME_IR_SATURATION = 4.0        # por debajo de esto la imagen es en blanco y negro
+HOME_NIGHT_SPREAD = 0.15        # parte de la imagen que cambia entre fotos seguidas
+HOME_NIGHT_MOTION_MIN = 0.6     # cambio medio mínimo entre fotos seguidas
+HOME_NIGHT_MOTION_RATIO = 2.5   # ...y al menos estas veces el movimiento normal de esa cámara de noche
+HOME_NIGHT_WINDOW_MINUTES = 15  # la señal debe repetirse en este rato (una persona o un animal pasan una vez)
+HOME_NIGHT_LUMA_JUMP = 0.10     # si el brillo cambió más que esto, la cámara se está ajustando: no opina
 
 
 def _median(values: list[float]) -> float:
@@ -240,21 +247,72 @@ def _median(values: list[float]) -> float:
     return values[len(values) // 2]
 
 
-def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
-    """Estimación experimental de lluvia con una sola cámara, de día.
+def home_mode(row: dict) -> str:
+    """Cómo está viendo la cámara: "day" (color, luz natural), "ir" (noche con infrarrojo, blanco y
+    negro) o "lamp" (de noche en color: hay una luz encendida)."""
+    if float(row.get("f", {}).get("saturation", 0)) < HOME_IR_SATURATION:
+        return "ir"
+    return "day" if row.get("hour") in HOME_DAYLIGHT_HOURS else "lamp"
 
-    No es una medición. Con historial de la misma cámara (de día) pide dos señales a la vez frente a
-    lo habitual: color más apagado y suelo más oscuro (calle mojada). Sin historial usa solo un
-    umbral fijo de color. No exige cielo azul porque esta cámara mira al suelo. De noche no opina.
+
+def _night_signal(features: dict, base_motion: float) -> bool:
+    return (float(features.get("motion_spread", 0)) >= HOME_NIGHT_SPREAD
+            and float(features.get("motion", 0)) >= max(HOME_NIGHT_MOTION_MIN, base_motion * HOME_NIGHT_MOTION_RATIO))
+
+
+def _estimate_night(latest: dict, history: list[dict]) -> dict:
+    """Noche con infrarrojo: lluvia = movimiento repartido por la imagen, sostenido y con brillo estable.
+
+    Se compara con el movimiento normal de la misma cámara de noche. Una sola lectura movida no
+    cuenta (alguien o algo que pasa); tampoco mientras la cámara ajusta el brillo (anochecer).
     """
     features = latest.get("f", {})
-    hour = latest.get("hour")
-    if latest.get("q") != "usable" or hour not in HOME_DAY_HOURS:
-        return {"estimate": "unknown", "reason": "night_or_low_quality"}
+    if "motion" not in features or "motion_spread" not in features:
+        return {"estimate": "unknown", "reason": "no_motion_data"}
+    night_rows = [r for r in history if r.get("q") == "usable" and home_mode(r) == "ir"
+                  and "motion" in r.get("f", {}) and "motion_spread" in r["f"]]
+    if len(night_rows) < HOME_BASELINE_MIN_ROWS:
+        return {"estimate": "unknown", "reason": "learning"}
+    base_motion = _median([float(r["f"]["motion"]) for r in night_rows])
+    result = {"basis": "night_motion", "motion": round(float(features["motion"]), 2), "baseline": round(base_motion, 2)}
+    if not _night_signal(features, base_motion):
+        return {"estimate": "no_rain", **result}
+    try:
+        since = (datetime.fromisoformat(str(latest["t"]).replace("Z", "+00:00"))
+                 - timedelta(minutes=HOME_NIGHT_WINDOW_MINUTES)).isoformat().replace("+00:00", "Z")
+    except (KeyError, ValueError):
+        return {"estimate": "no_rain", **result}
+    recent = [r for r in history[-2:] if r.get("t", "") >= since and r.get("q") == "usable" and home_mode(r) == "ir"]
+    if not any(_night_signal(r.get("f", {}), base_motion) for r in recent):
+        return {"estimate": "no_rain", **result}
+    previous = history[-1] if history and history[-1] in recent else None
+    luma, before = float(features.get("luma", 0)), float(previous["f"].get("luma", 0)) if previous else 0.0
+    if before <= 0 or abs(luma / before - 1) > HOME_NIGHT_LUMA_JUMP:
+        return {"estimate": "unknown", "reason": "light_changing"}
+    return {"estimate": "possible_rain", **result}
+
+
+def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
+    """Estimación experimental de lluvia con una sola cámara, a cualquier hora. No es una medición.
+
+    - De día (color): con historial de la misma cámara pide dos señales a la vez frente a lo habitual,
+      color más apagado y suelo más oscuro (calle mojada); sin historial, un umbral fijo de color.
+    - De noche con infrarrojo: movimiento repartido y sostenido en la imagen (ver _estimate_night).
+    - De noche con una luz encendida la cámara sale del modo nocturno y no se distingue: no opina.
+    - Imagen oscura o sin detalle: no opina.
+    """
+    features = latest.get("f", {})
+    if latest.get("q") != "usable":
+        return {"estimate": "unknown", "reason": "low_quality"}
+    mode = home_mode(latest)
+    if mode == "lamp":
+        return {"estimate": "unknown", "reason": "lamp_on", "mode": mode}
+    if mode == "ir":
+        return {**_estimate_night(latest, history), "mode": mode}
     saturation = float(features.get("saturation", 0))
     ground = float(features.get("ground_luma", 0))
     day_rows = [r for r in history
-                if r.get("hour") in HOME_DAY_HOURS and r.get("q") == "usable" and "saturation" in r.get("f", {})]
+                if r.get("q") == "usable" and "saturation" in r.get("f", {}) and home_mode(r) == "day"]
     if len(day_rows) >= HOME_BASELINE_MIN_ROWS:
         base_sat = _median([float(r["f"]["saturation"]) for r in day_rows])
         base_ground = _median([float(r["f"].get("ground_luma", 0)) for r in day_rows])
@@ -268,7 +326,7 @@ def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
         basis = "fixed_threshold"
         baseline = None
     return {"estimate": "possible_rain" if rain else "no_rain", "saturation": round(saturation, 1),
-            "baseline": baseline, "basis": basis}
+            "baseline": baseline, "basis": basis, "mode": mode}
 
 
 def home_estimates(now: datetime, lat: float | None, lon: float | None, path: Path | None = None) -> list[dict]:

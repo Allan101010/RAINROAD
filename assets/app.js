@@ -1059,6 +1059,15 @@ function homeCameraName(id) {
   return name ? name.charAt(0).toUpperCase() + name.slice(1) : "Cámara";
 }
 
+// Por qué la cámara no opina (lo decide el bot al analizar cada lectura; el análisis corre las 24 horas).
+const HOME_CAMERA_NO_OPINION = {
+  low_quality: "imagen oscura o poco clara",
+  lamp_on: "luz encendida",
+  light_changing: "la cámara está ajustando el brillo",
+  learning: "aprendiendo cómo se ve de noche",
+  no_motion_data: "falta actualizar el programa de la tablet"
+};
+
 function homeCameraPopupText(summary) {
   const lines = summary.rows.map(row => {
     const minutes = Math.max(0, Math.round((Date.now() - Date.parse(row.t)) / 60000));
@@ -1066,8 +1075,10 @@ function homeCameraPopupText(summary) {
       const lastText = minutes >= 120 ? "hace " + Math.round(minutes / 60) + " h" : "hace " + minutes + " min";
       return "• " + homeCameraName(row.id) + ": SIN CONEXIÓN · última lectura " + lastText;
     }
-    const state = row.estimate === "possible_rain" ? "posible lluvia"
-      : row.estimate === "no_rain" ? "sin señales de lluvia" : "sin opinión (de noche o poca visibilidad)";
+    const night = row.mode === "ir" ? " · visión nocturna" : "";
+    const state = row.estimate === "possible_rain" ? "posible lluvia" + night
+      : row.estimate === "no_rain" ? "sin señales de lluvia" + night
+      : "sin opinión (" + (HOME_CAMERA_NO_OPINION[row.reason] || "poca visibilidad") + ")";
     return "• " + homeCameraName(row.id) + ": " + state + " (hace " + minutes + " min)";
   });
   return "Cámaras de casa (estimación)\n" + lines.join("\n") + "\nSe deduce de la imagen, no es una medición.";

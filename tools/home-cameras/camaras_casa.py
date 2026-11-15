@@ -18,6 +18,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+from array import array
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -75,7 +76,8 @@ def motion_features(frames: list[Image.Image]) -> dict:
     La lluvia cambia muchos puntos repartidos por toda la imagen; un gato o un carro cambian una
     zona. Se usa el menor de los cambios entre pares de fotos para que un objeto que pasa una vez
     no cuente como lluvia. "motion" = cambio medio; "motion_spread" = parte de la imagen (en
-    bloques) que cambió de forma notable.
+    bloques) que cambió de forma notable; "motion_median" = cambio del bloque típico (sube solo si
+    cambia TODA la imagen, como con la lluvia de noche; una persona o un animal no lo mueven).
     """
     width, height, block = 128, 96, 8
     grays = [ImageOps.grayscale(f.convert("RGB").resize((width, height))).crop((0, height // 3, width, height))
@@ -87,12 +89,13 @@ def motion_features(frames: list[Image.Image]) -> dict:
         blocks = diff.resize((width // block, diff.height // block), Image.BOX)
         values = list(blocks.tobytes())  # imagen en grises: un byte por bloque
         spread = sum(1 for v in values if v >= 2.0) / max(1, len(values))
-        pair = (mean, spread)
+        exact = sorted(array("f", diff.convert("F").resize(blocks.size, Image.BOX).tobytes()))
+        pair = (mean, spread, exact[len(exact) // 2] if exact else 0.0)
         if best is None or pair[0] < best[0]:
             best = pair
     if best is None:
         return {}
-    return {"motion": round(best[0], 2), "motion_spread": round(best[1], 3)}
+    return {"motion": round(best[0], 2), "motion_spread": round(best[1], 3), "motion_median": round(best[2], 2)}
 
 
 def grab_burst(rtsp_url: str, timeout: int = 30) -> list[Image.Image]:
