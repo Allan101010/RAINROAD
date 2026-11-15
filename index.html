@@ -5,27 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <meta name="description" content="RainTrack CR: radar y pronóstico de lluvia para Costa Rica.">
-  <title>RainTrack CR v1.8.37</title>
+  <title>RainTrack CR</title>
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.77">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.78">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.77</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.78</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span><span class="status-text">Iniciando sistema</span></div>
   </header>
 
   <main>
-    <section class="intro weather-hero" id="weatherHero" aria-live="polite">
+    <section class="intro weather-hero is-loading" id="weatherHero" aria-live="polite">
       <h1 class="hero-temp" id="heroTemp">--°</h1>
       <div class="hero-side">
-        <span class="hero-icon" id="heroIcon">⏳</span>
-        <b class="hero-text" id="heroText">Consultando…</b>
+        <div class="hero-cond"><span class="hero-icon" id="heroIcon"></span><b class="hero-text" id="heroText">Cargando…</b></div>
+        <span class="hero-feel" id="heroFeel"></span>
       </div>
     </section>
 
@@ -242,7 +242,7 @@
       </div>
     </section>
 
-    <section class="section" id="conditionsSection">
+    <section class="section" id="conditionsSection" hidden>
       <div class="section-head fold-head">
         <h2>🌤️ Clima del destino</h2>
         <button class="fold-btn" id="conditionsToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
@@ -263,7 +263,7 @@
 
     <section class="section">
       <div class="section-head fold-head">
-        <h2 id="forecastTitle">⏱️ Pronóstico por hora · Mi ubicación actual</h2>
+        <h2 id="forecastTitle">⏱️ Pronóstico por hora</h2>
         <button class="fold-btn" id="forecastToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
       </div>
       <div id="forecastPanel" hidden>
@@ -313,11 +313,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.77"></script>
-  <script src="assets/app.js?v=1.8.77"></script>
-  <script src="assets/landmarks.js?v=1.8.77"></script>
-  <script src="assets/ratelayer.js?v=1.8.77"></script>
-  <script src="assets/lightning.js?v=1.8.77"></script>
-  <script src="assets/quakes.js?v=1.8.77"></script>
+  <script src="assets/ambient.js?v=1.8.78"></script>
+  <script src="assets/app.js?v=1.8.78"></script>
+  <script src="assets/landmarks.js?v=1.8.78"></script>
+  <script src="assets/ratelayer.js?v=1.8.78"></script>
+  <script src="assets/lightning.js?v=1.8.78"></script>
+  <script src="assets/quakes.js?v=1.8.78"></script>
 </body>
 </html>

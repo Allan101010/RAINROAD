@@ -1388,16 +1388,38 @@ body.map-focus .radar-title { font-size: 14px; }
 .fold-btn:hover { background: rgba(125, 211, 252, .16); }
 @media (prefers-reduced-motion: reduce) { .fold-btn, .fold-btn::after, .fold-head { transition: none; } }
 
-/* ===== Resumen de arriba: temperatura y lluvia ahora ===== */
+/* ===== Resumen de arriba: temperatura y estado ahora (sobre la animación de luna, sol y nubes) ===== */
 .system-status { padding: 9px; }
 .system-status .status-text { display: none; }
-.status-dot { width: 10px; height: 10px; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent); }
-.weather-hero { display: flex; align-items: center; gap: 18px; margin: 4px 0 18px; }
-.hero-temp { margin: 0; font-size: clamp(68px, 20vw, 96px); font-weight: 300; line-height: .95; letter-spacing: -4px; }
-.hero-side { display: grid; gap: 3px; min-width: 0; }
-.hero-icon { font-size: 34px; line-height: 1; }
-.hero-text { font-size: 21px; font-weight: 700; letter-spacing: -.3px; }
-.weather-hero + .notice { margin-top: 0; }
-/* El clima de mi ubicación va arriba; esta sección solo aparece cuando hay un destino buscado. */
-#homeWeatherCard { display: none; }
-#conditionsSection:not(:has(#destinationWeatherCard:not([hidden]))) { display: none; }
+.status-dot { width: 10px; height: 10px; box-shadow: 0 0 0 4px rgba(74, 222, 128, .18); }
+.weather-hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 118px;
+  margin: 2px 0 14px;
+  padding-right: 64px;           /* deja espacio a la luna o el sol animados */
+}
+.hero-temp {
+  margin: 0;
+  font-size: 78px;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -3px;
+  font-variant-numeric: tabular-nums;
+}
+.hero-side { display: grid; gap: 5px; min-width: 0; padding-top: 4px; }
+.hero-cond { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hero-icon { font-size: 26px; line-height: 1; }
+.hero-icon:empty { display: none; }
+.hero-text { white-space: nowrap; font-size: 20px; font-weight: 650; letter-spacing: -.3px; line-height: 1.15; }
+.hero-feel { color: var(--muted); font-size: 13.5px; }
+.weather-hero.is-rain .hero-text { color: #7dd3fc; }
+.weather-hero.is-loading .hero-temp,
+.weather-hero.is-loading .hero-text { opacity: .35; }
+@media (max-width: 380px) { .hero-temp { font-size: 66px; } .hero-text { font-size: 18px; } .weather-hero { padding-right: 40px; } }
+/* El clima de mi ubicación va arriba; la tarjeta grande ya no se muestra. */
+#homeWeatherCard { display: none !important; }
+#conditionsSection .weather-grid { grid-template-columns: 1fr; }

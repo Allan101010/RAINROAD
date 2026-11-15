@@ -1,6 +1,6 @@
 // Service worker mínimo: la app siempre intenta la red primero para que cada
 // actualización publicada llegue sola; sin conexión usa la última copia guardada.
-const CACHE = "raintrackcr-shell-v2";
+const CACHE = "raintrackcr-shell-v3";
 const SHELL = ["./", "index.html", "assets/app.js", "assets/ambient.js", "assets/landmarks.js", "assets/ratelayer.js", "assets/lightning.js", "assets/quakes.js", "assets/styles.css", "manifest.webmanifest"];
 
 self.addEventListener("install", event => {
@@ -20,7 +20,7 @@ self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: "no-cache" })
       .then(response => {
         if (response.ok) {
           const copy = response.clone();

@@ -901,6 +901,10 @@ function updateWeatherHero(ambient) {
   $("heroTemp").textContent = Math.round(Number(current.temperature_2m)) + "°";
   $("heroIcon").textContent = icon;
   $("heroText").textContent = text;
+  const feel = Number(current.apparent_temperature);
+  $("heroFeel").textContent = Number.isFinite(feel) ? "Sensación " + Math.round(feel) + "°" : "";
+  $("weatherHero").classList.remove("is-loading");
+  $("weatherHero").classList.toggle("is-rain", !!(ambient && ambient.kind === "rain" && ambient.intensity > 0));
 }
 document.addEventListener("raintrack:ambient", event => updateWeatherHero(event.detail));
 
@@ -1637,6 +1641,7 @@ function renderSearchResults(results) {
         detail: [result.admin2, result.admin1, result.country].filter(Boolean).join(", ")
       };
       destinationLocation = location;
+      $("conditionsSection").hidden = false;
       $("searchInput").value = location.name;
       container.innerHTML = "";
       loadWeatherForLocation(location, "destination");
@@ -2394,7 +2399,7 @@ function buildRainWindows(hours) {
 
 function renderForecast(location, data) {
   const hours = getNext24Hours(data);
-  $("forecastTitle").textContent = "⏱️ Pronóstico por hora · " + location.name;
+  $("forecastTitle").textContent = "⏱️ Pronóstico · " + location.name;
   const summary = $("rainSummary");
   const windows = buildRainWindows(hours);
 
@@ -2517,6 +2522,7 @@ async function loadWeatherForLocation(location, type) {
 
 function returnToHome() {
   destinationLocation = null;
+  $("conditionsSection").hidden = true;
   destinationWeatherData = null;
   $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
   $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
@@ -2670,10 +2676,12 @@ function showLocationError(error, keepExistingLocation = false) {
   $("heroTemp").textContent = "--°";
   $("heroIcon").textContent = "📍";
   $("heroText").textContent = "Sin ubicación";
+  $("heroFeel").textContent = "Toca «Mi ubicación» en el mapa";
+  $("weatherHero").classList.remove("is-loading");
   $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
   $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';
   $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Ubicación pendiente";
-  $("forecastTitle").textContent = "⏱️ Pronóstico por hora · Mi ubicación actual";
+  $("forecastTitle").textContent = "⏱️ Pronóstico por hora";
   $("rainSummary").innerHTML = '<div class="summary-title">Resumen de lluvia</div><p class="summary-line muted">Permite el acceso al GPS o busca un destino para consultar el pronóstico.</p>';
   $("hourlyGrid").innerHTML = "";
 
@@ -2738,6 +2746,8 @@ function requestCurrentLocation(preserveDestination = false, automatic = false) 
 
       if (!preserveDestination) {
         destinationLocation = null;
+        $("conditionsSection").hidden = true;
+  $("conditionsSection").hidden = true;
         destinationWeatherData = null;
         $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
         $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
