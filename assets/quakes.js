@@ -5,7 +5,6 @@
 (function () {
   "use strict";
   const DATA_URL = "https://raw.githubusercontent.com/Allan101010/RAINROAD/quakes-data/quakes.json";
-  const STORAGE_KEY = "raintrack-quakes-on";
   const DISMISS_KEY = "raintrack-quakes-dismissed";
   const REFRESH_MS = 60000;
   const BANNER_MIN_MAG = 5;
@@ -44,10 +43,6 @@
 
   function sourcesText(q) {
     return (q.src || []).map(s => String(s).toUpperCase()).join(" y ");
-  }
-
-  function enabled() {
-    return true; // siempre activo (sin interruptor)
   }
 
   function quakes() {
@@ -101,7 +96,7 @@
 
   function drawMarkers() {
     clearMarkers();
-    if (typeof map === "undefined" || !map || typeof mapReady === "undefined" || !mapReady || !enabled()) return;
+    if (typeof map === "undefined" || !map || typeof mapReady === "undefined" || !mapReady) return;
     quakes().forEach(q => {
       const popup = new maplibregl.Popup({ offset: 16, maxWidth: "260px" }).setHTML(popupHtml(q));
       const marker = new maplibregl.Marker({ element: markerElement(q), anchor: "center" })
@@ -124,10 +119,10 @@
     const hidden = dismissed();
     const items = quakes().filter(q => q.mag >= BANNER_MIN_MAG && minutesAgo(q) <= BANNER_HOURS * 60 &&
       !hidden.has(eventId(q))).sort((a, b) => (b.cr - a.cr) || (b.t - a.t)).slice(0, 2);
-    if (!items.length || !enabled()) { stack.hidden = true; stack.innerHTML = ""; return; }
+    if (!items.length) { stack.hidden = true; stack.innerHTML = ""; return; }
     stack.hidden = false;
     stack.innerHTML = items.map(q => {
-      const place = esc((q.place || "").replace(/^\d+\s*km\s+\w+\s+of\s+/i, "") || "región de Costa Rica");
+      const place = esc((q.place || "").replace(/^\d+(?:\.\d+)?\s*km\s+(?:al\s+\S+\s+de|\w+\s+of)\s+/i, "") || "región de Costa Rica");
       const text = q.cr
         ? "<span class=\"quake-banner-label\">🚨 TEMBLOR EN COSTA RICA</span><b>M" + q.mag.toFixed(1) + "</b> · " + place + " · " + ago(minutesAgo(q))
         : "<span class=\"quake-banner-label\">🌎 Sismo en la región</span><b>M" + q.mag.toFixed(1) + "</b> · " + place + " · " + ago(minutesAgo(q));
@@ -209,6 +204,7 @@
     refresh();
     setInterval(refresh, REFRESH_MS);
     setInterval(renderAll, 60000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
     const attach = () => {
       if (typeof map === "undefined" || !map || !map.on) { setTimeout(attach, 500); return; }
       map.on("load", drawMarkers);

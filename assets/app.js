@@ -2749,8 +2749,14 @@ $("goHomeMap").addEventListener("click", returnToHome);
 
 // Al volver a la pestaña solo se comprueba si vencieron los 30 minutos.
 // No se consulta el GPS en cada cambio de pestaña.
+let lastHiddenAt = 0;
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) refreshLocationIfExpired();
+  if (document.hidden) { lastHiddenAt = Date.now(); return; }
+  refreshLocationIfExpired();
+  // Al volver a la app después de un rato, refrescar datos sin esperar al siguiente intervalo.
+  const awayMinutes = lastHiddenAt ? (Date.now() - lastHiddenAt) / 60000 : 0;
+  if (awayMinutes >= 2) loadCameraMonitoringData();
+  if (awayMinutes >= 15) refreshWeatherData();
 });
 setInterval(refreshLocationIfExpired, 60 * 1000);
 

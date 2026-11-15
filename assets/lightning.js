@@ -4,7 +4,6 @@
 (function () {
   "use strict";
   const DATA_URL = "https://raw.githubusercontent.com/Allan101010/RAINROAD/lightning-data/lightning.json";
-  const STORAGE_KEY = "raintrack-lightning-on";
   const SOURCE_ID = "raintrack-lightning-source";
   const GLOW_ID = "raintrack-lightning-glow";
   const DOT_ID = "raintrack-lightning-dot";
@@ -14,9 +13,7 @@
   let payload = null;
   let timer = null;
 
-  const toggle = () => document.getElementById("lightningToggle");
   const info = () => document.getElementById("lightningInfo");
-  const isOn = () => true; // siempre activo (sin interruptor)
 
   function ageMinutes(epochSeconds) {
     return Math.max(0, (Date.now() / 1000 - epochSeconds) / 60);
@@ -58,15 +55,8 @@
     });
   }
 
-  function removeLayers() {
-    if (typeof map === "undefined" || !map || !map.getStyle || !map.getStyle()) return;
-    [DOT_ID, GLOW_ID].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
-    if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
-  }
-
   function draw() {
     if (typeof mapReady === "undefined" || !mapReady || !map.getStyle()) return;
-    if (!isOn()) { removeLayers(); return; }
     const data = featureCollection();
     const source = map.getSource(SOURCE_ID);
     if (source) { source.setData(data); return; }
@@ -153,5 +143,6 @@
     };
     attach();
     setInterval(updateInfo, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
   });
 })();

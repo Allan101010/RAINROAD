@@ -10,8 +10,9 @@ on:
       - "config/camera-sources.json"
       - "requirements-camera-monitor.txt"
       - ".github/workflows/camera-monitor.yml"
+  # Respaldo por si falla cron-job.org (que lo dispara cada 10 min); cada hora para no duplicar ciclos.
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:

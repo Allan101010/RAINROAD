@@ -1334,3 +1334,9 @@ body.map-focus .radar-title { font-size: 14px; }
 .quake-row-body small { opacity: .75; }
 .quake-more { justify-self: center; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .quake-banner.cr, .quake-marker.fresh { animation: none; } }
+
+/* Móvil: los botones de arriba ocupan todo el ancho; la etiqueta de lugar y los botones +/- quedaban tapados. */
+@media (max-width: 650px) {
+  #mapLocationChip,
+  .maplibregl-ctrl-top-right { display: none !important; }
+}

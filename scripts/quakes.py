@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import time
+import unicodedata
 import html as html_lib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -31,6 +32,7 @@ CR_TZ = timezone(timedelta(hours=-6))  # el OVSICORI publica la hora local de Co
 BBOX = {"lat_min": 4.5, "lat_max": 13.5, "lon_min": -89.0, "lon_max": -80.5}
 CR_BOX = {"lat_min": 8.0, "lat_max": 11.3, "lon_min": -86.0, "lon_max": -82.5}
 MIN_MAG = 3.5
+PARSE_MIN_MAG = 3.0  # se leen desde aquí para emparejar fuentes (una da 3.4 y otra 3.5); se publica desde MIN_MAG
 KEEP_HOURS = 48
 ALERT_CR_MIN = 4.0     # aviso al celular: Costa Rica desde esta magnitud
 ALERT_ANY_MIN = 5.0    # aviso al celular: cualquier sismo de la región desde esta magnitud
@@ -80,10 +82,10 @@ def parse_usgs(data: dict) -> list[dict]:
                 continue
             if props.get("type") not in (None, "earthquake"):
                 continue
-            if mag < MIN_MAG or not in_box(lat, lon, BBOX):
+            if mag < PARSE_MIN_MAG or not in_box(lat, lon, BBOX):
                 continue
             events.append({"src": "usgs", "t": when / 1000.0, "lat": lat, "lon": lon, "mag": mag,
-                           "depth": _number(depth), "place": str(props.get("place") or "")})
+                           "depth": _number(depth), "place": spanish_place(props.get("place"))})
         except (KeyError, TypeError, ValueError, IndexError):
             continue
     return events
@@ -105,13 +107,13 @@ def parse_emsc(data: dict) -> list[dict]:
                 when = when.replace(tzinfo=timezone.utc)
             if mag is None or lat is None or lon is None:
                 continue
-            if mag < MIN_MAG or not in_box(lat, lon, BBOX):
+            if mag < PARSE_MIN_MAG or not in_box(lat, lon, BBOX):
                 continue
             depth = _number(props.get("depth"))
             if depth is None and len(coords) > 2:
                 depth = abs(_number(coords[2]) or 0)
             events.append({"src": "emsc", "t": when.timestamp(), "lat": lat, "lon": lon, "mag": mag,
-                           "depth": depth, "place": str(props.get("flynn_region") or "").title()})
+                           "depth": depth, "place": spanish_place(str(props.get("flynn_region") or "").title())})
         except (KeyError, TypeError, ValueError, IndexError):
             continue
     return events
@@ -135,7 +137,7 @@ def parse_ovsicori(page: str) -> list[dict]:
             if lat is None or lon is None or not mag or not when:
                 continue
             value = float(mag.group(1))
-            if value < MIN_MAG or not in_box(lat, lon, BBOX):
+            if value < PARSE_MIN_MAG or not in_box(lat, lon, BBOX):
                 continue
             stamp = datetime.strptime(when.group(1), "%Y-%m-%d %H:%M:%S").replace(tzinfo=CR_TZ)
             events.append({"src": "ovsicori", "t": stamp.timestamp(), "lat": lat, "lon": lon, "mag": value,
@@ -146,8 +148,31 @@ def parse_ovsicori(page: str) -> list[dict]:
     return events
 
 
+def _plain(text: str) -> str:
+    return unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode().upper()
+
+
+_DIRS = {"N": "Norte", "S": "Sur", "E": "Este", "W": "Oeste", "NE": "Noreste", "NW": "Noroeste", "SE": "Sureste",
+         "SW": "Suroeste", "NNE": "Nor-noreste", "ENE": "Este-noreste", "ESE": "Este-sureste", "SSE": "Sur-sureste",
+         "SSW": "Sur-suroeste", "WSW": "Oeste-suroeste", "WNW": "Oeste-noroeste", "NNW": "Nor-noroeste"}
+_WORDS = [("Near Coast Of", "Cerca de la costa de"), ("Off Coast Of", "Frente a la costa de"), ("Coast Of", "Costa de"),
+          ("Border Region", "zona fronteriza"), ("Central America", "Centroamérica"), ("South Of", "Sur de"),
+          ("North Of", "Norte de"), ("East Of", "Este de"), ("West Of", "Oeste de"), ("Panama", "Panamá")]
+
+
+def spanish_place(place: str) -> str:
+    """Pasa al español los lugares de USGS ("12 km NNE of Jacó, Costa Rica") y EMSC ("South Of Panama")."""
+    text = str(place or "").strip()
+    m = re.match(r"^(\d+(?:\.\d+)?)\s*km\s+([NSEW]{1,3})\s+of\s+(.+)$", text, re.I)
+    if m and m.group(2).upper() in _DIRS:
+        return f"{m.group(1)} km al {_DIRS[m.group(2).upper()]} de {m.group(3)}"
+    for en, es in _WORDS:
+        text = re.sub(r"\b" + en + r"\b", es, text, flags=re.I)
+    return text
+
+
 def is_costa_rica(event: dict) -> bool:
-    text = str(event.get("place", "")).upper()
+    text = _plain(event.get("place", ""))
     if "COSTA RICA" in text:
         return True
     if any(name in text for name in ("NICARAGUA", "PANAMA", "COLOMBIA", "HONDURAS", "EL SALVADOR")):
@@ -203,7 +228,7 @@ def merge_into(store: list[dict], incoming: list[dict], now_epoch: float) -> boo
 
 def prune(store: list[dict], now_epoch: float) -> list[dict]:
     cutoff = now_epoch - KEEP_HOURS * 3600
-    return sorted((e for e in store if e["t"] >= cutoff and e["mag"] >= MIN_MAG), key=lambda e: -e["t"])
+    return sorted((e for e in store if e["t"] >= cutoff and e["mag"] >= PARSE_MIN_MAG), key=lambda e: -e["t"])
 
 
 def alert_message(event: dict, now_epoch: float) -> dict:
@@ -254,7 +279,7 @@ def fetch_json(session: requests.Session, url: str, params: dict | None = None) 
 
 def fetch_emsc(session: requests.Session, now: datetime) -> list[dict] | None:
     params = {
-        "format": "json", "orderby": "time", "limit": 200, "minmag": MIN_MAG,
+        "format": "json", "orderby": "time", "limit": 300, "minmag": PARSE_MIN_MAG,
         "minlat": BBOX["lat_min"], "maxlat": BBOX["lat_max"], "minlon": BBOX["lon_min"], "maxlon": BBOX["lon_max"],
         "start": (now - timedelta(hours=KEEP_HOURS)).strftime("%Y-%m-%dT%H:%M:%S"),
     }
@@ -314,7 +339,7 @@ def build_payload(store: list[dict], sources_ok: dict) -> dict:
         "quakes": [{"t": int(e["t"]), "lat": round(e["lat"], 3), "lon": round(e["lon"], 3), "mag": e["mag"],
                     "depth": None if e["depth"] is None else round(e["depth"], 1), "place": e["place"],
                     "src": e["src"], "mags": e["mags"], "cr": e["cr"], "first_seen": int(e["first_seen"]),
-                    "notified": bool(e.get("notified"))} for e in store],
+                    "notified": bool(e.get("notified"))} for e in store if e["mag"] >= MIN_MAG],
     }
 
 

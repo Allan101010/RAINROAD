@@ -61,11 +61,28 @@ class OvsicoriTests(unittest.TestCase):
         self.assertTrue(store[0]["cr"])
 
 
+class CoherenceTests(unittest.TestCase):
+    def test_low_reading_from_one_source_still_matches_the_other(self):
+        store = []
+        t = NOW - 300
+        quakes.merge_into(store, [{"src": "ovsicori", "t": t, "lat": 8.47, "lon": -83.09, "mag": 3.4, "depth": 4.0, "place": "Pavon"}], NOW)
+        quakes.merge_into(store, [{"src": "emsc", "t": t + 1, "lat": 8.5, "lon": -83.0, "mag": 3.5, "depth": 10.0, "place": "Costa Rica"}], NOW)
+        store = quakes.prune(store, NOW)
+        self.assertEqual(len(store), 1)
+        self.assertEqual(store[0]["mag"], 3.4)          # manda el OVSICORI
+        self.assertEqual(quakes.build_payload(store, {})["quakes"], [])  # bajo 3.5: no se publica
+
+    def test_places_in_spanish_and_accents(self):
+        self.assertEqual(quakes.spanish_place("12 km NNE of Jacó, Costa Rica"), "12 km al Nor-noreste de Jacó, Costa Rica")
+        self.assertEqual(quakes.spanish_place("South Of Panama"), "Sur de Panamá")
+        self.assertFalse(quakes.is_costa_rica({"place": "Sur de Panamá", "lat": 8.5, "lon": -82.9}))
+
+
 class ParseTests(unittest.TestCase):
     def test_usgs_filters_magnitude_region_and_type(self):
         data = {"features": [
             usgs(4.2, 9.9, -84.0, 15.0, "5 km N of San José, Costa Rica", 120),
-            usgs(3.0, 9.9, -84.0, 15.0, "pequeño", 120),            # muy débil
+            usgs(2.9, 9.9, -84.0, 15.0, "pequeño", 120),            # muy débil
             usgs(5.5, 35.0, 139.0, 10.0, "Japón", 120),             # fuera de la región
             usgs(4.0, 9.9, -84.0, 1.0, "explosión", 120, kind="quarry blast"),
             {"properties": {"mag": None}, "geometry": {"coordinates": [1, 2, 3]}},

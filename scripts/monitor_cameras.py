@@ -932,48 +932,6 @@ def fetch_imn_table(session: requests.Session, url: str) -> dict:
     return values
 
 
-def extract_imn_station_values(image: Image.Image) -> dict:
-    """Extract the numerical readings printed in official IMN station panels."""
-    try:
-        import pytesseract
-        text = pytesseract.image_to_string(image, config="--psm 6")
-    except Exception as exc:
-        return {"ocr_error": str(exc)}
-
-    compact = re.sub(r"\s+", " ", text)
-    patterns = {
-        "rain_last_hour_mm": r"(?:pre)?cip\w*.*?ultim\w*\s+hor\w*.*?([0-9]+(?:[.,][0-9]+)?)",
-        "rain_since_7am_mm": r"lluvia.*?acumulad\w*.*?7\s*a\.?m\.?\s*.*?([0-9]+(?:[.,][0-9]+)?)",
-        "rain_previous_24h_mm": r"de\s+7\s*a\.?m\.?\s+de\s+ayer.*?7\s*a\.?m\.?\s+de\s+hoy.*?([0-9]+(?:[.,][0-9]+)?)",
-        "wind_speed_kmh": r"velocid\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*km/?h",
-        "temperature_c": r"temper\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*°?\s*c",
-        "humidity_percent": r"hum\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*%",
-        "pressure_hpa": r"pres\w*.*?([0-9]+(?:[.,][0-9]+)?)\s*hpa",
-    }
-    values = {}
-    for key, pattern in patterns.items():
-        match = re.search(pattern, compact, re.IGNORECASE)
-        values[key] = parse_localized_number(match.group(1)) if match else None
-
-    # Fallbacks conservadores cuando el OCR confunde las etiquetas, pero
-    # conserva la unidad junto al número.
-    if values["wind_speed_kmh"] is None:
-        match = re.search(r"([0-9]+(?:[.,][0-9]+)?)\s*km/?h", compact, re.IGNORECASE)
-        values["wind_speed_kmh"] = parse_localized_number(match.group(1)) if match else None
-    if values["temperature_c"] is None:
-        matches = re.findall(r"([0-9]{1,2}(?:[.,][0-9]+)?)\s*°?\s*c\b", compact, re.IGNORECASE)
-        plausible = [parse_localized_number(value) for value in matches]
-        plausible = [value for value in plausible if value is not None and -5 <= value <= 50]
-        values["temperature_c"] = plausible[0] if plausible else None
-    if values["humidity_percent"] is None:
-        matches = re.findall(r"([0-9]{1,3})\s*%", compact)
-        plausible = [int(value) for value in matches if 0 <= int(value) <= 100]
-        values["humidity_percent"] = plausible[0] if plausible else None
-
-    values["ocr_excerpt"] = compact[:1500]
-    return values
-
-
 DEAD_STATION_DAYS = 7
 
 
