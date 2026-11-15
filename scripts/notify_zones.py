@@ -15,7 +15,6 @@ from pathlib import Path
 import requests
 
 COOLDOWN_MINUTES = 45
-MAX_LISTED = 5
 ZONES_PATH = Path(__file__).resolve().parent.parent / "config" / "notify-zones.json"
 
 
@@ -38,33 +37,47 @@ def _mm(alert: dict):
     return mm if isinstance(mm, (int, float)) else None
 
 
+APP_URL = "https://allan101010.github.io/RAINROAD/"
+MAX_LISTED = 3
+
+# Misma escala de colores que la leyenda de la app: débil, moderada, fuerte, intensa.
+LEVELS = [(8.0, "🔴", "Tormenta", "thunder_cloud_and_rain"), (4.0, "🟡", "Lluvia fuerte", "cloud_with_rain"),
+          (1.0, "🟢", "Lluvia", "cloud_with_rain"), (0.0, "🔵", "Llovizna", "cloud_with_rain")]
+
+
+def _level(mm):
+    value = mm if mm is not None else 0.0
+    return next(level for level in LEVELS if value >= level[0])
+
+
+def _short_name(alert: dict) -> str:
+    name = str(alert.get("station_name") or "Estación IMN")
+    for prefix in ("Estación IMN · ", "Estación UCR · "):
+        name = name.replace(prefix, "")
+    return name
+
+
 def build_message(zone: dict, alerts: list[dict] | dict) -> dict:
-    """Un mensaje por zona con todas sus estaciones nuevas (la más intensa primero)."""
+    """Un mensaje corto por zona: título con la intensidad y una línea por estación (la más intensa primero)."""
     items = [alerts] if isinstance(alerts, dict) else list(alerts)
     items.sort(key=lambda a: -(_mm(a) or 0))
+    top = _level(_mm(items[0]))
     lines = []
     for a in items[:MAX_LISTED]:
         mm = _mm(a)
         amount = f"{mm:g} mm/h" if mm is not None else "lluvia medida"
-        lines.append(f"🌧️ {a.get('station_name', 'Estación IMN').replace('Estación IMN · ', '')}: {amount}")
+        lines.append(f"{_level(mm)[1]} {_short_name(a)} · {amount}")
     if len(items) > MAX_LISTED:
-        lines.append(f"… y {len(items) - MAX_LISTED} estaciones más")
-    body = "\n".join(lines)
-    if len(items) == 1 and _mm(items[0]) is not None:
-        body = f"{items[0].get('station_name', 'Estación IMN')}: {_mm(items[0]):g} mm en la última hora."
-    places = ", ".join(zone.get("places", []))
-    if places:
-        body += f"\n📍 Zona: {places}.\nLa lluvia puede variar de un barrio a otro."
-    title = f"Lluvia en {zone['name']}"
-    if len(items) > 1:
-        title += f" · {len(items)} estaciones"
+        extra = len(items) - MAX_LISTED
+        lines.append(f"+{extra} estación más" if extra == 1 else f"+{extra} estaciones más")
     return {
         "topic": zone["topic"],
-        "title": title,
-        "message": body,
-        "tags": ["cloud_with_rain"],
-        "priority": 3,
-        "click": items[0].get("page_url") or "",
+        "title": f"🌧️ {top[2]} en {zone['name']}",
+        "message": "\n".join(lines),
+        "tags": [top[3]],
+        "priority": 4 if top[2] == "Tormenta" else 3,
+        "click": APP_URL,
+        "actions": [{"action": "view", "label": "Ver mapa", "url": APP_URL}],
     }
 
 
@@ -101,8 +114,6 @@ def notify_new_rain(
             logging.info("Aviso de %s en pausa (enfriamiento).", zone["name"])
             continue
         message = build_message(zone, group)
-        if not message["click"]:
-            message.pop("click")
         try:
             response = session.post(server, data=json.dumps(message).encode("utf-8"), timeout=15)
             response.raise_for_status()

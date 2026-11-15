@@ -37,8 +37,9 @@ class GroupingTests(unittest.TestCase):
         sent = nz.notify_new_rain([alert("s1", 0.2), alert("s2", 3.0), alert("s3", 1.0)], [], s, self.CFG)
         self.assertEqual(sent, 1)
         body = s.posts[0][1]
-        self.assertIn("3 estaciones", body["title"])
+        self.assertEqual(body["title"], "🌧️ Lluvia en Alajuela")  # la más intensa (3 mm/h) define el título
         self.assertLess(body["message"].index("s2"), body["message"].index("s3"))
+        self.assertLessEqual(len(body["message"].splitlines()), 3)
 
     def test_cooldown_blocks_second_alert_then_allows_later(self):
         from datetime import datetime, timedelta, timezone
@@ -49,6 +50,21 @@ class GroupingTests(unittest.TestCase):
         self.assertEqual(nz.notify_new_rain([alert("s2")], [], s, self.CFG, state, t0 + timedelta(minutes=60)), 1)
 
 
+class FormatTests(unittest.TestCase):
+    ZONE = {"id": "a", "name": "Alajuela", "topic": "t-a", "places": [], "station_ids": []}
+
+    def test_intensity_levels_and_extra_stations(self):
+        msg = nz.build_message(self.ZONE, [alert("s1", 9.0), alert("s2", 5.0), alert("s3", 2.0), alert("s4", 0.5), alert("s5", 0.3)])
+        self.assertEqual(msg["title"], "🌧️ Tormenta en Alajuela")
+        self.assertEqual(msg["priority"], 4)
+        self.assertEqual(msg["message"].splitlines(), ["🔴 Estación s1 · 9 mm/h", "🟡 Estación s2 · 5 mm/h", "🟢 Estación s3 · 2 mm/h", "+2 estaciones más"])
+
+    def test_station_prefix_removed_and_missing_amount(self):
+        a = {"station_id": "x", "station_name": "Estación IMN · Fabio Baudrit", "rain_last_hour_mm": None}
+        msg = nz.build_message(self.ZONE, a)
+        self.assertEqual(msg["message"], "🔵 Fabio Baudrit · lluvia medida")
+
+
 class NotifyTests(unittest.TestCase):
     def test_only_new_rain_is_sent_to_its_zone(self):
         s = FakeSession()
@@ -57,9 +73,10 @@ class NotifyTests(unittest.TestCase):
         url, body = s.posts[0]
         self.assertEqual(url, "https://ntfy.test")
         self.assertEqual(body["topic"], "t-a")
-        self.assertIn("0.8 mm", body["message"])
-        self.assertIn("Río Segundo", body["message"])
-        self.assertEqual(body["title"], "Lluvia en Alajuela")
+        self.assertEqual(body["message"], "🔵 Estación s1 · 0.8 mm/h")
+        self.assertEqual(body["title"], "🌧️ Llovizna en Alajuela")
+        self.assertEqual(body["click"], nz.APP_URL)
+        self.assertEqual(body["actions"][0]["label"], "Ver mapa")
 
     def test_continuous_rain_does_not_repeat(self):
         s = FakeSession()
