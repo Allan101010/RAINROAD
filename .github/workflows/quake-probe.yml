@@ -16,13 +16,13 @@ jobs:
           url = "https://www.ovsicori.una.ac.cr/sistemas/mapa_sismicidad/mapa_sismos.php"
           req = urllib.request.Request(url, headers={"User-Agent": "RainTrackCR-probe (https://github.com/Allan101010/RAINROAD)"})
           with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
-              print("estado", r.status, r.headers.get("content-type"), "cache:", r.headers.get("cache-control"), "acao:", r.headers.get("access-control-allow-origin"), "last-mod:", r.headers.get("last-modified"))
               body = r.read(2000000).decode("utf-8", "replace")
-          print("tamano", len(body))
-          for m in sorted(set(re.findall(r'["\'(]([^"\'()\s]*(?:\.json|\.php|\.csv|\.kml|\.txt|\.js)[^"\'()\s]*)', body, re.I))):
-              print("  ref:", m[:200])
-          idx = [m.start() for m in re.finditer(r"(?i)lat", body)][:3]
-          print("---- inicio:", re.sub(r"[ \t]+", " ", body[:700]))
-          for i in idx[:2]:
-              print("---- alrededor de lat:", re.sub(r"\s+", " ", body[max(0,i-300):i+500]))
+          for kw in ("circleMarker", "L.marker", "L.circle", "bindPopup", "var sismos", "var data", "magnitud", "Magnitud", "fecha", "hora", "<table", "$.get", "$.ajax", "fetch(", "XMLHttp"):
+              print(kw, len(re.findall(re.escape(kw), body)))
+          for kw in ("bindPopup", "circleMarker", "L.marker", "Magnitud", "magnitud"):
+              i = body.find(kw)
+              if i >= 0:
+                  print("==== ", kw, "::", re.sub(r"\s+", " ", body[max(0,i-500):i+700]))
+          # fin del documento, donde suele estar el JS con los datos
+          print("==== FINAL ::", re.sub(r"\s+", " ", body[-1500:]))
           PY
