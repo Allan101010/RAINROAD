@@ -292,12 +292,15 @@ def main() -> int:
         data = fetch_json(session, USGS_DAY if cycle == 0 else USGS_HOUR)
         sources_ok["usgs"] = data is not None
         if data is not None:
-            changed |= merge_into(store, parse_usgs(data), now_epoch)
+            usgs_events = parse_usgs(data)
+            logging.info("USGS: %s sismos en la región (de %s en el archivo).", len(usgs_events), len(data.get("features", [])))
+            changed |= merge_into(store, usgs_events, now_epoch)
         # EMSC cada 2 ciclos (cada ~60 s).
         if cycle % 2 == 0:
             events = fetch_emsc(session, now)
             sources_ok["emsc"] = events is not None
             if events is not None:
+                logging.info("EMSC: %s sismos en la región.", len(events))
                 changed |= merge_into(store, events, now_epoch)
         store = prune(store, now_epoch)
         if topic:
