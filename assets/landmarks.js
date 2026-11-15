@@ -217,7 +217,7 @@
   function render() {
     if (typeof map === "undefined" || !map || !mapReady) return;
     clear();
-    if (document.getElementById("volcanoToggle").checked) {
+    {
       VOLCANOES.forEach(v => {
         const el = document.createElement("button");
         el.type = "button";
@@ -238,7 +238,7 @@
         });
       });
     }
-    if (document.getElementById("landmarkToggle").checked) {
+    {
       LANDMARKS.forEach(l => {
         const el = document.createElement("button");
         el.type = "button";
@@ -262,12 +262,7 @@
   }
 
   function init() {
-    const v = document.getElementById("volcanoToggle"), l = document.getElementById("landmarkToggle");
-    if (!v || !l) return;
-    v.checked = read("volcano", true);
-    l.checked = read("emblem", true);
-    v.addEventListener("change", () => { write("volcano", v.checked); render(); });
-    l.addEventListener("change", () => { write("emblem", l.checked); render(); });
+    // Volcanes e íconos de Costa Rica quedan siempre activos (sin interruptores).
     const wait = setInterval(() => {
       if (typeof map !== "undefined" && map && mapReady) {
         clearInterval(wait);
