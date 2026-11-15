@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.83">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.84">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.83</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.84</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span><span class="status-text">Iniciando sistema</span></div>
   </header>
 
@@ -34,6 +34,15 @@
       <strong id="locationNoticeTitle">Detectando tu ubicación actual…</strong>
       <p id="locationNoticeMessage">RainTrack reutiliza tu última ubicación durante 30 minutos. Puedes actualizarla manualmente cuando quieras.</p>
       <button class="btn secondary small-btn" id="retryLocation" type="button" style="margin-top:10px">Intentar nuevamente</button>
+    </div>
+
+    <div class="sunbar" id="sunBar" hidden aria-label="Amanecer y atardecer de hoy">
+      <span class="sunbar-time"><i aria-hidden="true">🌅</i><b id="sunRise">--</b></span>
+      <div class="sunbar-mid">
+        <div class="sunbar-track"><span class="sunbar-fill" id="sunFill"></span><span class="sunbar-dot" id="sunDot"></span></div>
+        <small id="sunLength"></small>
+      </div>
+      <span class="sunbar-time"><b id="sunSet">--</b><i aria-hidden="true">🌇</i></span>
     </div>
 
     <section class="section" id="precipitationSection">
@@ -277,7 +286,7 @@
       </div>
     </section>
 
-    <section class="section">
+    <section class="section" id="solarSection" hidden>
       <div class="section-head fold-head">
         <h2>🌅 Amanecer y atardecer</h2>
         <button class="fold-btn" id="solarToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
@@ -314,11 +323,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.83"></script>
-  <script src="assets/app.js?v=1.8.83"></script>
-  <script src="assets/landmarks.js?v=1.8.83"></script>
-  <script src="assets/ratelayer.js?v=1.8.83"></script>
-  <script src="assets/lightning.js?v=1.8.83"></script>
-  <script src="assets/quakes.js?v=1.8.83"></script>
+  <script src="assets/ambient.js?v=1.8.84"></script>
+  <script src="assets/app.js?v=1.8.84"></script>
+  <script src="assets/landmarks.js?v=1.8.84"></script>
+  <script src="assets/ratelayer.js?v=1.8.84"></script>
+  <script src="assets/lightning.js?v=1.8.84"></script>
+  <script src="assets/quakes.js?v=1.8.84"></script>
 </body>
 </html>

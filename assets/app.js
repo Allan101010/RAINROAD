@@ -2513,6 +2513,24 @@ function renderForecast(location, data) {
   }).join("");
 }
 
+// Franja de amanecer y atardecer entre el resumen y el mapa. El punto marca dónde va el sol hoy.
+function updateSunBar(sunrise, sunset, daylight, nowIso) {
+  const bar = $("sunBar");
+  const toMinutes = iso => { const m = String(iso || "").match(/T(\d{2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const rise = toMinutes(sunrise), set = toMinutes(sunset);
+  if (rise == null || set == null || set <= rise) { bar.hidden = true; return; }
+  const now = toMinutes(nowIso);
+  const progress = now == null ? null : Math.min(1, Math.max(0, (now - rise) / (set - rise)));
+  const isDay = now != null && now >= rise && now <= set;
+  $("sunRise").textContent = formatLocalHour(sunrise);
+  $("sunSet").textContent = formatLocalHour(sunset);
+  $("sunLength").textContent = daylight ? formatDayLength(daylight) + " de luz" : "";
+  $("sunFill").style.width = (progress == null ? 0 : progress * 100) + "%";
+  $("sunDot").style.left = (progress == null ? 0 : progress * 100) + "%";
+  bar.classList.toggle("is-night", !isDay);
+  bar.hidden = false;
+}
+
 function renderSolarCard(containerId, location, data, isHome) {
   const container = $(containerId);
   const daily = data.daily;
@@ -2524,6 +2542,8 @@ function renderSolarCard(containerId, location, data, isHome) {
     container.innerHTML = `<div class="solar-place">${escapeHtml(location.name)}</div><p class="subtitle">No se pudieron obtener los horarios solares.</p>`;
     return;
   }
+
+  if (isHome) updateSunBar(sunrise, sunset, daylight, data.current && data.current.time);
 
   container.innerHTML = `
     <div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div>
