@@ -181,8 +181,9 @@ def merge_into(store: list[dict], incoming: list[dict], now_epoch: float) -> boo
             _recompute(event)
             store.append(event)
             changed = True
-            logging.info("Sismo nuevo M%.1f visto por %s, %.1f min después de ocurrir.", raw["mag"], source,
-                         (now_epoch - raw["t"]) / 60)
+            if now_epoch - raw["t"] < 3600:  # solo los recientes: miden el retraso real de cada fuente
+                logging.info("Sismo nuevo M%.1f visto por %s, %.1f min después de ocurrir.", raw["mag"], source,
+                             (now_epoch - raw["t"]) / 60)
             continue
         before = (match["mags"].get(source), match["depth"], match["place"])
         match["mags"][source] = round(raw["mag"], 1)
