@@ -11,19 +11,26 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.76">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.77">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.76</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
-    <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
+    <div class="brand"><span class="brand-logo">🌧️</span><span class="brand-name">RainTrack <b>CR</b></span><small class="version-tag">v1.8.77</small></div>
+    <div class="topbar-actions">
+      <div class="system-status" id="systemStatus" role="status"><span class="status-dot"></span><span class="status-text">Iniciando</span></div>
+      <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button>
+    </div>
   </header>
 
   <main>
-    <section class="intro">
-      <h1>Radar y pronóstico de lluvia</h1>
-      <p class="subtitle">Seguimiento de precipitaciones en Costa Rica · Consulta tu zona o cualquier destino del país.</p>
+    <section class="locbar" id="locBar">
+      <div class="locbar-pin" aria-hidden="true">📍</div>
+      <div class="locbar-text">
+        <strong>Mi ubicación</strong>
+        <span id="homeLocationDescription">Detectando…</span>
+      </div>
+      <button class="locbar-refresh" id="refreshCurrentLocation" type="button" aria-label="Actualizar mi ubicación" title="Actualizar mi ubicación">⟳</button>
     </section>
 
     <div class="notice" id="homeSetupNotice" role="status" aria-live="polite">
@@ -33,13 +40,6 @@
     </div>
 
     <section class="section" id="precipitationSection">
-      <div class="section-head map-head">
-        <div>
-          <h2>Mapa meteorológico</h2>
-          <p class="subtitle">Precipitación sobre el mapa de Costa Rica.</p>
-        </div>
-        <p class="tiny">Activa las capas desde el botón «Capas» dentro del mapa.</p>
-      </div>
 
       <div class="map-shell" id="mapShell">
         <div id="map" aria-label="Mapa de precipitaciones de Costa Rica"></div>
@@ -299,15 +299,6 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="section-head fold-head">
-        <div>
-          <h2>📍 Mi ubicación actual</h2>
-          <p class="subtitle" id="homeLocationDescription">Se reutilizará la última ubicación durante 30 minutos. Puedes actualizarla manualmente cuando quieras.</p>
-        </div>
-        <button class="btn secondary small-btn" id="refreshCurrentLocation" type="button">Actualizar mi ubicación</button>
-      </div>
-    </section>
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
@@ -317,11 +308,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.76"></script>
-  <script src="assets/app.js?v=1.8.76"></script>
-  <script src="assets/landmarks.js?v=1.8.76"></script>
-  <script src="assets/ratelayer.js?v=1.8.76"></script>
-  <script src="assets/lightning.js?v=1.8.76"></script>
-  <script src="assets/quakes.js?v=1.8.76"></script>
+  <script src="assets/ambient.js?v=1.8.77"></script>
+  <script src="assets/app.js?v=1.8.77"></script>
+  <script src="assets/landmarks.js?v=1.8.77"></script>
+  <script src="assets/ratelayer.js?v=1.8.77"></script>
+  <script src="assets/lightning.js?v=1.8.77"></script>
+  <script src="assets/quakes.js?v=1.8.77"></script>
 </body>
 </html>

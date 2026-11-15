@@ -1387,3 +1387,64 @@ body.map-focus .radar-title { font-size: 14px; }
 .fold-btn[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: -2px; }
 .fold-btn:hover { background: rgba(125, 211, 252, .16); }
 @media (prefers-reduced-motion: reduce) { .fold-btn, .fold-btn::after, .fold-head { transition: none; } }
+
+/* ===== Barra superior y barra de ubicación (rediseño limpio) ===== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 10px clamp(14px, 3vw, 34px);
+  background: rgba(15, 23, 42, .82);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.brand { display: flex; align-items: center; gap: 9px; font-size: 19px; letter-spacing: -.4px; }
+.brand-logo { font-size: 24px; line-height: 1; }
+.brand-name b { color: var(--blue); font-weight: 800; }
+.brand .version-tag { margin: 0; padding: 2px 6px; font-size: 9.5px; opacity: .75; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar-actions .ambient-toggle {
+  display: grid; place-items: center; width: 36px; height: 36px; margin: 0; padding: 0;
+  border-radius: 50%; font-size: 16px;
+}
+.system-status { padding: 6px 10px; }
+.system-status .status-text { overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+.status-dot { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent); }
+
+main { padding-top: 14px; }
+.locbar {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+  padding: 11px 12px 11px 14px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, .18), rgba(15, 23, 42, 0) 65%), var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+.locbar-pin {
+  flex: 0 0 auto; display: grid; place-items: center; width: 42px; height: 42px;
+  border-radius: 14px; font-size: 21px; background: rgba(56, 189, 248, .14);
+  border: 1px solid rgba(125, 211, 252, .28);
+}
+.locbar-text { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; }
+.locbar-text strong { font-size: 15px; letter-spacing: -.2px; }
+.locbar-text span { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.locbar-refresh {
+  flex: 0 0 auto; width: 40px; height: 40px; padding: 0; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .14); color: #7dd3fc; background: rgba(255, 255, 255, .06);
+  font-size: 21px; line-height: 1; transition: background .2s ease, transform .4s ease;
+}
+.locbar-refresh:hover { background: rgba(125, 211, 252, .16); }
+.locbar-refresh:active { transform: rotate(180deg); }
+body.map-focus .locbar, body.map-focus .topbar { display: none !important; }
+#precipitationSection { margin-top: 0; }
+
+@media (max-width: 650px) {
+  .topbar { padding: 9px 13px; }
+  .brand { font-size: 18px; }
+  .system-status .status-text { display: none; }
+  .system-status { padding: 9px; }
+  main { padding-top: 10px; }
+}

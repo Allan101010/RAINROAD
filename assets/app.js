@@ -329,7 +329,8 @@ function safeHttpUrl(value, fallback = "") {
 
 function setSystemStatus(message, kind = "ok") {
   const el = $("systemStatus");
-  el.innerHTML = '<span class="status-dot"></span> ' + escapeHtml(message);
+  el.innerHTML = '<span class="status-dot"></span><span class="status-text">' + escapeHtml(message) + "</span>";
+  el.title = message;
   el.style.color = kind === "error" ? "#fca5a5" : kind === "loading" ? "#7dd3fc" : "#4ade80";
   el.style.background = kind === "error" ? "rgba(127,29,29,.35)" : kind === "loading" ? "rgba(7,89,133,.35)" : "rgba(22,60,54,.8)";
 }
@@ -2607,8 +2608,8 @@ function restoreSavedCurrentLocation() {
   homeWeatherData = null;
 
   $("homeLocationDescription").textContent = fresh
-    ? `Usando ubicación guardada ${formatLocationAge(saved.savedAt)}. Se actualizará automáticamente después de 30 minutos.`
-    : `Última ubicación guardada ${formatLocationAge(saved.savedAt)}. Actualizando GPS…`;
+    ? `Guardada ${formatLocationAge(saved.savedAt)}`
+    : `Guardada ${formatLocationAge(saved.savedAt)} · actualizando…`;
   $("homeSetupNotice").hidden = true;
   $("mapLocationChip").textContent = fresh
     ? "📍 Mi ubicación · guardada"
@@ -2628,7 +2629,7 @@ function showLocationError(error, keepExistingLocation = false) {
     const saved = readSavedCurrentLocation();
     const ageText = saved ? formatLocationAge(saved.savedAt) : "anterior";
     $("homeLocationDescription").textContent =
-      `No se pudo actualizar el GPS. Seguimos usando la última ubicación guardada (${ageText}).`;
+      `Sin GPS · usando la guardada (${ageText})`;
     $("locationNoticeTitle").textContent = "No se pudo actualizar la ubicación";
     $("locationNoticeMessage").textContent =
       "RainTrack seguirá usando la última ubicación disponible. Puedes volver a intentarlo con «Actualizar mi ubicación».";
@@ -2641,7 +2642,7 @@ function showLocationError(error, keepExistingLocation = false) {
   homeLocation = null;
   homeWeatherData = null;
   updateMapMarkers();
-  $("homeLocationDescription").textContent = "No se pudo detectar tu ubicación actual.";
+  $("homeLocationDescription").textContent = "Sin ubicación · toca ⟳";
   $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
   $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';
   $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Ubicación pendiente";
@@ -2684,7 +2685,7 @@ function requestCurrentLocation(preserveDestination = false, automatic = false) 
     ? "La ubicación guardada cumplió 30 minutos. RainTrack está solicitando una lectura GPS nueva."
     : "Solicitando una lectura GPS nueva. Esta acción reemplazará la ubicación guardada.";
   $("retryLocation").hidden = true;
-  $("homeLocationDescription").textContent = "Solicitando ubicación GPS actual…";
+  $("homeLocationDescription").textContent = "Buscando GPS…";
   $("mapLocationChip").textContent = "📍 Detectando ubicación actual…";
   setSystemStatus("Solicitando ubicación GPS…", "loading");
 
@@ -2718,8 +2719,8 @@ function requestCurrentLocation(preserveDestination = false, automatic = false) 
       }
 
       $("homeLocationDescription").textContent = accuracy
-        ? `Ubicación actualizada · precisión aproximada ±${accuracy} m. Se guardará durante 30 minutos en este dispositivo.`
-        : "Ubicación actualizada y guardada durante 30 minutos en este dispositivo.";
+        ? `Actualizada ahora · ±${accuracy} m`
+        : "Actualizada ahora";
       $("locationNoticeTitle").textContent = "Ubicación actualizada correctamente";
       $("locationNoticeMessage").textContent = "El mapa y los datos meteorológicos se están actualizando para el lugar donde estás.";
       $("homeSetupNotice").hidden = true;

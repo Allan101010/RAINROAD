@@ -118,7 +118,7 @@
   }
   function placeCelestial() {
     if (!celestial) return;
-    const h1 = document.querySelector(".intro h1");
+    const h1 = document.getElementById("locBar");
     const top = h1 ? h1.getBoundingClientRect().top + window.scrollY - 6 : 90;
     celestial.style.top = Math.max(60, top) + "px";
   }
