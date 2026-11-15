@@ -37,6 +37,18 @@ Pon la IP de la cámara (la ves en la app o en el router; conviene reservarla en
 Las direcciones de EZVIZ e iCSee son las más comunes pero no las he probado con tus modelos.
 Si una no funciona, dime el modelo exacto y buscamos la correcta.
 
+### Varias cámaras y cómo encontrar la dirección de una iCSee
+- Puedes poner todas las cámaras que quieras en `cameras` (cada una con un `id` distinto, por ejemplo `casa-frente`). En el mapa aparecen como un solo 📷 con el número de cámaras; el popup lista cada una.
+- Cada cámara se compara con **su propio** aspecto normal, así que no importa que mire a otro lado.
+- Para una iCSee, en su app activa **RTSP/ONVIF** (Ajustes → Configuración de red/avanzada) y reserva su IP en el router. Luego, en Termux:
+```
+cd ~/RAINROAD && git pull
+cd tools/home-cameras
+python camaras_casa.py --descubrir 192.168.0.XXX --clave TU_CLAVE
+```
+Prueba nueve direcciones comunes y te dice cuál funciona (sin mostrar tu clave). Si nunca pusiste clave, omite `--clave`. Evita claves con los símbolos `& ? # %`.
+- Cada cámara extra son 3 fotos más cada 5 minutos: no pasa nada con 2 o 3; con más conviene subir `intervalo_segundos`.
+
 ## 5. Tema privado de ntfy
 Inventa un nombre largo y secreto (es la "contraseña" del canal). Por ejemplo, en Termux:
 ```

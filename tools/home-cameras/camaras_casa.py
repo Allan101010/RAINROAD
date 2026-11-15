@@ -160,10 +160,49 @@ def run_round(config: dict) -> int:
     return sent
 
 
+# Direcciones RTSP habituales de cámaras económicas (iCSee/XMeye y similares). {ip} y {clave} se rellenan.
+CANDIDATE_PATHS = [
+    "rtsp://{ip}:554/user=admin&password={clave}&channel=1&stream=0.sdp?real_stream",
+    "rtsp://{ip}:554/user=admin&password={clave}&channel=1&stream=1.sdp?real_stream",
+    "rtsp://admin:{clave}@{ip}:554/user=admin&password={clave}&channel=1&stream=0.sdp?real_stream",
+    "rtsp://admin:{clave}@{ip}:554/h264/ch1/main/av_stream",
+    "rtsp://admin:{clave}@{ip}:554/cam/realmonitor?channel=1&subtype=0",
+    "rtsp://admin:{clave}@{ip}:554/Streaming/Channels/101",
+    "rtsp://admin:{clave}@{ip}:554/11",
+    "rtsp://admin:{clave}@{ip}:554/live/ch0",
+    "rtsp://admin:{clave}@{ip}:554/",
+]
+
+
+def discover(ip: str, password: str) -> int:
+    """Prueba direcciones comunes y dice cuál funciona. Nunca imprime la clave."""
+    print(f"Probando direcciones comunes en {ip} (puede tardar un par de minutos)…")
+    for number, template in enumerate(CANDIDATE_PATHS, start=1):
+        url = template.format(ip=ip, clave=password)
+        shown = template.format(ip=ip, clave="CLAVE")
+        try:
+            grab_burst(url, timeout=15)
+        except subprocess.TimeoutExpired:
+            print(f"  {number}. sin respuesta  {shown}")
+            continue
+        except subprocess.CalledProcessError:
+            print(f"  {number}. no funciona    {shown}")
+            continue
+        print(f"  {number}. FUNCIONA       {shown}")
+        print("\nCopia esa dirección en config.json (cambia CLAVE por tu clave).")
+        return 0
+    print("\nNinguna funcionó. Revisa: IP correcta, que la cámara tenga RTSP/ONVIF activado en su app, y la clave.")
+    return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--una-vez", action="store_true")
+    parser.add_argument("--descubrir", metavar="IP", help="busca la dirección RTSP que funciona en esa cámara")
+    parser.add_argument("--clave", default="", help="clave de la cámara (vacía si nunca la cambiaste)")
     args = parser.parse_args()
+    if args.descubrir:
+        return discover(args.descubrir, args.clave)
     if not CONFIG_PATH.exists():
         print("Falta config.json: copia config.ejemplo.json a config.json y complétalo.")
         return 1

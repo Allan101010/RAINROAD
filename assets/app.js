@@ -996,34 +996,55 @@ function homeCameraRows() {
   return rows.filter(row => row && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
 }
 
-function homeCameraRaining(radiusKm) {
-  if (!homeLocation) return false;
-  return homeCameraRows().some(row => row.estimate === "possible_rain" &&
-    distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= radiusKm);
+// Con varias cámaras de casa se junta una sola opinión: llueve si la mitad o más de las que
+// tienen opinión ven señales de lluvia (cada cámara se compara con su propio aspecto normal).
+function homeCameraSummary() {
+  const rows = homeCameraRows();
+  const opinions = rows.filter(row => row.estimate === "possible_rain" || row.estimate === "no_rain");
+  const rainVotes = opinions.filter(row => row.estimate === "possible_rain").length;
+  const estimate = !opinions.length ? "unknown" : (rainVotes > 0 && rainVotes * 2 >= opinions.length ? "possible_rain" : "no_rain");
+  return { rows, estimate };
 }
 
-function homeCameraPopupText(row) {
-  const minutes = Math.max(0, Math.round((Date.now() - Date.parse(row.t)) / 60000));
-  const state = row.estimate === "possible_rain" ? "posible lluvia"
-    : row.estimate === "no_rain" ? "sin señales de lluvia" : "sin opinión (de noche o poca visibilidad)";
-  return "Cámara de casa (estimación): " + state + ". Lectura de hace " + minutes + " min. " +
-    "Se deduce de la imagen, no es una medición.";
+function homeCameraRaining(radiusKm) {
+  if (!homeLocation) return false;
+  const summary = homeCameraSummary();
+  if (summary.estimate !== "possible_rain") return false;
+  return summary.rows.some(row => distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= radiusKm);
+}
+
+function homeCameraName(id) {
+  const name = String(id || "").replace(/^home-/, "").replace(/[-_]+/g, " ").trim();
+  return name ? name.charAt(0).toUpperCase() + name.slice(1) : "Cámara";
+}
+
+function homeCameraPopupText(summary) {
+  const lines = summary.rows.map(row => {
+    const minutes = Math.max(0, Math.round((Date.now() - Date.parse(row.t)) / 60000));
+    const state = row.estimate === "possible_rain" ? "posible lluvia"
+      : row.estimate === "no_rain" ? "sin señales de lluvia" : "sin opinión (de noche o poca visibilidad)";
+    return "• " + homeCameraName(row.id) + ": " + state + " (hace " + minutes + " min)";
+  });
+  return "Cámaras de casa (estimación)\n" + lines.join("\n") + "\nSe deduce de la imagen, no es una medición.";
 }
 
 function updateHomeCameraMarker() {
   if (homeCameraMarker) { homeCameraMarker.remove(); homeCameraMarker = null; }
-  const rows = homeCameraRows();
-  if (!mapReady || !homeCameraEnabled() || !rows.length) return;
-  const row = rows[0];
+  const summary = homeCameraSummary();
+  if (!mapReady || !homeCameraEnabled() || !summary.rows.length) return;
+  const row = summary.rows[0];
+  const rain = summary.estimate === "possible_rain";
   const element = document.createElement("div");
-  element.textContent = "📷";
-  element.style.cssText = "width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
-    "font-size:15px;border:3px solid " + (row.estimate === "possible_rain" ? "#38bdf8" : "#ffffff") + ";" +
-    "background:" + (row.estimate === "possible_rain" ? "#0369a1" : "#475569") + ";" +
-    "box-shadow:0 2px 9px rgba(0,0,0,.4);" + (row.estimate === "unknown" ? "opacity:.6;" : "");
+  element.textContent = summary.rows.length > 1 ? "📷" + summary.rows.length : "📷";
+  element.style.cssText = "min-width:30px;height:30px;padding:0 " + (summary.rows.length > 1 ? "6px" : "0") + ";border-radius:15px;display:flex;align-items:center;justify-content:center;" +
+    "font-size:" + (summary.rows.length > 1 ? "12px" : "15px") + ";font-weight:800;color:#fff;border:3px solid " + (rain ? "#38bdf8" : "#ffffff") + ";" +
+    "background:" + (rain ? "#0369a1" : "#475569") + ";" +
+    "box-shadow:0 2px 9px rgba(0,0,0,.4);" + (summary.estimate === "unknown" ? "opacity:.6;" : "");
+  const popup = new maplibregl.Popup({ offset: 16 });
+  popup.setDOMContent(Object.assign(document.createElement("div"), { textContent: homeCameraPopupText(summary), style: "white-space:pre-line" }));
   homeCameraMarker = new maplibregl.Marker({ element, anchor: "center" })
     .setLngLat([Number(row.lon), Number(row.lat)])
-    .setPopup(new maplibregl.Popup({ offset: 16 }).setText(homeCameraPopupText(row)))
+    .setPopup(popup)
     .addTo(map);
 }
 
