@@ -329,7 +329,9 @@ function safeHttpUrl(value, fallback = "") {
 
 function setSystemStatus(message, kind = "ok") {
   const el = $("systemStatus");
-  el.innerHTML = '<span class="status-dot"></span> ' + escapeHtml(message);
+  el.innerHTML = '<span class="status-dot"></span><span class="status-text">' + escapeHtml(message) + "</span>";
+  el.title = message;
+  el.setAttribute("aria-label", message);
   el.style.color = kind === "error" ? "#fca5a5" : kind === "loading" ? "#7dd3fc" : "#4ade80";
   el.style.background = kind === "error" ? "rgba(127,29,29,.35)" : kind === "loading" ? "rgba(7,89,133,.35)" : "rgba(22,60,54,.8)";
 }
@@ -879,6 +881,28 @@ function distanceKm(lat1, lon1, lat2, lon2) {
     Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin((lon2 - lon1) * rad / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(a));
 }
+
+// Resumen de arriba: temperatura y si llueve ahora (usa el mismo estado que la animación).
+const HERO_RAIN_TEXT = ["", "Llovizna", "Lloviendo", "Lluvia fuerte", "Tormenta"];
+function updateWeatherHero(ambient) {
+  const current = homeWeatherData && homeWeatherData.data && homeWeatherData.data.current;
+  if (!current) return;
+  const isDay = current.is_day !== 0;
+  let icon, text;
+  if (ambient && ambient.kind === "rain" && ambient.intensity > 0) {
+    icon = ambient.intensity >= 4 ? "⛈️" : "🌧️";
+    text = HERO_RAIN_TEXT[ambient.intensity] || "Lloviendo";
+  } else {
+    const info = weatherInfo(current.weather_code, isDay);
+    const modelRain = Number(current.weather_code) >= 51;
+    icon = modelRain ? "☁️" : info.icon;
+    text = modelRain ? "Sin lluvia ahora" : info.text;
+  }
+  $("heroTemp").textContent = Math.round(Number(current.temperature_2m)) + "°";
+  $("heroIcon").textContent = icon;
+  $("heroText").textContent = text;
+}
+document.addEventListener("raintrack:ambient", event => updateWeatherHero(event.detail));
 
 function updateAmbientLocalRain() {
   if (!window.RainTrackAmbient) return;
@@ -2481,6 +2505,7 @@ async function loadWeatherForLocation(location, type) {
     if (isHome && !destinationLocation) renderForecast(location, data);
     if (!isHome) renderForecast(location, data);
 
+    if (isHome) updateWeatherHero(window.RainTrackAmbient && window.RainTrackAmbient.current ? window.RainTrackAmbient.current() : null);
     setSystemStatus("Datos meteorológicos actualizados", "ok");
   } catch (error) {
     console.error("Error meteorológico:", error);
@@ -2642,6 +2667,9 @@ function showLocationError(error, keepExistingLocation = false) {
   homeWeatherData = null;
   updateMapMarkers();
   $("homeLocationDescription").textContent = "No se pudo detectar tu ubicación actual.";
+  $("heroTemp").textContent = "--°";
+  $("heroIcon").textContent = "📍";
+  $("heroText").textContent = "Sin ubicación";
   $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
   $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';
   $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Ubicación pendiente";

@@ -266,6 +266,7 @@
     if (localThunder) state = { kind: "rain", isDay: state.isDay, intensity: 4 }; // rayos reales cerca: tormenta confirmada
     else if (localRain === false && state.kind === "rain") state = { kind: "cloudy", isDay: state.isDay, intensity: 0 };
     apply();
+    document.dispatchEvent(new CustomEvent("raintrack:ambient", { detail: { kind: state.kind, intensity: state.intensity, isDay: state.isDay } }));
   }
 
   function apply() {
@@ -287,6 +288,7 @@
       localThunder = thunder === true;
       if (lastCurrent && !window.__ambientForced) refresh();
     },
+    current() { return { kind: state.kind, intensity: state.intensity, isDay: state.isDay }; },
     flash() { if (rafId) bolt = makeBolt(); },
     preview(name) {
       const map = {

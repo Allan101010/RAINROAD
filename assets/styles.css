@@ -1387,3 +1387,17 @@ body.map-focus .radar-title { font-size: 14px; }
 .fold-btn[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: -2px; }
 .fold-btn:hover { background: rgba(125, 211, 252, .16); }
 @media (prefers-reduced-motion: reduce) { .fold-btn, .fold-btn::after, .fold-head { transition: none; } }
+
+/* ===== Resumen de arriba: temperatura y lluvia ahora ===== */
+.system-status { padding: 9px; }
+.system-status .status-text { display: none; }
+.status-dot { width: 10px; height: 10px; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent); }
+.weather-hero { display: flex; align-items: center; gap: 18px; margin: 4px 0 18px; }
+.hero-temp { margin: 0; font-size: clamp(68px, 20vw, 96px); font-weight: 300; line-height: .95; letter-spacing: -4px; }
+.hero-side { display: grid; gap: 3px; min-width: 0; }
+.hero-icon { font-size: 34px; line-height: 1; }
+.hero-text { font-size: 21px; font-weight: 700; letter-spacing: -.3px; }
+.weather-hero + .notice { margin-top: 0; }
+/* El clima de mi ubicación va arriba; esta sección solo aparece cuando hay un destino buscado. */
+#homeWeatherCard { display: none; }
+#conditionsSection:not(:has(#destinationWeatherCard:not([hidden]))) { display: none; }
