@@ -21,7 +21,7 @@ jobs:
           rows = []
           for m in re.finditer(r"var eq(\d+) = L\.icon\(.*?L\.marker\(\[([-\d.]+),\s*([-\d.]+)\].*?bindPopup\('(.*?)',\{minWidth", body, re.S):
               eid, lat, lon, popup = m.groups()
-              txt = re.sub(r"<[^>]+>", "|", popup); txt = re.sub(r"\|+", "|", html.unescape(txt))
+              txt = re.sub(r"<[^>]+>", "|", popup); txt = re.sub(r"\|[\s|]*", "|", html.unescape(txt))
               mag = re.search(r"Magnitud:\|([\d.]+)", txt); when = re.search(r"Hora Local:\|([\d-]+ [\d:]+)", txt)
               place = re.search(r"Ubicacion:\|([^|]+)", txt); dep = re.search(r"Prof\. \[km\]:\|([\d.]+)", txt)
               auth = re.search(r"Autor:\|([^|]*)", txt); rev = re.search(r"Revisado:\|([^|]*)", txt)
