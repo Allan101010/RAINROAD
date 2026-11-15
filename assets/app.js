@@ -38,6 +38,18 @@ const ROUTE_HOME = {
 const ROUTE_WORK_STORAGE_KEY = "raintrackcr_saved_work_v1";
 const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";
 const ROUTE_WEATHER_SAMPLES_MAX = 8;
+// Evidencia medida alrededor de cada punto de la ruta (misma que usa el resto de la app).
+const ROUTE_STATION_RADIUS_KM = 12;   // estaciones del IMN
+const ROUTE_LIGHTNING_RADIUS_KM = 15; // rayos GLM
+const ROUTE_LIGHTNING_MINUTES = 15;
+// Niveles de un punto: 0 sin datos · 1 despejado · 2 posible · 3 lluvia · 4 tormenta
+const ROUTE_LEVELS = [
+  { key: "unknown",  color: "#94a3b8", label: "Sin datos" },
+  { key: "clear",    color: "#22c55e", label: "Despejado" },
+  { key: "possible", color: "#f59e0b", label: "Posible lluvia" },
+  { key: "rain",     color: "#ef4444", label: "Lluvia" },
+  { key: "storm",    color: "#a855f7", label: "Tormenta" }
+];
 
 const RADAR_SOURCES = {
   librewxr: {
@@ -294,6 +306,9 @@ let routePickMode = null;
 let routeStartMarker = null;
 let routeEndMarker = null;
 let routeIsVisible = false;
+let routeDirection = new Date().getHours() < 12 ? "outbound" : "return"; // por la mañana va, por la tarde vuelve
+let routeDepartMin = 0;
+let routeWorkEditing = false;
 
 try {
   const savedWork = JSON.parse(localStorage.getItem(ROUTE_WORK_STORAGE_KEY) || "null");
@@ -615,15 +630,14 @@ function initMap() {
       detail: "Coordenadas seleccionadas directamente en el mapa"
     };
 
-    if (routeIsVisible) clearRouteLayers();
-    $("routeResult").hidden = true;
+    resetRouteResult();
     if (routePickMode === "work") {
       saveWorkRouteDestination(selected);
       $("routeWorkSearchInput").value = selected.name;
     } else {
       routeTemporaryDestination = selected;
       $("routeTempSearchInput").value = selected.name;
-      $("routeTempSearchResults").innerHTML = '<p class="tiny success">Destino seleccionado en el mapa.</p>';
+      $("routeTempSearchResults").innerHTML = '<p class="tiny success">✓ Destino marcado en el mapa</p>';
     }
 
     routePickMode = null;
@@ -1421,7 +1435,7 @@ function applyBasemap(mode) {
   map.setStyle(MAP_STYLES[basemapMode], { diff: false });
   map.once("style.load", async () => {
     try { await addCostaRicaFocusMask(); } catch (error) { console.warn("Contorno de Costa Rica no disponible:", error); }
-    if (lastRouteDraw) { try { drawRouteOnMap(lastRouteDraw.route, lastRouteDraw.origin, lastRouteDraw.destination); } catch (e) {} }
+    if (lastRouteDraw) { try { drawRouteOnMap(lastRouteDraw.route, lastRouteDraw.origin, lastRouteDraw.destination, lastRouteDraw.levels || undefined); } catch (e) {} }
     if (!ownRainSelected && radarFrames.length) showRadarFrame(radarFrameIndex);
   });
 }
@@ -1746,24 +1760,40 @@ $("searchForm").addEventListener("submit", async (event) => {
 // ------------------------------------------------------------
 function setRouteMode(mode) {
   if (routeIsVisible) clearRouteLayers();
-  $("routeResult").hidden = true;
   routeMode = mode === "temporary" ? "temporary" : "saved";
   $("routeSavedMode").classList.toggle("active", routeMode === "saved");
   $("routeTempMode").classList.toggle("active", routeMode === "temporary");
   $("routeSavedSection").hidden = routeMode !== "saved";
   $("routeTempSection").hidden = routeMode !== "temporary";
-  $("routeResult").hidden = true;
+  resetRouteResult();
   updateSavedWorkStatus();
+}
+
+// Borra el resultado anterior (cambió el sentido, la hora o el destino).
+function resetRouteResult() {
+  if (routeIsVisible) clearRouteLayers();
+  lastRouteDraw = null;
+  $("routeResult").hidden = true;
+  $("routeResult").innerHTML = "";
+  $("routeClearBtn").hidden = true;
+}
+
+function syncRouteChips() {
+  document.querySelectorAll("#routeDirectionChips .route-chip").forEach(chip =>
+    chip.classList.toggle("active", chip.dataset.dir === routeDirection));
+  document.querySelectorAll("#routeDepartChips .route-chip").forEach(chip =>
+    chip.classList.toggle("active", Number(chip.dataset.min) === routeDepartMin));
 }
 
 function updateSavedWorkStatus() {
   const status = $("savedWorkStatus");
   if (!status) return;
   if (routeWorkLocation) {
-    status.innerHTML = `<strong>Trabajo guardado:</strong> ${escapeHtml(routeWorkLocation.name)}<br><span class="tiny">Este destino queda guardado en este teléfono.</span>`;
+    status.innerHTML = `<span class="route-place-name">💼 <b>${escapeHtml(routeWorkLocation.name)}</b></span><button class="route-link" type="button" data-act="change-work">${routeWorkEditing ? "Listo" : "Cambiar"}</button>`;
   } else {
-    status.innerHTML = '<strong>Destino laboral sin configurar.</strong><br>Búscalo por localidad o marca el punto exacto en el mapa una sola vez.';
+    status.innerHTML = '<span class="route-place-name">💼 Indica dónde trabajas</span>';
   }
+  $("routeWorkEdit").hidden = !(routeWorkEditing || !routeWorkLocation);
 }
 
 function saveWorkRouteDestination(location) {
@@ -1773,23 +1803,23 @@ function saveWorkRouteDestination(location) {
     lon: Number(location.lon),
     detail: String(location.detail || "Destino laboral guardado")
   };
-  localStorage.setItem(ROUTE_WORK_STORAGE_KEY, JSON.stringify(routeWorkLocation));
-  if (routeIsVisible) clearRouteLayers();
-  $("routeResult").hidden = true;
+  try { localStorage.setItem(ROUTE_WORK_STORAGE_KEY, JSON.stringify(routeWorkLocation)); } catch (e) {}
+  resetRouteResult();
+  routeWorkEditing = false;
+  $("routeWorkSearchResults").innerHTML = "";
   updateSavedWorkStatus();
-  $("routeWorkSearchResults").innerHTML = '<p class="tiny success">Destino laboral guardado en este teléfono.</p>';
-  $("mapStatusChip").textContent = "Destino laboral guardado · " + routeWorkLocation.name;
+  $("mapStatusChip").textContent = "Trabajo guardado · " + routeWorkLocation.name;
 }
 
 function beginRouteMapPick(mode) {
   routePickMode = mode;
   $("routePickHint").hidden = false;
-  $("routePickHint").innerHTML = `Toca el punto exacto en el mapa de Costa Rica. Puedes acercar el mapa para seleccionar mejor.<br><button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar selección</button>`;
+  $("routePickHint").innerHTML = `Toca el punto en el mapa (acércalo para más precisión).<br><button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar</button>`;
   $("routePickCancel").addEventListener("click", cancelRouteMapPick);
   if (mapReady) map.getCanvas().style.cursor = "crosshair";
   $("mapStatusChip").textContent = mode === "work"
-    ? "Selecciona en el mapa la ubicación exacta del trabajo"
-    : "Selecciona en el mapa tu destino temporal";
+    ? "Toca en el mapa dónde trabajas"
+    : "Toca en el mapa tu destino";
   $("routePanel").hidden = false;
   $("routeToggle").setAttribute("aria-expanded", "true");
 }
@@ -1811,7 +1841,7 @@ async function searchRoutePlaces(query, resultContainerId, mode) {
     const results = await searchLocations(query.trim());
     container.innerHTML = "";
     if (!results.length) {
-      container.innerHTML = '<p class="tiny">No encontré esa localidad. Para un punto exacto, utiliza «Elegir punto en el mapa».</p>';
+      container.innerHTML = '<p class="tiny">No encontré ese lugar. Prueba otro nombre o márcalo en el mapa.</p>';
       return;
     }
     results.forEach(result => {
@@ -1836,10 +1866,9 @@ async function searchRoutePlaces(query, resultContainerId, mode) {
           $("routeWorkSearchInput").value = location.name;
         } else {
           routeTemporaryDestination = location;
-          if (routeIsVisible) clearRouteLayers();
-          $("routeResult").hidden = true;
+          resetRouteResult();
           $("routeTempSearchInput").value = location.name;
-          container.innerHTML = '<p class="tiny success">Destino seleccionado: ' + escapeHtml(location.name) + '.</p>';
+          container.innerHTML = '<p class="tiny success">✓ Destino: ' + escapeHtml(location.name) + '</p>';
         }
       });
       container.appendChild(button);
@@ -1862,13 +1891,19 @@ function clearRouteLayers() {
 }
 
 function closeRouteAnalysis() {
-  clearRouteLayers();
-  $("routeResult").hidden = true;
-  $("routeResult").innerHTML = "";
+  resetRouteResult();
   $("routePanel").hidden = true;
   $("routeToggle").setAttribute("aria-expanded", "false");
   $("routeToggle").textContent = "🧭 Rutas";
   cancelRouteMapPick();
+  if (mapReady) showCostaRicaOverview(true);
+  $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa normal";
+}
+
+// Quita la ruta del mapa pero deja el panel abierto para probar otra.
+function removeRoute() {
+  resetRouteResult();
+  lastRouteDraw = null;
   if (mapReady) showCostaRicaOverview(true);
   $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa normal";
 }
@@ -2002,33 +2037,44 @@ function formatRouteDuration(seconds) {
   return hours ? `${hours} h ${minutes} min` : `${minutes} min`;
 }
 
-function drawRouteOnMap(route, origin, destination) {
-  lastRouteDraw = { route, origin, destination };
+// Colorea la línea según el nivel de cada punto analizado (verde, ámbar, rojo, morado).
+function routeGradientExpression(levels) {
+  const n = levels.length;
+  if (n < 2) return null;
+  const color = i => ROUTE_LEVELS[levels[i]].color;
+  const stops = [0, color(0)];
+  for (let i = 0; i < n - 1; i++) {
+    const mid = (i + 0.5) / (n - 1);
+    stops.push(mid - 0.0005, color(i), mid + 0.0005, color(i + 1));
+  }
+  stops.push(1, color(n - 1));
+  return ["interpolate", ["linear"], ["line-progress"], ...stops];
+}
+
+function drawRouteOnMap(route, origin, destination, levels) {
+  const keep = lastRouteDraw && lastRouteDraw.route === route ? lastRouteDraw.levels : null;
+  const useLevels = levels || keep || null;
+  lastRouteDraw = { route, origin, destination, levels: useLevels };
   clearRouteLayers();
-  const feature = {
-    type: "Feature",
-    properties: {},
-    geometry: route.geometry
-  };
-  map.addSource("raintrack-route-source", {
-    type: "geojson",
-    data: feature,
-    lineMetrics: true
-  });
+  const feature = { type: "Feature", properties: {}, geometry: route.geometry };
+  map.addSource("raintrack-route-source", { type: "geojson", data: feature, lineMetrics: true });
   const firstSymbol = map.getStyle().layers.find(layer => layer.type === "symbol");
+  const gradient = useLevels ? routeGradientExpression(useLevels) : null;
   const casing = {
     id: "raintrack-route-casing",
     type: "line",
     source: "raintrack-route-source",
     layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": "#082f49", "line-width": 8, "line-opacity": 0.9 }
+    paint: { "line-color": "#0b1220", "line-width": 9, "line-opacity": 0.85 }
   };
   const line = {
     id: "raintrack-route-line",
     type: "line",
     source: "raintrack-route-source",
     layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": "#38bdf8", "line-width": 5, "line-opacity": 0.98 }
+    paint: gradient
+      ? { "line-gradient": gradient, "line-width": 5.5, "line-opacity": 1 }
+      : { "line-color": "#38bdf8", "line-width": 5.5, "line-opacity": 0.98 }
   };
   if (firstSymbol) {
     map.addLayer(casing, firstSymbol.id);
@@ -2054,118 +2100,139 @@ function drawRouteOnMap(route, origin, destination) {
     .setPopup(new maplibregl.Popup({ offset: 12 }).setText("Llegada: " + destination.name))
     .addTo(map);
 
-  const bounds = new maplibregl.LngLatBounds();
-  route.geometry.coordinates.forEach(coordinate => bounds.extend(coordinate));
-  map.fitBounds(bounds, {
-    padding: { top: 70, bottom: 75, left: 45, right: 45 },
-    duration: 800,
-    maxZoom: 11.5
-  });
+  if (!levels) {
+    const bounds = new maplibregl.LngLatBounds();
+    route.geometry.coordinates.forEach(coordinate => bounds.extend(coordinate));
+    map.fitBounds(bounds, { padding: { top: 70, bottom: 75, left: 45, right: 45 }, duration: 800, maxZoom: 11.5 });
+  }
   routeIsVisible = true;
 }
 
-function renderRouteAnalysis(route, samples, results, origin, destination, directionLabel) {
-  const totalRainNow = results.filter(item => item.currentRain).length;
-  const totalWeakSignals = results.filter(item => item.currentWeakSignal).length;
-  const totalRainEta = results.filter(item => item.etaRain).length;
-  const pointsWithoutData = results.filter(item => !item.data).length;
+// ¿Qué dicen las estaciones del IMN cerca de este punto? (mediciones, no modelo)
+function routeStationEvidence(lat, lon) {
+  const out = { covered: false, rainy: null, dry: null };
+  const data = cameraMonitorData;
+  if (!data || !Array.isArray(data.stations)) return out;
+  const generated = data.generated_at ? Date.parse(data.generated_at) : 0;
+  if (!generated || Date.now() - generated > 80 * 60 * 1000) return out;
+  data.stations.forEach(row => {
+    if (!row || row.dead || (row.availability_status !== "online" && row.availability_status !== "delayed")) return;
+    const def = PUBLIC_STATIONS.find(item => item.id === row.id);
+    const slat = Number(def ? def.lat : row.lat);
+    const slon = Number(def ? def.lon : row.lon);
+    if (!Number.isFinite(slat) || !Number.isFinite(slon)) return;
+    const km = distanceKm(lat, lon, slat, slon);
+    if (km > ROUTE_STATION_RADIUS_KM) return;
+    const age = (Number(row.image_age_minutes) || 0) + (Date.now() - generated) / 60000;
+    if (age > 60) return; // lectura demasiado vieja para decir "llueve ahora"
+    out.covered = true;
+    const mm = Number(row.rain_last_hour_mm);
+    const entry = { name: stationShortName(row), mm, km };
+    if (mm > 0) { if (!out.rainy || mm > out.rainy.mm) out.rainy = entry; }
+    else if (!out.dry || km < out.dry.km) out.dry = entry;
+  });
+  return out;
+}
 
-  const sampleMarkup = results.map((item, index) => {
-    let label = "Sin precipitación estimada";
-    let className = "clear";
-    if (!item.data) {
-      label = "Sin datos";
-      className = "unknown";
-    } else if (item.currentRain) {
-      label = "Precipitación estimada ahora";
-      className = "rain";
-    } else if (item.etaRain) {
-      label = "Posible lluvia al llegar";
-      className = "possible";
-    } else if (item.currentWeakSignal) {
-      label = "Señal débil del modelo";
-      className = "possible";
+function routeClock(date) {
+  return date.toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" });
+}
+
+// Decide el nivel de un punto combinando, en este orden de confianza:
+// rayos reales > estaciones del IMN > pronóstico a la hora de llegada > modelo actual.
+// Lo medido "ahora" solo pesa si llegas pronto; si llegas más tarde decide el pronóstico.
+function assessRoutePoint(ev) {
+  const near = ev.minutesAway <= 25;
+  const soon = ev.minutesAway <= 75;
+  const st = ev.station || { covered: false, rainy: null, dry: null };
+  if (!ev.model && !ev.forecast && !st.covered && !(ev.bolts > 0)) return { level: 0, reason: "Sin datos de este tramo" };
+  let level = 1;
+  let reason = st.covered && st.dry ? "Sin lluvia (" + st.dry.name + ")" : "Sin lluvia prevista";
+  const bump = (newLevel, text) => { if (newLevel > level) { level = newLevel; reason = text; } };
+
+  if (ev.bolts >= 2) {
+    if (near) bump(4, "⚡ Rayos cerca ahora (" + ev.bolts + " en 15 min)");
+    else if (soon) bump(2, "⚡ Hay rayos cerca ahora");
+  }
+  if (st.rainy) {
+    const amount = st.rainy.mm.toFixed(1).replace(".", ",") + " mm en la última hora";
+    const where = st.rainy.name + " · a " + Math.max(1, Math.round(st.rainy.km)) + " km";
+    if (near) bump(st.rainy.mm >= 8 ? 4 : 3, "🌧 " + amount + " · " + where);
+    else if (soon) bump(2, "🌧 Llueve ahora cerca (" + where + ")");
+  }
+  if (ev.model && ev.model.rain && near && !st.covered) {
+    bump(3, "Lluvia según el modelo (sin estaciones cerca)");
+  } else if (ev.model && ev.model.weak && !st.covered && near) {
+    bump(2, "Señal débil del modelo");
+  }
+  if (ev.forecast) {
+    const f = ev.forecast;
+    const when = routeClock(ev.eta);
+    if (f.probability >= 50 || f.precipitation >= 0.1) {
+      const strong = f.probability >= 70 && f.precipitation >= 1;
+      const storm = [95, 96, 99].includes(f.weatherCode);
+      bump(strong || storm ? 3 : 2, (storm ? "⛈ Tormenta posible " : "🌦 ") + Math.round(f.probability) + " % de lluvia hacia las " + when);
     }
+  }
+  return { level, reason };
+}
 
-    const etaText = item.eta.toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
-    const currentTimeText = item.currentTime ? formatLocalHour(item.currentTime) : "hora no disponible";
-    const currentAmountText = item.currentPrecipitationMm === null
-      ? "sin dato"
-      : formatRouteMillimeters(item.currentPrecipitationMm) + " mm";
-    const currentText = !item.data
-      ? "Sin datos actuales"
-      : item.currentRain
-        ? currentAmountText + " · señal cuantitativa coherente del modelo"
-        : item.currentWeakSignal
-          ? currentAmountText + " · señal débil o no corroborada"
-          : currentAmountText + " · sin precipitación cuantificable";
-    const codeText = item.data
-      ? item.currentCodeSuggestsRain && !item.currentRain
-        ? "Código actual del modelo: " + item.currentWeatherDescription + " (no basta para confirmar precipitación)."
-        : "Condición actual del modelo: " + item.currentWeatherDescription + "."
-      : "";
-    const forecastText = item.forecast
-      ? Math.round(item.forecast.probability) + "% de probabilidad · " +
-        formatRouteMillimeters(item.forecast.precipitation) + " mm previstos" +
-        (isRainWeatherCode(item.forecast.weatherCode)
-          ? " · código horario: " + weatherInfo(item.forecast.weatherCode).text
-          : "")
-      : "Pronóstico no disponible";
+function routeVerdict(results) {
+  const known = results.filter(item => item.level > 0);
+  if (!known.length) return { level: 0, title: "Sin datos para decidir", icon: "❔" };
+  const worst = Math.max(...known.map(item => item.level));
+  const worstPoint = known.find(item => item.level === worst);
+  const km = Math.round(worstPoint.distanceAlongKm);
+  const at = " · km " + km + " · " + routeClock(worstPoint.eta);
+  if (worst === 4) return { level: 4, icon: "⛈️", title: "Tormenta en la ruta", where: at };
+  if (worst === 3) return { level: 3, icon: "🌧️", title: "Lluvia en la ruta", where: at };
+  if (worst === 2) return { level: 2, icon: "🌦️", title: "Posible lluvia", where: at };
+  return { level: 1, icon: "☀️", title: "Ruta despejada", where: "" };
+}
 
-    return `
-      <div class="route-sample">
-        <div>
-          <strong>Tramo ${index + 1} · ${escapeHtml(item.label)}</strong>
-          <small>
-            Km ${item.distanceAlongKm.toFixed(1)} desde la salida · Llegada estimada ${etaText}
-            <br>Ahora (modelo, ${escapeHtml(currentTimeText)}): ${escapeHtml(currentText)}
-            <br>${escapeHtml(codeText)}
-            <br>A la llegada: ${escapeHtml(forecastText)}
-          </small>
-        </div>
-        <span class="route-status-pill ${className}">${label}</span>
-      </div>
-    `;
+function renderRouteAnalysis(route, results, origin, destination, directionLabel, departure) {
+  const verdict = routeVerdict(results);
+  const meta = ROUTE_LEVELS[verdict.level];
+  const arrival = new Date(departure.getTime() + route.duration * 1000);
+  const missing = results.filter(item => item.level === 0).length;
+
+  const strip = results.map((item, index) => {
+    const info = ROUTE_LEVELS[item.level];
+    const pos = index === 0 ? "A" : index === results.length - 1 ? "B" : "";
+    return `<span class="route-seg ${info.key}" title="Km ${Math.round(item.distanceAlongKm)} · ${escapeHtml(info.label)}">${pos}</span>`;
   }).join("");
 
-  let summary;
-  if (pointsWithoutData === results.length) {
-    summary = "No fue posible obtener datos meteorológicos de los puntos de esta ruta. No se puede concluir si lloverá.";
-  } else {
-    const summaryParts = [];
-    if (totalRainNow > 0) {
-      summaryParts.push(`El modelo muestra una señal cuantitativa coherente de precipitación actual (≥ 0,20 mm) en ${totalRainNow} de ${results.length} puntos. No es una observación directa de lluvia.`);
-    } else {
-      summaryParts.push("No hay una señal cuantitativa coherente suficiente para marcar precipitación actual en los puntos consultados.");
-    }
-    if (totalWeakSignals > 0) {
-      summaryParts.push(`${totalWeakSignals} puntos presentan señales débiles o contradictorias del modelo; no se cuentan como lluvia actual.`);
-    }
-    if (totalRainEta > 0) {
-      summaryParts.push(`Para la hora estimada de llegada, el pronóstico indica posibilidad de precipitación en ${totalRainEta} de ${results.length} puntos (probabilidad ≥ 50% o acumulación ≥ 0,10 mm).`);
-    } else {
-      summaryParts.push("El pronóstico no alcanza los umbrales definidos para señalar posibilidad de precipitación a la llegada.");
-    }
-    if (pointsWithoutData > 0) {
-      summaryParts.push(`No hubo datos en ${pointsWithoutData} puntos; no se puede descartar lluvia localizada allí.`);
-    }
-    summary = summaryParts.join(" ");
-  }
+  // Hasta 3 avisos, los más graves primero.
+  const issues = results.filter(item => item.level >= 2)
+    .sort((x, y) => y.level - x.level || x.distanceAlongKm - y.distanceAlongKm).slice(0, 3)
+    .sort((x, y) => x.distanceAlongKm - y.distanceAlongKm)
+    .map(item => `<li><b>Km ${Math.round(item.distanceAlongKm)}</b> · ${routeClock(item.eta)}<span>${escapeHtml(item.reason)}</span></li>`).join("");
 
+  const detail = results.map((item, index) => {
+    const info = ROUTE_LEVELS[item.level];
+    const name = index === 0 ? "Salida" : index === results.length - 1 ? "Llegada" : "Km " + Math.round(item.distanceAlongKm);
+    return `<div class="route-row"><i class="route-dot ${info.key}"></i><div><b>${name}</b> · ${routeClock(item.eta)}<small>${escapeHtml(item.reason)}</small></div><em class="route-pill ${info.key}">${info.label}</em></div>`;
+  }).join("");
+
+  const delayed = departure.getTime() - Date.now() > 60000;
   $("routeResult").innerHTML = `
-    <div class="route-result-head">
-      <div class="route-result-title">Análisis · ${escapeHtml(directionLabel)}</div>
-      <span class="tiny">${escapeHtml(origin.name)} → ${escapeHtml(destination.name)}</span>
+    <div class="route-verdict ${meta.key}">
+      <span class="route-verdict-icon">${verdict.icon}</span>
+      <div><strong>${verdict.title}</strong><small>${escapeHtml(origin.name)} → ${escapeHtml(destination.name)}${escapeHtml(verdict.where || "")}</small></div>
     </div>
-    <div class="route-result-metrics">
-      <div class="route-result-metric"><strong>${(route.distance / 1000).toFixed(1)} km</strong><span>Distancia estimada</span></div>
-      <div class="route-result-metric"><strong>${formatRouteDuration(route.duration)}</strong><span>Tiempo de conducción estimado</span></div>
+    <div class="route-facts">
+      <div><b>${(route.distance / 1000).toFixed(0)} km</b><span>distancia</span></div>
+      <div><b>${formatRouteDuration(route.duration)}</b><span>${delayed ? "sales " + routeClock(departure) : "de camino"}</span></div>
+      <div><b>${routeClock(arrival)}</b><span>llegas</span></div>
     </div>
-    <div class="route-result-summary">${escapeHtml(summary)}</div>
-    <div class="route-samples">${sampleMarkup}</div>
-    <p class="tiny" style="margin-top:10px">Fuente meteorológica: Open-Meteo. Se consultan ${results.length} puntos distribuidos a lo largo del recorrido. La etiqueta de precipitación actual requiere al menos 0,20 mm y coherencia entre variables del modelo; el código meteorológico por sí solo no activa lluvia. El pronóstico de llegada usa probabilidad ≥ 50% o acumulación ≥ 0,10 mm. Son estimaciones, no observaciones directas. El tiempo de viaje no incorpora tráfico en vivo.</p>
+    <div class="route-strip" aria-hidden="true">${strip}</div>
+    ${issues ? `<ul class="route-issues">${issues}</ul>` : ""}
+    ${missing ? `<p class="route-note">Sin datos en ${missing} de ${results.length} puntos: no se puede descartar lluvia ahí.</p>` : ""}
+    <details class="route-details"><summary>Ver cada tramo</summary>${detail}</details>
+    <p class="route-note">Rayos GLM y estaciones del IMN (medido) · Open-Meteo (pronóstico). Estimación sin tráfico.</p>
   `;
   $("routeResult").hidden = false;
+  $("routeClearBtn").hidden = false;
 }
 
 async function analyzeRoute() {
@@ -2177,9 +2244,10 @@ async function analyzeRoute() {
 
   const button = $("routeAnalyzeBtn");
   button.disabled = true;
-  button.textContent = "Analizando recorrido…";
+  button.textContent = "Analizando…";
+  $("routeClearBtn").hidden = true;
   $("routeResult").hidden = false;
-  $("routeResult").innerHTML = '<p class="tiny loading">Calculando carretera y consultando las condiciones meteorológicas de varios puntos del recorrido…</p>';
+  $("routeResult").innerHTML = '<p class="tiny loading">Calculando la ruta y revisando la lluvia en el camino…</p>';
 
   try {
     let origin;
@@ -2188,36 +2256,35 @@ async function analyzeRoute() {
 
     if (routeMode === "saved") {
       if (!routeWorkLocation) {
-        throw new Error("Primero configura el destino del trabajo: búscalo o selecciónalo directamente en el mapa.");
+        throw new Error("Primero indica dónde trabajas: búscalo o márcalo en el mapa.");
       }
-      const direction = $("routeDirection").value;
-      if (direction === "outbound") {
+      if (routeDirection === "outbound") {
         origin = ROUTE_HOME;
         destination = routeWorkLocation;
-        directionLabel = "Ida · Casa → trabajo";
+        directionLabel = "Ida";
       } else {
         origin = routeWorkLocation;
         destination = ROUTE_HOME;
-        directionLabel = "Regreso · Trabajo → casa";
+        directionLabel = "Regreso";
       }
     } else {
       destination = routeTemporaryDestination;
       if (!destination) {
-        throw new Error("Selecciona primero un destino temporal mediante el buscador o el mapa.");
+        throw new Error("Elige primero el destino: búscalo o márcalo en el mapa.");
       }
       origin = await getFreshGpsForRoute();
-      directionLabel = "Ruta temporal";
+      origin = { ...origin, name: "Mi ubicación" };
+      directionLabel = "Ruta";
     }
 
     const [west, south] = CR_NAVIGATION_BOUNDS[0];
     const [east, north] = CR_NAVIGATION_BOUNDS[1];
     [origin, destination].forEach(point => {
       if (point.lon < west || point.lon > east || point.lat < south || point.lat > north) {
-        throw new Error("Uno de los puntos está fuera de los límites de Costa Rica.");
+        throw new Error("Uno de los puntos está fuera de Costa Rica.");
       }
     });
 
-    $("routeResult").innerHTML = '<p class="tiny loading">Calculando ruta por carretera…</p>';
     const routeUrl = `${OSRM_ROUTE_URL}/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&geometries=geojson&steps=false&alternatives=false`;
     const routeResponse = await fetchJson(routeUrl);
     if (routeResponse.code !== "Ok" || !routeResponse.routes || !routeResponse.routes.length) {
@@ -2231,77 +2298,43 @@ async function analyzeRoute() {
     drawRouteOnMap(route, origin, destination);
     $("mapLocationChip").textContent = "🧭 " + directionLabel;
 
-    const samples = sampleRouteLine(route.geometry.coordinates, route.distance / 1000);
-    const departure = new Date();
-    const weatherPromises = samples.map(async (sample, index) => {
-      const eta = new Date(departure.getTime() + route.duration * sample.fraction * 1000);
-      const point = {
-        name: "Punto " + (index + 1),
-        lat: sample.coordinate[1],
-        lon: sample.coordinate[0]
-      };
-      try {
-        const data = await getRouteWeather(point);
-        const currentPrecipitationMm = getRouteCurrentPrecipitationMm(data.current);
-        const currentRainComponentMm = getRouteCurrentRainComponentMm(data.current);
-        const currentWeatherCode = Number(data.current?.weather_code);
-        const currentCodeSuggestsRain = isRainWeatherCode(currentWeatherCode);
-        // Para marcar precipitación actual se exige cantidad >= 0,20 mm y
-        // coherencia con el campo rain/showers o con el código meteorológico.
-        // El código WMO por sí solo nunca activa una alerta de lluvia actual.
-        const currentRain = currentPrecipitationMm !== null &&
-          currentPrecipitationMm >= 0.2 &&
-          ((currentRainComponentMm !== null && currentRainComponentMm >= 0.1) || currentCodeSuggestsRain);
-        const currentWeakSignal = !currentRain && (
-          (currentPrecipitationMm !== null && currentPrecipitationMm >= 0.05) ||
-          currentCodeSuggestsRain
-        );
-        const forecast = nearestHourlyForecast(data, eta);
-        // El código horario es descriptivo, pero no basta por sí solo para
-        // marcar lluvia futura: se exige probabilidad >= 50% o >= 0,10 mm.
-        const etaRain = forecast
-          ? forecast.probability >= 50 || forecast.precipitation >= 0.1
-          : false;
-        return {
-          data,
-          currentRain,
-          currentWeakSignal,
-          currentPrecipitationMm,
-          currentRainComponentMm,
-          currentWeatherCode,
-          currentWeatherDescription: weatherInfo(currentWeatherCode).text,
-          currentCodeSuggestsRain,
-          currentTime: data.current?.time || null,
-          etaRain,
-          forecast,
-          eta,
-          distanceAlongKm: sample.distanceAlongKm,
-          label: index === 0 ? "Salida" : index === samples.length - 1 ? "Llegada" : "Ruta intermedia"
-        };
-      } catch (error) {
-        console.warn("No se pudo consultar el punto de ruta", index, error);
-        return {
-          data: null,
-          currentRain: false,
-          currentWeakSignal: false,
-          currentPrecipitationMm: null,
-          currentRainComponentMm: null,
-          currentWeatherCode: null,
-          currentWeatherDescription: "Sin datos",
-          currentCodeSuggestsRain: false,
-          currentTime: null,
-          etaRain: false,
-          forecast: null,
-          eta,
-          distanceAlongKm: sample.distanceAlongKm,
-          label: index === 0 ? "Salida" : index === samples.length - 1 ? "Llegada" : "Ruta intermedia"
-        };
-      }
-    });
+    // Datos frescos de estaciones y rayos antes de decidir.
+    try { if (typeof loadCameraMonitoringData === "function") await loadCameraMonitoringData(); } catch (e) {}
+    try { if (window.RainTrackLightning) await window.RainTrackLightning.refresh(); } catch (e) {}
 
-    const results = await Promise.all(weatherPromises);
-    renderRouteAnalysis(route, samples, results, origin, destination, directionLabel);
-    $("mapStatusChip").textContent = "Ruta analizada · " + (route.distance / 1000).toFixed(1) + " km";
+    const samples = sampleRouteLine(route.geometry.coordinates, route.distance / 1000);
+    const departure = new Date(Date.now() + routeDepartMin * 60000);
+    const results = await Promise.all(samples.map(async (sample, index) => {
+      const eta = new Date(departure.getTime() + route.duration * sample.fraction * 1000);
+      const lat = sample.coordinate[1];
+      const lon = sample.coordinate[0];
+      const base = { eta, distanceAlongKm: sample.distanceAlongKm, lat, lon };
+      let data = null;
+      try { data = await getRouteWeather({ lat, lon }); } catch (error) { console.warn("Sin pronóstico en el punto", index, error); }
+      let model = null;
+      let forecast = null;
+      if (data) {
+        const mm = getRouteCurrentPrecipitationMm(data.current);
+        const component = getRouteCurrentRainComponentMm(data.current);
+        const codeRain = isRainWeatherCode(Number(data.current?.weather_code));
+        const rain = mm !== null && mm >= 0.2 && ((component !== null && component >= 0.1) || codeRain);
+        model = { rain, weak: !rain && ((mm !== null && mm >= 0.05) || codeRain) };
+        forecast = nearestHourlyForecast(data, eta);
+      }
+      const ev = {
+        minutesAway: Math.max(0, (eta.getTime() - Date.now()) / 60000),
+        bolts: window.RainTrackLightning
+          ? window.RainTrackLightning.nearby(lat, lon, ROUTE_LIGHTNING_RADIUS_KM, ROUTE_LIGHTNING_MINUTES) : 0,
+        station: routeStationEvidence(lat, lon),
+        model, forecast, eta
+      };
+      return { ...base, ...assessRoutePoint(ev) };
+    }));
+
+    const levels = results.map(item => item.level);
+    drawRouteOnMap(route, origin, destination, levels);
+    renderRouteAnalysis(route, results, origin, destination, directionLabel, departure);
+    $("mapStatusChip").textContent = routeVerdict(results).title + " · " + (route.distance / 1000).toFixed(0) + " km";
   } catch (error) {
     console.error("Error al analizar ruta:", error);
     $("routeResult").innerHTML = `<p class="tiny error-text">${escapeHtml(error.message || "No se pudo analizar el recorrido.")}</p>`;
@@ -2970,7 +3003,28 @@ $("routePickWorkBtn").addEventListener("click", () => beginRouteMapPick("work"))
 $("routePickTempBtn").addEventListener("click", () => beginRouteMapPick("temporary"));
 $("routePickCancel").addEventListener("click", cancelRouteMapPick);
 $("routeAnalyzeBtn").addEventListener("click", analyzeRoute);
-$("routeClearBtn").addEventListener("click", closeRouteAnalysis);
+$("routeClearBtn").addEventListener("click", removeRoute);
+
+$("routeDirectionChips").addEventListener("click", event => {
+  const chip = event.target.closest(".route-chip");
+  if (!chip) return;
+  routeDirection = chip.dataset.dir === "return" ? "return" : "outbound";
+  syncRouteChips();
+  resetRouteResult();
+});
+$("routeDepartChips").addEventListener("click", event => {
+  const chip = event.target.closest(".route-chip");
+  if (!chip) return;
+  routeDepartMin = Number(chip.dataset.min) || 0;
+  syncRouteChips();
+  resetRouteResult();
+});
+$("savedWorkStatus").addEventListener("click", event => {
+  if (!event.target.closest("[data-act='change-work']")) return;
+  routeWorkEditing = !routeWorkEditing;
+  updateSavedWorkStatus();
+});
+syncRouteChips();
 
 // ------------------------------------------------------------
 // CONTROLES DESPLEGABLES Y ACTUALIZACIÓN AUTOMÁTICA

@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.84">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.85">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.84</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.85</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span><span class="status-text">Iniciando sistema</span></div>
   </header>
 
@@ -151,63 +151,58 @@
 
         <div class="route-panel" id="routePanel" hidden>
           <div class="route-panel-head">
-            <div>
-              <strong>🧭 Análisis meteorológico de ruta</strong>
-              <p class="tiny" style="margin-top:4px">El recorrido solo se dibuja cuando solicitas el análisis.</p>
-            </div>
+            <strong>🧭 Ruta y lluvia</strong>
             <button class="btn ghost small-btn" id="routePanelClose" type="button" aria-label="Cerrar rutas">×</button>
           </div>
 
           <div class="route-mode-switch">
             <button class="route-mode-btn active" id="routeSavedMode" type="button">🏠 Casa ↔ trabajo</button>
-            <button class="route-mode-btn" id="routeTempMode" type="button">📍 Desde GPS actual</button>
+            <button class="route-mode-btn" id="routeTempMode" type="button">📍 Desde donde estoy</button>
           </div>
 
           <div class="route-mode-section" id="routeSavedSection">
-            <div class="route-direction-row">
-              <label for="routeDirection">Recorrido guardado
-                <select class="source-select" id="routeDirection" style="display:block;width:100%;margin-top:7px">
-                  <option value="outbound">Ida · Casa → trabajo</option>
-                  <option value="return">Regreso · Trabajo → casa</option>
-                </select>
-              </label>
+            <div class="route-chips" id="routeDirectionChips" role="group" aria-label="Sentido del recorrido">
+              <button class="route-chip active" type="button" data-dir="outbound">Ida · al trabajo</button>
+              <button class="route-chip" type="button" data-dir="return">Regreso · a casa</button>
             </div>
-            <div class="route-destination-status" id="savedWorkStatus">
-              <strong>Destino laboral sin configurar.</strong><br>
-              Búscalo por localidad o marca el punto exacto en el mapa una sola vez. Para que la llegada sea precisa, recomendamos seleccionar el punto exacto del trabajo en el mapa.
-            </div>
-            <div class="route-search-row">
-              <input class="field" id="routeWorkSearchInput" type="search" placeholder="Buscar localidad del trabajo…" autocomplete="off">
-              <button class="btn secondary small-btn" id="routeWorkSearchBtn" type="button">Buscar</button>
-            </div>
-            <div class="route-search-results" id="routeWorkSearchResults"></div>
-            <div class="route-actions">
-              <button class="btn ghost small-btn" id="routePickWorkBtn" type="button">📍 Elegir punto exacto en el mapa</button>
+            <div class="route-place" id="savedWorkStatus"></div>
+            <div class="route-edit" id="routeWorkEdit" hidden>
+              <div class="route-search-row">
+                <input class="field" id="routeWorkSearchInput" type="search" placeholder="Buscar el trabajo (localidad)…" autocomplete="off">
+                <button class="btn secondary small-btn" id="routeWorkSearchBtn" type="button">Buscar</button>
+              </div>
+              <div class="route-search-results" id="routeWorkSearchResults"></div>
+              <button class="btn ghost small-btn route-wide" id="routePickWorkBtn" type="button">📍 Marcar el punto exacto en el mapa</button>
             </div>
           </div>
 
           <div class="route-mode-section" id="routeTempSection" hidden>
-            <div class="route-destination-status">
-              <strong>Origen:</strong> ubicación GPS actual. Se solicitará una lectura nueva al analizar.
-            </div>
             <div class="route-search-row">
-              <input class="field" id="routeTempSearchInput" type="search" placeholder="¿Hacia dónde vas? Ej. Puntarenas…" autocomplete="off">
+              <input class="field" id="routeTempSearchInput" type="search" placeholder="¿Hacia dónde vas? Ej. Puntarenas" autocomplete="off">
               <button class="btn secondary small-btn" id="routeTempSearchBtn" type="button">Buscar</button>
             </div>
             <div class="route-search-results" id="routeTempSearchResults"></div>
-            <div class="route-actions">
-              <button class="btn ghost small-btn" id="routePickTempBtn" type="button">📍 Elegir destino en el mapa</button>
-            </div>
+            <button class="btn ghost small-btn route-wide" id="routePickTempBtn" type="button">📍 Elegir el destino en el mapa</button>
           </div>
 
           <div class="route-pick-hint" id="routePickHint" hidden>
-            Toca el punto exacto en el mapa de Costa Rica. Puedes acercar el mapa para seleccionar mejor.
-            <button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar selección</button>
+            Toca el punto en el mapa (acércalo para más precisión).
+            <button class="btn ghost small-btn" id="routePickCancel" type="button" style="margin-top:7px">Cancelar</button>
+          </div>
+
+          <div class="route-depart">
+            <span>Salgo</span>
+            <div class="route-chips" id="routeDepartChips" role="group" aria-label="Hora de salida">
+              <button class="route-chip active" type="button" data-min="0">Ahora</button>
+              <button class="route-chip" type="button" data-min="30">+30 min</button>
+              <button class="route-chip" type="button" data-min="60">+1 h</button>
+              <button class="route-chip" type="button" data-min="120">+2 h</button>
+            </div>
           </div>
 
           <div class="route-actions">
             <button class="btn" id="routeAnalyzeBtn" type="button">🌧️ Analizar ruta</button>
-            <button class="btn secondary" id="routeClearBtn" type="button">Cerrar ruta</button>
+            <button class="btn secondary" id="routeClearBtn" type="button" hidden>Quitar ruta</button>
           </div>
           <div class="route-result" id="routeResult" hidden aria-live="polite"></div>
         </div>
@@ -323,11 +318,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.84"></script>
-  <script src="assets/app.js?v=1.8.84"></script>
-  <script src="assets/landmarks.js?v=1.8.84"></script>
-  <script src="assets/ratelayer.js?v=1.8.84"></script>
-  <script src="assets/lightning.js?v=1.8.84"></script>
-  <script src="assets/quakes.js?v=1.8.84"></script>
+  <script src="assets/ambient.js?v=1.8.85"></script>
+  <script src="assets/app.js?v=1.8.85"></script>
+  <script src="assets/landmarks.js?v=1.8.85"></script>
+  <script src="assets/ratelayer.js?v=1.8.85"></script>
+  <script src="assets/lightning.js?v=1.8.85"></script>
+  <script src="assets/quakes.js?v=1.8.85"></script>
 </body>
 </html>
