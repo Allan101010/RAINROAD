@@ -908,6 +908,45 @@ function updateWeatherHero(ambient) {
 }
 document.addEventListener("raintrack:ambient", event => updateWeatherHero(event.detail));
 
+// Nombre del lugar donde estás (OpenStreetMap / Nominatim, gratis). Se guarda por zona de ~100 m
+// para no consultar de más (la política de Nominatim pide pocas consultas).
+const PLACE_CACHE_KEY = "raintrackcr_place_v1";
+let heroPlaceRequest = 0;
+function placeLabelFromAddress(addr) {
+  if (!addr) return "";
+  const local = addr.suburb || addr.village || addr.town || addr.city_district || addr.neighbourhood || addr.hamlet || addr.quarter || addr.city || "";
+  const canton = String(addr.county || addr.municipality || addr.city || "").replace(/^Cant[oó]n\s+(de\s+)?/i, "");
+  const parts = [local, canton && canton !== local ? canton : ""].filter(Boolean);
+  return parts.join(", ") || String(addr.state || "").replace(/^Provincia\s+(de\s+)?/i, "");
+}
+function showHeroPlace(text) {
+  const el = $("heroPlace");
+  el.textContent = text ? "📍 " + text : "";
+  el.hidden = !text;
+}
+async function updateHeroPlace(location) {
+  if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lon)) return;
+  const key = location.lat.toFixed(3) + "," + location.lon.toFixed(3);
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem(PLACE_CACHE_KEY) || "{}"); } catch (e) { cache = {}; }
+  if (cache.key === key && cache.label) { showHeroPlace(cache.label); return; }
+  if (cache.label) showHeroPlace(cache.label); // mientras tanto, el último lugar conocido
+  const ticket = ++heroPlaceRequest;
+  try {
+    const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&addressdetails=1&accept-language=es"
+      + "&lat=" + location.lat.toFixed(5) + "&lon=" + location.lon.toFixed(5);
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    const label = placeLabelFromAddress(data.address);
+    if (ticket !== heroPlaceRequest || !label) return;
+    showHeroPlace(label);
+    try { localStorage.setItem(PLACE_CACHE_KEY, JSON.stringify({ key, label })); } catch (e) {}
+  } catch (error) {
+    console.warn("No se pudo obtener el nombre del lugar:", error);
+  }
+}
+
 function updateAmbientLocalRain() {
   if (!window.RainTrackAmbient) return;
   // Rayos reales (satélite) a menos de 20 km en los últimos 10 min confirman tormenta en tu zona.
@@ -2510,6 +2549,7 @@ async function loadWeatherForLocation(location, type) {
     if (isHome && !destinationLocation) renderForecast(location, data);
     if (!isHome) renderForecast(location, data);
 
+    if (isHome) updateHeroPlace(location);
     if (isHome) updateWeatherHero(window.RainTrackAmbient && window.RainTrackAmbient.current ? window.RainTrackAmbient.current() : null);
     setSystemStatus("Datos meteorológicos actualizados", "ok");
   } catch (error) {
