@@ -1499,7 +1499,8 @@ function showOwnRainSource() {
   stats.innerHTML =
     `<span class="orc ${cellsNow ? "on" : ""}"><b>${cellsNow}</b> ${cellsNow === 1 ? "estación con lluvia" : "estaciones con lluvia"}</span>` +
     `<span class="orc ${storms ? "storm" : ""}"><b>${storms}</b> ${storms === 1 ? "tormenta" : "tormentas"}</span>` +
-    `<span class="orc hint">Solo donde hay estación midiendo</span>`;
+    (window.RainTrackOwnRain && window.RainTrackOwnRain.homeRain() ? `<span class="orc on">📷 Lluvia en casa (estimada)</span>` : "") +
+    `<span class="orc hint">Estaciones midiendo · 📷 casa estimada</span>`;
   $("mapStatusChip").textContent = storms
     ? "⛈️ " + storms + (storms === 1 ? " zona con tormenta" : " zonas con tormenta") + " · lluvia intensa medida"
     : cellsNow ? "🌧️ Lluvia medida en " + cellsNow + (cellsNow === 1 ? " estación" : " estaciones") : "☀️ Sin lluvia medida ahora · estaciones IMN";

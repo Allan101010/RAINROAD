@@ -3,6 +3,7 @@
 (function () {
   "use strict";
   const KEY = "raintrack-ownrain";
+  const HOME_RAIN_RADIUS_M = 5500; // la cámara ve lluvia local: se muestra alrededor de ~5 km
   const STORM_MM = 8; // lluvia intensa: se trata como tormenta (el IMN no publica rayos con coordenadas)
   let canvas, ctx, raf = null, W = 0, H = 0, dpr = 1, cells = [], lastCellsAt = 0;
 
@@ -36,6 +37,18 @@
   function buildCells() {
     lastCellsAt = performance.now();
     const old = new Map(cells.map(c => [c.id, c]));
+    // Cámara de casa: si ve señales de lluvia, se dibuja lluvia alrededor de varios km (estimación).
+    const homeRain = typeof homeCameraSummary === "function" ? homeCameraSummary() : null;
+    const homeCells = homeRain && homeRain.estimate === "possible_rain"
+      ? homeRain.rows.filter(row => row.estimate === "possible_rain" && !row.stale).slice(0, 1).map(row => {
+          const prev = old.get("home-camera");
+          const drops = prev ? prev.drops : Array.from({ length: 22 }, () => ({
+            a: Math.random() * 6.283, r: Math.sqrt(Math.random()), p: Math.random(), v: 0.012 + Math.random() * 0.012
+          }));
+          return { id: "home-camera", home: true, lat: Number(row.lat), lon: Number(row.lon), mm: 1, fresh: 1, drizzle: false,
+                   radiusM: HOME_RAIN_RADIUS_M, drops, storm: false, nextBolt: 0, bolt: null };
+        })
+      : [];
     cells = rainyStations().map(s => {
       const mm = Number(s.rain_last_hour_mm);
       const prev = old.get(s.id);
@@ -46,6 +59,7 @@
       return { id: s.id, lat: Number(s.lat), lon: Number(s.lon), mm, fresh: s._fresh, drizzle: mm < 0.5, drops, storm: mm >= STORM_MM && s._fresh > 0.5,
                nextBolt: prev ? prev.nextBolt : performance.now() + 800 + Math.random() * 3000, bolt: prev ? prev.bolt : null };
     });
+    cells = cells.concat(homeCells);
   }
 
   function metersPerPx(lat) {
@@ -60,7 +74,7 @@
     for (const c of cells) {
       ctx.globalAlpha = c.drizzle ? c.fresh * 0.7 : c.fresh;
       const pt = map.project([c.lon, c.lat]);
-      const radiusM = c.drizzle ? 3500 : Math.min(11000, 4500 + c.mm * 700);
+      const radiusM = c.radiusM || (c.drizzle ? 3500 : Math.min(11000, 4500 + c.mm * 700));
       const R = Math.max(16, radiusM / metersPerPx(c.lat));
       if (pt.x < -R || pt.x > W + R || pt.y < -R || pt.y > H + R) continue;
       const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, R);
@@ -158,5 +172,5 @@
       if (typeof map !== "undefined" && map && mapReady) { clearInterval(wait); sync(); }
     }, 500);
   });
-  window.RainTrackOwnRain = { sync, rebuild: buildCells, stormCount: () => cells.filter(c => c.storm).length, cellCount: () => cells.length };
+  window.RainTrackOwnRain = { sync, rebuild: buildCells, stormCount: () => cells.filter(c => c.storm).length, cellCount: () => cells.filter(c => !c.home).length, homeRain: () => cells.some(c => c.home) };
 })();
