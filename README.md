@@ -16,7 +16,7 @@ Aplicación meteorológica para Costa Rica: mapa, radar, pronóstico por hora, r
 - `scripts/monitor_cameras.py` (GitHub Actions) genera `camera-alerts.json` y `camera-catalog.json`. Se dispara cada 10 minutos desde un cronjob externo (cron-job.org → `workflow_dispatch`), porque el `schedule` gratuito de GitHub se atrasa horas. Solo publica cuando cambia el estado o pasaron 15 minutos.
 - Las listas de cámaras y estaciones están en `config/camera-sources.json`.
 - **Rayos:** `scripts/glm_lightning.py` lee el satélite GOES-19 (GLM) y publica en la rama `lightning-data`. El mapa muestra los de los últimos 10 minutos.
-- **Temblores:** `scripts/quakes.py` junta OVSICORI-UNA, USGS y EMSC (desde M3.5, región de Costa Rica, 48 h) y publica en la rama `quakes-data`. Aviso opcional al celular con el secreto `QUAKE_ALERT_TOPIC` (Costa Rica ≥ 4.0, región ≥ 5.0). Informa después del sismo; no es alerta temprana.
+- **Temblores:** `scripts/quakes.py` junta OVSICORI-UNA, USGS y EMSC (desde M3.5, región de Costa Rica, últimas 8 h) y publica en la rama `quakes-data`. Aviso opcional al celular con el secreto `QUAKE_ALERT_TOPIC` (Costa Rica ≥ 4.0, región ≥ 5.0). Informa después del sismo; no es alerta temprana.
 - Ambos lectores se relanzan desde el monitor de cámaras cada 10 minutos.
 
 ## Uso y limitaciones

@@ -25,7 +25,7 @@
   function ago(minutes) {
     if (minutes < 1) return "hace un momento";
     if (minutes < 60) return "hace " + Math.round(minutes) + " min";
-    if (minutes < 48 * 60) {
+    if (minutes < 48 * 60) {  // (la lista solo guarda 8 h; esto cubre mapas viejos en caché)
       const hours = Math.floor(minutes / 60);
       const rest = Math.round(minutes % 60);
       return "hace " + hours + " h" + (hours < 6 && rest ? " " + rest + " min" : "");
@@ -45,9 +45,11 @@
     return (q.src || []).map(s => String(s).toUpperCase()).join(" y ");
   }
 
+  const SHOW_HOURS = 8; // solo se muestran los de las últimas 8 horas
   function quakes() {
+    const oldest = Date.now() / 1000 - SHOW_HOURS * 3600;
     return payload && Array.isArray(payload.quakes) ? payload.quakes.filter(q =>
-      q && Number.isFinite(q.t) && Number.isFinite(q.lat) && Number.isFinite(q.lon) && Number.isFinite(q.mag)) : [];
+      q && Number.isFinite(q.t) && q.t >= oldest && Number.isFinite(q.lat) && Number.isFinite(q.lon) && Number.isFinite(q.mag)) : [];
   }
 
   function dismissed() {
@@ -145,11 +147,11 @@
     }
     const readAge = payload.generated_at ? Math.round((Date.now() - Date.parse(payload.generated_at)) / 60000) : null;
     if (info) {
-      info.textContent = all.length + " en las últimas 48 h (M" + (payload.min_mag || 3.5) + " o más)" +
+      info.textContent = all.length + " en las últimas 8 h (M" + (payload.min_mag || 3.5) + " o más)" +
         (readAge != null ? " · lectura hace " + readAge + " min" : "") + (stale() ? " · datos atrasados" : "");
     }
     if (!all.length) {
-      box.innerHTML = "<p class=\"tiny\">Sin temblores de M" + (payload.min_mag || 3.5) + " o más en las últimas 48 horas, según OVSICORI, USGS y EMSC.</p>";
+      box.innerHTML = "<p class=\"tiny\">Sin temblores de M" + (payload.min_mag || 3.5) + " o más en las últimas 8 horas, según OVSICORI, USGS y EMSC.</p>";
       return;
     }
     const shown = showAll ? all : all.slice(0, LIST_SHORT);
