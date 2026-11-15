@@ -1,4 +1,4 @@
-/* Temblores y terremotos (USGS + EMSC).
+/* Temblores y terremotos (OVSICORI + USGS + EMSC).
    Un workflow de GitHub lee las dos fuentes cada ~30 s y publica quakes.json en la rama quakes-data.
    Aquí se dibujan en el mapa (desde M3.5), se listan en su sección y, desde M5, salen en el aviso de arriba.
    IMPORTANTE: informa DESPUÉS del sismo. No es una alerta temprana. */
@@ -155,7 +155,7 @@
         (readAge != null ? " · lectura hace " + readAge + " min" : "") + (stale() ? " · datos atrasados" : "");
     }
     if (!all.length) {
-      box.innerHTML = "<p class=\"tiny\">Sin temblores de M" + (payload.min_mag || 3.5) + " o más en las últimas 48 horas, según USGS y EMSC.</p>";
+      box.innerHTML = "<p class=\"tiny\">Sin temblores de M" + (payload.min_mag || 3.5) + " o más en las últimas 48 horas, según OVSICORI, USGS y EMSC.</p>";
       return;
     }
     const shown = showAll ? all : all.slice(0, LIST_SHORT);

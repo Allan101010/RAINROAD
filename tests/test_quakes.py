@@ -24,6 +24,43 @@ def emsc(mag, lat, lon, depth, region, seconds_ago):
             "geometry": {"type": "Point", "coordinates": [lon, lat, -depth * 1000]}}
 
 
+def ovs_marker(mag, lat, lon, when, place, depth=10):
+    return ("var eq1 = L.icon({ iconUrl:'x.png' }); L.marker([%s,%s],{icon: eq1}).bindPopup('<div><table> <col width=\"80\"><tr bgcolor=#DEDEEF>"
+            "<td width=50>Magnitud:</td> <td width=100>%s</td></tr><tr><td width=90>Fecha y Hora Local:</td> <td>%s</td></tr>"
+            "<tr bgcolor=#DEDEEF><td width=90>Ubicacion:</td> <td>%s</td></tr><tr><td width=90>Prof. [km]:</td> <td>%s</td></tr>"
+            "</table></div>',{minWidth:300}).addTo(eq);" % (lat, lon, mag, when, place, depth))
+
+
+class OvsicoriTests(unittest.TestCase):
+    def test_parse_reads_local_time_and_filters(self):
+        page = "<script>" + ovs_marker("4.7", 8.3982, -83.0541, "2026-11-14 21:01:40", "2.7 km al Sureste de Pavon de Puntarenas") \
+            + ovs_marker("2.2", 9.5, -84.6, "2026-11-14 21:00:00", "chico") \
+            + ovs_marker("5.0", 35.0, 139.0, "2026-11-14 21:00:00", "lejos") + "</script>"
+        events = quakes.parse_ovsicori(page)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["src"], "ovsicori")
+        self.assertEqual(events[0]["mag"], 4.7)
+        self.assertEqual(events[0]["depth"], 10.0)
+        # 21:01:40 hora de Costa Rica = 03:01:40 UTC del día siguiente
+        self.assertEqual(datetime.fromtimestamp(events[0]["t"], tz=timezone.utc), datetime(2026, 11, 15, 3, 1, 40, tzinfo=timezone.utc))
+
+    def test_parse_survives_garbage(self):
+        self.assertEqual(quakes.parse_ovsicori("<html>nada</html>"), [])
+        self.assertEqual(quakes.parse_ovsicori(None), [])
+
+    def test_ovsicori_magnitude_and_place_win_when_merged(self):
+        store = []
+        t = NOW - 300
+        quakes.merge_into(store, [{"src": "emsc", "t": t + 5, "lat": 8.4, "lon": -83.0, "mag": 4.4, "depth": 8.0, "place": "Costa Rica"}], NOW)
+        quakes.merge_into(store, [{"src": "ovsicori", "t": t, "lat": 8.3982, "lon": -83.0541, "mag": 4.7, "depth": 10.0,
+                                   "place": "2.7 km al Sureste de Pavon de Puntarenas"}], NOW)
+        self.assertEqual(len(store), 1)
+        self.assertEqual(store[0]["mag"], 4.7)
+        self.assertIn("Pavon", store[0]["place"])
+        self.assertEqual(store[0]["t"], t)
+        self.assertTrue(store[0]["cr"])
+
+
 class ParseTests(unittest.TestCase):
     def test_usgs_filters_magnitude_region_and_type(self):
         data = {"features": [

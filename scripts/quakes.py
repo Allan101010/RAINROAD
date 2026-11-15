@@ -14,8 +14,10 @@ import json
 import logging
 import math
 import os
+import re
 import subprocess
 import time
+import html as html_lib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -24,6 +26,8 @@ import requests
 USGS_HOUR = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson"
 USGS_DAY = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
 EMSC_URL = "https://www.seismicportal.eu/fdsnws/event/1/query"
+OVSICORI_URL = "https://www.ovsicori.una.ac.cr/sistemas/mapa_sismicidad/mapa_sismos.php"
+CR_TZ = timezone(timedelta(hours=-6))  # el OVSICORI publica la hora local de Costa Rica
 BBOX = {"lat_min": 4.5, "lat_max": 13.5, "lon_min": -89.0, "lon_max": -80.5}
 CR_BOX = {"lat_min": 8.0, "lat_max": 11.3, "lon_min": -86.0, "lon_max": -82.5}
 MIN_MAG = 3.5
@@ -113,6 +117,35 @@ def parse_emsc(data: dict) -> list[dict]:
     return events
 
 
+_OVS_MARKER = re.compile(r"L\.marker\(\[\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\].*?bindPopup\('(.*?)',\s*\{", re.S)
+
+
+def parse_ovsicori(page: str) -> list[dict]:
+    """Eventos de la página del mapa del OVSICORI (marcadores Leaflet con una tabla en el popup)."""
+    events = []
+    for match in _OVS_MARKER.finditer(page or ""):
+        try:
+            lat, lon = _number(match.group(1)), _number(match.group(2))
+            text = re.sub(r"<[^>]+>", "|", html_lib.unescape(match.group(3)))
+            text = re.sub(r"\|[\s|]*", "|", text)
+            mag = re.search(r"Magnitud:\|([\d.]+)", text)
+            when = re.search(r"Hora Local:\|(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", text)
+            place = re.search(r"Ubicacion:\|([^|]+)", text)
+            depth = re.search(r"Prof\. \[km\]:\|([\d.]+)", text)
+            if lat is None or lon is None or not mag or not when:
+                continue
+            value = float(mag.group(1))
+            if value < MIN_MAG or not in_box(lat, lon, BBOX):
+                continue
+            stamp = datetime.strptime(when.group(1), "%Y-%m-%d %H:%M:%S").replace(tzinfo=CR_TZ)
+            events.append({"src": "ovsicori", "t": stamp.timestamp(), "lat": lat, "lon": lon, "mag": value,
+                           "depth": _number(depth.group(1)) if depth else None,
+                           "place": place.group(1).strip() if place else ""})
+        except (ValueError, TypeError, AttributeError):
+            continue
+    return events
+
+
 def is_costa_rica(event: dict) -> bool:
     text = str(event.get("place", "")).upper()
     if "COSTA RICA" in text:
@@ -130,7 +163,8 @@ def same_event(a: dict, b: dict) -> bool:
 
 def _recompute(event: dict) -> None:
     mags = event["mags"]
-    event["mag"] = round(sum(mags.values()) / len(mags), 1)
+    # El OVSICORI es la red local: si ya midió el sismo, su magnitud manda; si no, el promedio.
+    event["mag"] = mags["ovsicori"] if "ovsicori" in mags else round(sum(mags.values()) / len(mags), 1)
     event["src"] = sorted(mags)
     event["cr"] = is_costa_rica(event)
 
@@ -147,10 +181,12 @@ def merge_into(store: list[dict], incoming: list[dict], now_epoch: float) -> boo
             _recompute(event)
             store.append(event)
             changed = True
+            logging.info("Sismo nuevo M%.1f visto por %s, %.1f min después de ocurrir.", raw["mag"], source,
+                         (now_epoch - raw["t"]) / 60)
             continue
         before = (match["mags"].get(source), match["depth"], match["place"])
         match["mags"][source] = round(raw["mag"], 1)
-        if source == "usgs" or not match["place"]:  # USGS da un lugar más legible
+        if source in ("usgs", "ovsicori") or not match["place"]:  # lugar más legible; el OVSICORI manda
             match["place"] = raw["place"] or match["place"]
             match["lat"], match["lon"] = raw["lat"], raw["lon"]
             if raw["depth"] is not None:
@@ -225,6 +261,21 @@ def fetch_emsc(session: requests.Session, now: datetime) -> list[dict] | None:
     return None if data is None else parse_emsc(data)
 
 
+def fetch_ovsicori(session: requests.Session) -> list[dict] | None:
+    try:
+        response = session.get(OVSICORI_URL, timeout=HTTP_TIMEOUT)
+        response.raise_for_status()
+        page = response.text
+    except Exception as exc:
+        logging.warning("No se pudo leer ovsicori.una.ac.cr: %s", exc)
+        return None
+    events = parse_ovsicori(page)
+    if not events and "L.marker" not in page:
+        logging.warning("OVSICORI: la página cambió de formato (sin marcadores); se ignora.")
+        return None
+    return events
+
+
 def publish(path: Path) -> None:
     blob = subprocess.check_output(["git", "hash-object", "-w", str(path)], text=True).strip()
     tree = subprocess.check_output(["git", "mktree"], input=f"100644 blob {blob}\tquakes.json\n", text=True).strip()
@@ -257,7 +308,7 @@ def load_previous(path: Path) -> list[dict]:
 def build_payload(store: list[dict], sources_ok: dict) -> dict:
     return {
         "generated_at": utc_now().replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "source": "USGS + EMSC",
+        "source": "OVSICORI + USGS + EMSC",
         "min_mag": MIN_MAG, "keep_hours": KEEP_HOURS, "bbox": BBOX, "sources_ok": sources_ok,
         "quakes": [{"t": int(e["t"]), "lat": round(e["lat"], 3), "lon": round(e["lon"], 3), "mag": e["mag"],
                     "depth": None if e["depth"] is None else round(e["depth"], 1), "place": e["place"],
@@ -283,7 +334,7 @@ def main() -> int:
     started = time.monotonic()
     last_publish = 0.0
     cycle = 0
-    sources_ok = {"usgs": None, "emsc": None}
+    sources_ok = {"ovsicori": None, "usgs": None, "emsc": None}
     while True:
         now = utc_now()
         now_epoch = now.timestamp()
@@ -295,6 +346,13 @@ def main() -> int:
             usgs_events = parse_usgs(data)
             logging.info("USGS: %s sismos en la región (de %s en el archivo).", len(usgs_events), len(data.get("features", [])))
             changed |= merge_into(store, usgs_events, now_epoch)
+        # OVSICORI (red local, sin intermediarios) cada 2 ciclos (~60 s).
+        if cycle % 2 == 0:
+            ovs = fetch_ovsicori(session)
+            sources_ok["ovsicori"] = ovs is not None
+            if ovs is not None:
+                logging.info("OVSICORI: %s sismos en la región.", len(ovs))
+                changed |= merge_into(store, ovs, now_epoch)
         # EMSC cada 2 ciclos (cada ~60 s).
         if cycle % 2 == 0:
             events = fetch_emsc(session, now)
