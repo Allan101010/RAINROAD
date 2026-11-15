@@ -11,23 +11,22 @@ jobs:
       - name: Mirar robots.txt y enlaces de OVSICORI y RSN
         run: |
           python3 - <<'PY'
-          import re, urllib.request, ssl
+          import re, urllib.request, ssl, urllib.parse
           ctx = ssl.create_default_context()
-          def get(url, limit=400000):
+          def get(url, limit=600000):
               req = urllib.request.Request(url, headers={"User-Agent": "RainTrackCR-probe (https://github.com/Allan101010/RAINROAD)"})
               try:
                   with urllib.request.urlopen(req, timeout=25, context=ctx) as r:
                       return r.status, r.headers.get("content-type"), r.read(limit).decode("utf-8", "replace")
               except Exception as e:
                   return None, None, repr(e)
-          for site in ("https://www.ovsicori.una.ac.cr", "https://rsn.ucr.ac.cr"):
-              print("=====", site)
-              st, ct, body = get(site + "/robots.txt")
-              print("robots:", st, ct); print(body[:600])
-              st, ct, body = get(site + "/")
-              print("home:", st, ct, len(body))
-              links = sorted(set(re.findall(r'(?:href|src)=["\']([^"\']+)["\']', body)))
-              for l in links:
-                  if re.search(r'sism|mapa|map|json|rss|feed|api|\.php', l, re.I):
-                      print("  link:", l[:160])
+          base = "https://www.ovsicori.una.ac.cr"
+          st, ct, body = get(base + "/index.php/sismologia/mapa-ultimos-dias")
+          print("PAGINA mapa-ultimos-dias:", st, ct, len(body))
+          for m in re.findall(r'<(?:iframe|script)[^>]*(?:src)=["\']([^"\']+)["\']', body):
+              print("  src:", m[:200])
+          for m in sorted(set(re.findall(r'["\'(]([^"\'()\s]*(?:sismo|mapa_|\.json|\.php|\.csv|\.kml)[^"\'()\s]*)', body, re.I))):
+              print("  ref:", m[:200])
+          i = body.lower().find("sismo")
+          print("---- extracto:", re.sub(r"\s+", " ", body[max(0,i-200):i+800]))
           PY
