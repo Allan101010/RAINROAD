@@ -14,6 +14,9 @@ on:
       - "scripts/**"
       - "tests/**"
       - "config/**"
+      - "assets/**"
+      - "index.html"
+      - "sw.js"
       - ".github/workflows/tests.yml"
   workflow_dispatch:
 permissions:
@@ -34,7 +37,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: node --check assets/app.js
+      - name: Revisar la sintaxis de todo el JavaScript
+        run: for f in assets/*.js sw.js; do node --check "$f"; done
+      - name: Pruebas de la lógica de la app (rutas, lluvia de la cámara de casa)
+        run: for t in tests/*.test.js; do node "$t"; done
       - name: Validate JSON documents
         run: |
           python - <<'PY'

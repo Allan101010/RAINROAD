@@ -68,7 +68,18 @@ termux-wake-lock
 nohup python camaras_casa.py > camaras.log 2>&1 &
 ```
 - Deja la tablet **enchufada** y desactiva la optimización de batería para Termux (Ajustes → Apps → Termux → Batería → Sin restricciones).
-- Opcional: instala **Termux:Boot** (F-Droid) para que arranque solo al reiniciar la tablet.
+- No deslices Termux fuera de las apps recientes: eso lo cierra y detiene el programa.
+
+### Que arranque solo al reiniciar la tablet (recomendado)
+Instala **Termux:Boot** desde F-Droid, ábrelo una vez y luego, en Termux:
+```
+mkdir -p ~/.termux/boot
+printf '#!/data/data/com.termux/files/usr/bin/sh\ntermux-wake-lock\ncd ~/RAINROAD/tools/home-cameras\nwhile true; do python camaras_casa.py >> camaras.log 2>&1; sleep 30; done\n' > ~/.termux/boot/camaras.sh
+chmod +x ~/.termux/boot/camaras.sh
+```
+Después de un reinicio hay que **desbloquear la tablet una vez**; el programa arranca solo en pocos
+minutos y, si se cae, vuelve a levantarse a los 30 segundos. En la app, el 📷 de casa se pone rojo
+cuando pasan más de 20 minutos sin lecturas.
 
 ## 8. Avisarle al bot (en GitHub)
 En el repositorio: Settings → Secrets and variables → Actions → New repository secret.

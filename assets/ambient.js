@@ -7,7 +7,7 @@
   const enabled = true; // el ambiente animado queda siempre activo
 
   let state = { kind: "clear", isDay: true, intensity: 0 };
-  let lastCurrent = null, localRain = null, localThunder = false; // localRain: true/false según estaciones cercanas, null = sin dato
+  let lastCurrent = null, localRain = null, localThunder = false, localConfirmed = 0; // localRain: true/false según estaciones cercanas, null = sin dato; localConfirmed: intensidad de lluvia confirmada donde estás
   let canvas, ctx, celestial, rafId = null;
   let drops = [], splashes = [], rects = [], mapRect = null, lastRectsAt = 0, dpr = 1, W = 0, H = 0;
 
@@ -265,6 +265,8 @@
   function refresh() {
     state = classify(lastCurrent.weather_code, lastCurrent.is_day);
     if (localThunder) state = { kind: "rain", isDay: state.isDay, intensity: 4 }; // rayos reales cerca: tormenta confirmada
+    // Lluvia confirmada donde estás (cámara de casa o zona de lluvia medida): llueve aunque el modelo diga que no.
+    else if (localConfirmed > 0) state = { kind: "rain", isDay: state.isDay, intensity: Math.max(localConfirmed, state.kind === "rain" ? state.intensity : 0) };
     else if (localRain === false && state.kind === "rain") state = { kind: "cloudy", isDay: state.isDay, intensity: 0 };
     apply();
     document.dispatchEvent(new CustomEvent("raintrack:ambient", { detail: { kind: state.kind, intensity: state.intensity, isDay: state.isDay } }));
@@ -283,10 +285,12 @@
       lastCurrent = current;
       refresh();
     },
-    // Estaciones medidas cerca del usuario mandan sobre el modelo: sin lluvia medida, sin animación de lluvia.
-    setLocalRain(value, thunder) {
+    // Lo medido cerca del usuario manda sobre el modelo: sin lluvia medida no hay animación de lluvia,
+    // y con lluvia confirmada (tercer parámetro: 1 llovizna, 2 lluvia, 3 fuerte) la hay aunque el modelo diga que no.
+    setLocalRain(value, thunder, confirmed) {
       localRain = value === true || value === false ? value : null;
       localThunder = thunder === true;
+      localConfirmed = Number(confirmed) > 0 ? Math.min(3, Math.round(Number(confirmed))) : 0;
       if (lastCurrent && !window.__ambientForced) refresh();
     },
     current() { return { kind: state.kind, intensity: state.intensity, isDay: state.isDay }; },

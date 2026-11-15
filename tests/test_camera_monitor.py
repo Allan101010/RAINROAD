@@ -350,5 +350,44 @@ class HomeRainEstimateTests(unittest.TestCase):
             self.assertEqual(stale[0]["estimate"], "unknown")
 
 
+    def test_home_rows_do_not_reveal_the_exact_location(self):
+        """Las filas se publican: las distancias a estaciones salen de la ubicación redondeada (~1 km)."""
+        from datetime import datetime, timezone
+        now = datetime(2026, 11, 14, 17, 5, tzinfo=timezone.utc)
+        message = {"v": 1, "cam": "home-casa", "t": "2026-11-14T17:04:00Z", "q": "usable",
+                   "f": {key: 1.0 for key in self.ct.FEATURE_KEYS}}
+
+        class Reply:
+            text = json.dumps({"event": "message", "message": json.dumps(message)})
+            def raise_for_status(self):
+                pass
+
+        class Session:
+            def get(self, *args, **kwargs):
+                return Reply()
+
+        stations = [{"id": "imn-a", "lat": 9.95, "lon": -83.65, "availability_status": "online", "rain_last_hour_mm": 0.0}]
+        exact = self.ct.fetch_home_rows(Session(), "tema", 9.914999, -83.605001, stations, [], now)
+        rounded = self.ct.fetch_home_rows(Session(), "tema", 9.91, -83.61, stations, [], now)
+        self.assertEqual(len(exact), 1)
+        self.assertEqual(exact[0]["st"], rounded[0]["st"])
+
+    def test_old_home_rows_lose_their_precise_distances(self):
+        import tempfile
+        from datetime import datetime, timezone
+        now = datetime(2026, 11, 14, 17, 5, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "f.jsonl"
+            home = dict(self.row(40, t="2026-11-14T16:00:00Z"), st=[["imn-a", 8.2, 0.0, "online"], ["imn-b", 11.1, 2.2, "online"]])
+            public = {"t": "2026-11-14T16:00:00Z", "cam": "playa-x", "hour": 10, "q": "usable", "f": {},
+                      "st": [["imn-c", 3.4, 0.0, "online"]]}
+            path.write_text(json.dumps(home) + "\n" + json.dumps(public) + "\n", encoding="utf-8")
+            self.ct.append_rows([], now, path)
+            kept = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual([entry[1] for entry in kept[0]["st"]], [8.0, 11.0])
+            self.assertEqual(kept[0]["st"][1][2], 2.2)  # la lluvia medida no se toca
+            self.assertEqual(kept[1]["st"][0][1], 3.4)  # las cámaras públicas no cambian
+
+
 if __name__ == "__main__":
     unittest.main()

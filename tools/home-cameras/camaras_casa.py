@@ -85,7 +85,7 @@ def motion_features(frames: list[Image.Image]) -> dict:
         diff = ImageChops.difference(first, second)
         mean = float(ImageStat.Stat(diff).mean[0])
         blocks = diff.resize((width // block, diff.height // block), Image.BOX)
-        values = list(blocks.getdata())
+        values = list(blocks.tobytes())  # imagen en grises: un byte por bloque
         spread = sum(1 for v in values if v >= 2.0) / max(1, len(values))
         pair = (mean, spread)
         if best is None or pair[0] < best[0]:
@@ -150,13 +150,13 @@ def run_round(config: dict) -> int:
             features = analyze(grab_burst(camera["rtsp"]))
             send(config["ntfy_topic"], build_message(name, features))
             sent += 1
-            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')})")
+            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')})", flush=True)
         except subprocess.TimeoutExpired:
-            print(f"{datetime.now():%H:%M:%S} {name}: la cámara no respondió a tiempo")
+            print(f"{datetime.now():%H:%M:%S} {name}: la cámara no respondió a tiempo", flush=True)
         except subprocess.CalledProcessError:
-            print(f"{datetime.now():%H:%M:%S} {name}: no se pudo leer la imagen (revisa la dirección RTSP)")
+            print(f"{datetime.now():%H:%M:%S} {name}: no se pudo leer la imagen (revisa la dirección RTSP)", flush=True)
         except Exception as exc:  # una cámara con problemas no detiene a las demás
-            print(f"{datetime.now():%H:%M:%S} {name}: error {type(exc).__name__}")
+            print(f"{datetime.now():%H:%M:%S} {name}: error {type(exc).__name__}", flush=True)
     return sent
 
 

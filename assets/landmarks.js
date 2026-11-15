@@ -111,10 +111,7 @@
     return `<svg viewBox="0 0 48 44" aria-hidden="true"><ellipse cx="24" cy="42" rx="22" ry="2.4" fill="rgba(0,0,0,.28)"/>${draw()}</svg>`;
   }
 
-  const key = "raintrack-landmarks";
   let markers = [];
-  const read = (k, d) => { try { const v = localStorage.getItem(key + "-" + k); return v === null ? d : v === "1"; } catch (e) { return d; } };
-  const write = (k, v) => { try { localStorage.setItem(key + "-" + k, v ? "1" : "0"); } catch (e) {} };
 
   function clear() { markers.forEach(m => m.remove()); markers = []; }
   // Fotos de lugares icónicos: Wikimedia Commons (licencia libre; cada foto enlaza a su página con autor y licencia).

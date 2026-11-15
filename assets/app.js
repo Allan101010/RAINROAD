@@ -770,7 +770,7 @@ function cameraDisplayName(item) {
   const aliases = { diria: "Diriá", witchsrock: "Witch's Rock", poas: "Poás", irazu: "Irazú" };
   return slug.split("-").filter(Boolean).map(part => {
     if (aliases[part.toLowerCase()]) return aliases[part.toLowerCase()];
-    if (/^\\d+$/.test(part)) return part;
+    if (/^\d+$/.test(part)) return part;
     return part.charAt(0).toUpperCase() + part.slice(1);
   }).join(" ");
 }
@@ -888,6 +888,9 @@ $("cameraAlertStack").addEventListener("click", event => {
 
 // ¿Llueve donde está el usuario? Se decide con estaciones medidas cercanas (no con el modelo).
 const AMBIENT_RAIN_RADIUS_KM = 15;
+// Si la cámara de casa ve lluvia, se da por cierta alrededor de este radio (mapa, resumen de arriba y rutas).
+const HOME_RAIN_RADIUS_KM = 5.5;
+const HOME_CAMERA_OFFLINE_MINUTES = 30; // sin lectura de la tablet en este tiempo = sin conexión
 
 function distanceKm(lat1, lon1, lat2, lon2) {
   const rad = Math.PI / 180;
@@ -965,6 +968,28 @@ async function updateHeroPlace(location) {
   }
 }
 
+// Estaciones con lectura vigente (archivo del bot reciente y dato de la estación de menos de 1 h).
+// Cada una trae su posición y los minutos reales que tiene el dato.
+function freshStationRows() {
+  const data = cameraMonitorData;
+  if (!data || !Array.isArray(data.stations)) return [];
+  const generated = data.generated_at ? Date.parse(data.generated_at) : 0;
+  if (!generated || Date.now() - generated > 80 * 60 * 1000) return [];
+  const sinceFile = Math.max(0, (Date.now() - generated) / 60000);
+  const out = [];
+  data.stations.forEach(row => {
+    if (!row || row.dead || (row.availability_status !== "online" && row.availability_status !== "delayed")) return;
+    const def = PUBLIC_STATIONS.find(item => item.id === row.id);
+    const lat = Number(def ? def.lat : row.lat);
+    const lon = Number(def ? def.lon : row.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const age = (Number(row.image_age_minutes) || 0) + sinceFile;
+    if (age > 60) return;
+    out.push({ row, lat, lon, age, mm: Number(row.rain_last_hour_mm) || 0 });
+  });
+  return out;
+}
+
 function updateAmbientLocalRain() {
   if (!window.RainTrackAmbient) return;
   // Rayos reales (satélite) a menos de 20 km en los últimos 10 min confirman tormenta en tu zona.
@@ -973,27 +998,23 @@ function updateAmbientLocalRain() {
     window.RainTrackAmbient.setLocalRain(true, true);
     return;
   }
-  if (homeLocation && homeCameraRaining(3)) {
-    window.RainTrackAmbient.setLocalRain(true);
+  if (homeLocation && homeCameraRaining(HOME_RAIN_RADIUS_KM)) {
+    window.RainTrackAmbient.setLocalRain(true, false, 2);
     return;
   }
-  if (!homeLocation || !cameraMonitorData || !Array.isArray(cameraMonitorData.stations)) {
+  if (!homeLocation) {
     window.RainTrackAmbient.setLocalRain(null);
     return;
   }
-  let nearbyOnline = 0;
-  let nearbyRain = false;
-  cameraMonitorData.stations.forEach(row => {
-    if (!row || row.availability_status !== "online" || row.dead) return;
-    const def = PUBLIC_STATIONS.find(item => item.id === row.id);
-    const lat = Number(def ? def.lat : row.lat);
-    const lon = Number(def ? def.lon : row.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-    if (distanceKm(homeLocation.lat, homeLocation.lon, lat, lon) > AMBIENT_RAIN_RADIUS_KM) return;
-    nearbyOnline += 1;
-    if (Number(row.rain_last_hour_mm) > 0) nearbyRain = true;
-  });
-  window.RainTrackAmbient.setLocalRain(nearbyOnline === 0 ? null : nearbyRain);
+  // Si estás dentro de una zona de lluvia medida (la misma que se dibuja en el mapa), arriba también llueve.
+  const cell = window.RainTrackOwnRain ? window.RainTrackOwnRain.rainAt(homeLocation.lat, homeLocation.lon) : null;
+  if (cell) {
+    window.RainTrackAmbient.setLocalRain(true, false, cell.mm < 0.5 ? 1 : cell.mm < 4 ? 2 : 3);
+    return;
+  }
+  const nearby = freshStationRows().filter(item =>
+    distanceKm(homeLocation.lat, homeLocation.lon, item.lat, item.lon) <= AMBIENT_RAIN_RADIUS_KM);
+  window.RainTrackAmbient.setLocalRain(nearby.length === 0 ? null : nearby.some(item => item.mm > 0));
 }
 
 // Cámara de casa (experimental): estimación a partir de la imagen, no una medición.
@@ -1007,10 +1028,10 @@ function homeCameraEnabled() {
 
 function homeCameraRows() {
   const rows = cameraMonitorData && Array.isArray(cameraMonitorData.home_cameras) ? cameraMonitorData.home_cameras : [];
-  const limit = 20 * 60 * 1000;
+  const limit = HOME_CAMERA_OFFLINE_MINUTES * 60 * 1000;
   return rows.filter(row => row && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)))
     .map(row => {
-      // Sin lectura de la tablet en 20 min = sin conexión (también si el bot dejó de publicar).
+      // El bot ya la marca sin conexión a los 20 min; este límite cubre el caso de que el bot deje de publicar.
       const stale = row.stale === true || !(Date.now() - Date.parse(row.t) <= limit);
       return stale ? { ...row, stale: true, estimate: "unknown" } : row;
     });
@@ -1055,10 +1076,12 @@ function homeCameraPopupText(summary) {
 function updateHomeCameraMarker() {
   if (homeCameraMarker) { homeCameraMarker.remove(); homeCameraMarker = null; }
   const summary = homeCameraSummary();
-  if (!mapReady || !homeCameraEnabled() || !summary.rows.length) return;
+  if (!mapReady || !summary.rows.length) return;
   const row = summary.rows[0];
   const rain = summary.estimate === "possible_rain";
   const offline = summary.rows.some(item => item.stale);
+  // El ícono sigue el interruptor "Cámaras", salvo cuando está sin conexión: ese aviso (rojo) se ve siempre.
+  if (!homeCameraEnabled() && !offline) return;
   const element = document.createElement("div");
   element.textContent = summary.rows.length > 1 ? "📷" + summary.rows.length : "📷";
   element.style.cssText = "min-width:30px;height:30px;padding:0 " + (summary.rows.length > 1 ? "6px" : "0") + ";border-radius:15px;display:flex;align-items:center;justify-content:center;" +
@@ -1455,17 +1478,6 @@ function removeRadarLayer() {
   if (!mapReady) return;
   if (map.getLayer("raintrack-radar-layer")) map.removeLayer("raintrack-radar-layer");
   if (map.getSource("raintrack-radar-source")) map.removeSource("raintrack-radar-source");
-}
-
-function setRadarTimeline(frames, allowAnimation = true) {
-  radarFrames = frames;
-  radarFrameIndex = 0;
-  $("frameSlider").disabled = radarFrames.length <= 1;
-  $("frameSlider").min = "0";
-  $("frameSlider").max = String(Math.max(0, radarFrames.length - 1));
-  $("frameSlider").value = "0";
-  $("playRadar").disabled = radarFrames.length <= 1 || !allowAnimation;
-  if (radarFrames.length <= 1 || !allowAnimation) stopRadarAnimation();
 }
 
 function radarTileUrl(frame, metadata, config) {
@@ -1902,16 +1914,6 @@ function clearRouteLayers() {
   routeIsVisible = false;
 }
 
-function closeRouteAnalysis() {
-  resetRouteResult();
-  $("routePanel").hidden = true;
-  $("routeToggle").setAttribute("aria-expanded", "false");
-  $("routeToggle").textContent = "🧭 Rutas";
-  cancelRouteMapPick();
-  if (mapReady) showCostaRicaOverview(true);
-  $("mapStatusChip").textContent = "🇨🇷 Costa Rica · Mapa normal";
-}
-
 // Quita la ruta del mapa pero deja el panel abierto para probar otra.
 function removeRoute() {
   resetRouteResult();
@@ -1994,24 +1996,22 @@ async function getRouteWeather(location) {
 function nearestHourlyForecast(data, eta) {
   const times = data.hourly && data.hourly.time ? data.hourly.time : [];
   if (!times.length) return null;
-  let bestIndex = 0;
-  let bestDifference = Infinity;
-  times.forEach((time, index) => {
-    // Open-Meteo devuelve hora local sin offset cuando se especifica zona horaria.
-    const date = new Date(time + "-06:00");
-    const difference = Math.abs(date.getTime() - eta.getTime());
-    if (difference < bestDifference) {
-      bestDifference = difference;
-      bestIndex = index;
-    }
-  });
+  // Open-Meteo devuelve hora local sin offset. La lluvia y la probabilidad de cada marca cubren la hora
+  // ANTERIOR (la marca de las 6:00 es de 5:00 a 6:00), así que para llegar a las 5:25 vale la de las 6:00.
+  const stamps = times.map(time => new Date(time + "-06:00").getTime());
+  let index = stamps.findIndex(stamp => stamp >= eta.getTime());
+  if (index < 0) index = stamps.length - 1;
+  // El tipo de tiempo es del instante de la marca: se toma la más cercana, y si alguna de las dos anuncia tormenta, esa.
+  const nearest = index > 0 && Math.abs(stamps[index - 1] - eta.getTime()) < Math.abs(stamps[index] - eta.getTime()) ? index - 1 : index;
+  const codes = [nearest, index].map(i => Number(data.hourly.weather_code?.[i] ?? 0));
+  const stormCode = codes.find(code => [95, 96, 99].includes(code));
   return {
-    time: times[bestIndex],
-    probability: Number(data.hourly.precipitation_probability?.[bestIndex] ?? 0),
-    precipitation: Number(data.hourly.precipitation?.[bestIndex] ?? 0),
-    rain: Number(data.hourly.rain?.[bestIndex] ?? 0),
-    showers: Number(data.hourly.showers?.[bestIndex] ?? 0),
-    weatherCode: Number(data.hourly.weather_code?.[bestIndex] ?? 0)
+    time: times[index],
+    probability: Number(data.hourly.precipitation_probability?.[index] ?? 0),
+    precipitation: Number(data.hourly.precipitation?.[index] ?? 0),
+    rain: Number(data.hourly.rain?.[index] ?? 0),
+    showers: Number(data.hourly.showers?.[index] ?? 0),
+    weatherCode: stormCode !== undefined ? stormCode : codes[0]
   };
 }
 
@@ -2035,11 +2035,6 @@ function getRouteCurrentRainComponentMm(current) {
     .map(Number)
     .filter(value => Number.isFinite(value) && value >= 0);
   return values.length ? Math.max(...values) : null;
-}
-
-function formatRouteMillimeters(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.max(0, number).toFixed(2) : "--";
 }
 
 function formatRouteDuration(seconds) {
@@ -2123,27 +2118,23 @@ function drawRouteOnMap(route, origin, destination, levels) {
 // ¿Qué dicen las estaciones del IMN cerca de este punto? (mediciones, no modelo)
 function routeStationEvidence(lat, lon) {
   const out = { covered: false, rainy: null, dry: null };
-  const data = cameraMonitorData;
-  if (!data || !Array.isArray(data.stations)) return out;
-  const generated = data.generated_at ? Date.parse(data.generated_at) : 0;
-  if (!generated || Date.now() - generated > 80 * 60 * 1000) return out;
-  data.stations.forEach(row => {
-    if (!row || row.dead || (row.availability_status !== "online" && row.availability_status !== "delayed")) return;
-    const def = PUBLIC_STATIONS.find(item => item.id === row.id);
-    const slat = Number(def ? def.lat : row.lat);
-    const slon = Number(def ? def.lon : row.lon);
-    if (!Number.isFinite(slat) || !Number.isFinite(slon)) return;
-    const km = distanceKm(lat, lon, slat, slon);
+  freshStationRows().forEach(item => {
+    const km = distanceKm(lat, lon, item.lat, item.lon);
     if (km > ROUTE_STATION_RADIUS_KM) return;
-    const age = (Number(row.image_age_minutes) || 0) + (Date.now() - generated) / 60000;
-    if (age > 60) return; // lectura demasiado vieja para decir "llueve ahora"
     out.covered = true;
-    const mm = Number(row.rain_last_hour_mm);
-    const entry = { name: stationShortName(row), mm, km };
-    if (mm > 0) { if (!out.rainy || mm > out.rainy.mm) out.rainy = entry; }
+    const entry = { name: stationShortName(item.row), mm: item.mm, km };
+    if (item.mm > 0) { if (!out.rainy || item.mm > out.rainy.mm) out.rainy = entry; }
     else if (!out.dry || km < out.dry.km) out.dry = entry;
   });
   return out;
+}
+
+// ¿La cámara de casa ve lluvia y este punto de la ruta está dentro de su zona?
+function routeHomeCameraRain(lat, lon) {
+  const summary = homeCameraSummary();
+  if (summary.estimate !== "possible_rain") return false;
+  return summary.rows.some(row => row.estimate === "possible_rain" &&
+    distanceKm(lat, lon, Number(row.lat), Number(row.lon)) <= HOME_RAIN_RADIUS_KM);
 }
 
 function routeClock(date) {
@@ -2151,13 +2142,15 @@ function routeClock(date) {
 }
 
 // Decide el nivel de un punto combinando, en este orden de confianza:
-// rayos reales > estaciones del IMN > pronóstico a la hora de llegada > modelo actual.
+// rayos reales > estaciones del IMN y cámara de casa > pronóstico a la hora de llegada > modelo actual.
 // Lo medido "ahora" solo pesa si llegas pronto; si llegas más tarde decide el pronóstico.
 function assessRoutePoint(ev) {
   const near = ev.minutesAway <= 25;
   const soon = ev.minutesAway <= 75;
   const st = ev.station || { covered: false, rainy: null, dry: null };
-  if (!ev.model && !ev.forecast && !st.covered && !(ev.bolts > 0)) return { level: 0, reason: "Sin datos de este tramo" };
+  if (!ev.model && !ev.forecast && !st.covered && !(ev.bolts > 0) && !ev.homeCam) return { level: 0, reason: "Sin datos de este tramo" };
+  // Lo medido ahora no dice nada de una llegada lejana: sin pronóstico para esa hora no se afirma "despejado".
+  if (!ev.forecast && !soon) return { level: 0, reason: "Sin pronóstico para esa hora" };
   let level = 1;
   let reason = st.covered && st.dry ? "Sin lluvia (" + st.dry.name + ")" : "Sin lluvia prevista";
   const bump = (newLevel, text) => { if (newLevel > level) { level = newLevel; reason = text; } };
@@ -2171,6 +2164,10 @@ function assessRoutePoint(ev) {
     const where = st.rainy.name + " · a " + Math.max(1, Math.round(st.rainy.km)) + " km";
     if (near) bump(st.rainy.mm >= 8 ? 4 : 3, "🌧 " + amount + " · " + where);
     else if (soon) bump(2, "🌧 Llueve ahora cerca (" + where + ")");
+  }
+  if (ev.homeCam) {
+    if (near) bump(3, "📷 La cámara de casa ve lluvia");
+    else if (soon) bump(2, "📷 La cámara de casa ve lluvia ahora");
   }
   if (ev.model && ev.model.rain && near && !st.covered) {
     bump(3, "Lluvia según el modelo (sin estaciones cerca)");
@@ -2338,6 +2335,7 @@ async function analyzeRoute() {
         bolts: window.RainTrackLightning
           ? window.RainTrackLightning.nearby(lat, lon, ROUTE_LIGHTNING_RADIUS_KM, ROUTE_LIGHTNING_MINUTES) : 0,
         station: routeStationEvidence(lat, lon),
+        homeCam: routeHomeCameraRain(lat, lon),
         model, forecast, eta
       };
       return { ...base, ...assessRoutePoint(ev) };
@@ -2558,23 +2556,36 @@ function renderForecast(location, data) {
   }).join("");
 }
 
-// Franja de amanecer y atardecer entre el resumen y el mapa. El punto marca dónde va el sol hoy.
-function updateSunBar(sunrise, sunset, daylight, nowIso) {
+// Franja de amanecer y atardecer entre el resumen y el mapa. El punto marca dónde va el sol hoy
+// y se mueve con el reloj (no espera a la siguiente consulta del clima).
+let sunBarInfo = null;
+function paintSunBar() {
+  if (!sunBarInfo) return;
+  const { rise, set, offset, fallbackNow } = sunBarInfo;
+  let now = fallbackNow;
+  if (Number.isFinite(offset)) {
+    const local = new Date(Date.now() + offset * 1000); // hora del lugar, leída como UTC
+    now = local.getUTCHours() * 60 + local.getUTCMinutes();
+  }
+  const progress = now == null ? 0 : Math.min(1, Math.max(0, (now - rise) / (set - rise)));
+  const isDay = now != null && now >= rise && now <= set;
+  $("sunFill").style.width = (progress * 100) + "%";
+  $("sunDot").style.left = (progress * 100) + "%";
+  $("sunBar").classList.toggle("is-night", !isDay);
+}
+function updateSunBar(sunrise, sunset, daylight, nowIso, utcOffsetSeconds) {
   const bar = $("sunBar");
   const toMinutes = iso => { const m = String(iso || "").match(/T(\d{2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
   const rise = toMinutes(sunrise), set = toMinutes(sunset);
-  if (rise == null || set == null || set <= rise) { bar.hidden = true; return; }
-  const now = toMinutes(nowIso);
-  const progress = now == null ? null : Math.min(1, Math.max(0, (now - rise) / (set - rise)));
-  const isDay = now != null && now >= rise && now <= set;
+  if (rise == null || set == null || set <= rise) { sunBarInfo = null; bar.hidden = true; return; }
+  sunBarInfo = { rise, set, offset: typeof utcOffsetSeconds === "number" ? utcOffsetSeconds : NaN, fallbackNow: toMinutes(nowIso) };
   $("sunRise").textContent = formatLocalHour(sunrise);
   $("sunSet").textContent = formatLocalHour(sunset);
   $("sunLength").textContent = daylight ? formatDayLength(daylight) + " de luz" : "";
-  $("sunFill").style.width = (progress == null ? 0 : progress * 100) + "%";
-  $("sunDot").style.left = (progress == null ? 0 : progress * 100) + "%";
-  bar.classList.toggle("is-night", !isDay);
+  paintSunBar();
   bar.hidden = false;
 }
+setInterval(paintSunBar, 60 * 1000);
 
 function renderSolarCard(containerId, location, data, isHome) {
   const container = $(containerId);
@@ -2588,7 +2599,7 @@ function renderSolarCard(containerId, location, data, isHome) {
     return;
   }
 
-  if (isHome) updateSunBar(sunrise, sunset, daylight, data.current && data.current.time);
+  if (isHome) updateSunBar(sunrise, sunset, daylight, data.current && data.current.time, data.utc_offset_seconds);
 
   container.innerHTML = `
     <div class="solar-place">${escapeHtml(isHome ? "Mi ubicación actual" : location.name)}</div>
@@ -2877,7 +2888,6 @@ function requestCurrentLocation(preserveDestination = false, automatic = false) 
       if (!preserveDestination) {
         destinationLocation = null;
         $("conditionsSection").hidden = true;
-  $("conditionsSection").hidden = true;
         destinationWeatherData = null;
         $("destinationWeatherCard").innerHTML = '<div class="place-name">Destino seleccionado</div><p class="subtitle">Busca una localidad para consultar si se estima lluvia en ese lugar.</p>';
         $("destinationSolarCard").innerHTML = '<div class="solar-place">Destino seleccionado</div><p class="subtitle">Busca una localidad para conocer su amanecer y atardecer.</p>';
@@ -3112,7 +3122,7 @@ function refreshWeatherData() {
 
 function startAutomaticUpdates() {
   if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
-  weatherRefreshTimer = setInterval(refreshWeatherData, 30 * 60 * 1000);
+  weatherRefreshTimer = setInterval(refreshWeatherData, 15 * 60 * 1000);
   loadCameraMonitoringData();
   if (cameraMonitorTimer) clearInterval(cameraMonitorTimer);
   cameraMonitorTimer = setInterval(loadCameraMonitoringData, 2 * 60 * 1000);

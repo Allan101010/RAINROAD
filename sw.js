@@ -1,6 +1,6 @@
 // Service worker mínimo: la app siempre intenta la red primero para que cada
 // actualización publicada llegue sola; sin conexión usa la última copia guardada.
-const CACHE = "raintrackcr-shell-v3";
+const CACHE = "raintrackcr-shell-v4";
 const SHELL = ["./", "index.html", "assets/app.js", "assets/ambient.js", "assets/landmarks.js", "assets/ratelayer.js", "assets/lightning.js", "assets/quakes.js", "assets/styles.css", "manifest.webmanifest"];
 
 self.addEventListener("install", event => {
@@ -18,16 +18,21 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   const request = event.request;
-  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  // Se guarda UNA copia por archivo, sin ?v= ni ?rt=. Con la dirección completa se acumulaba una
+  // copia nueva de camera-alerts.json (~270 KB) cada 2 minutos y nunca se borraba.
+  const key = url.origin + url.pathname;
   event.respondWith(
     fetch(request, { cache: "no-cache" })
       .then(response => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+          caches.open(CACHE).then(cache => cache.put(key, copy)).catch(() => {});
         }
         return response;
       })
-      .catch(() => caches.match(request).then(hit => hit || caches.match("index.html")))
+      .catch(() => caches.match(key).then(hit =>
+        hit || (request.mode === "navigate" ? caches.match("index.html") : Response.error())))
   );
 });

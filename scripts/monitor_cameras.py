@@ -1222,7 +1222,7 @@ def status_signature(payload: dict) -> tuple:
         if item.get("id")
     ))
     home_signature = tuple(sorted(
-        (item.get("id"), item.get("estimate"))
+        (item.get("id"), item.get("estimate"), bool(item.get("stale")))
         for item in (payload.get("home_cameras", []) if isinstance(payload, dict) else [])
         if item.get("id")
     ))

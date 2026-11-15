@@ -154,7 +154,13 @@ def parse_home_messages(text: str, now: datetime) -> list[dict]:
 
 def fetch_home_rows(session: requests.Session, topic: str, lat: float | None, lon: float | None,
                     stations: list[dict], flashes, now: datetime) -> list[dict]:
-    """Filas de las cámaras de casa, con las estaciones y rayos cercanos al lugar (si se conoce)."""
+    """Filas de las cámaras de casa, con las estaciones y rayos cercanos al lugar (si se conoce).
+
+    Las distancias se calculan desde la ubicación redondeada (~1 km): estas filas se publican, y con
+    distancias exactas a tres estaciones se podría deducir dónde queda la casa.
+    """
+    if lat is not None and lon is not None:
+        lat, lon = round(lat, HOME_COORD_DECIMALS), round(lon, HOME_COORD_DECIMALS)
     try:
         response = session.get(f"https://ntfy.sh/{topic}/json", params={"poll": "1", "since": "20m"}, timeout=20)
         response.raise_for_status()
@@ -175,6 +181,21 @@ def fetch_home_rows(session: requests.Session, topic: str, lat: float | None, lo
     return rows
 
 
+def _blur_home_distances(row: dict) -> bool:
+    """Filas viejas de las cámaras de casa: deja las distancias a estaciones en km enteros.
+
+    Antes se guardaban con un decimal desde la ubicación exacta. Devuelve True si cambió algo.
+    """
+    if not str(row.get("cam", "")).startswith("home-"):
+        return False
+    changed = False
+    for entry in row.get("st") or []:
+        if isinstance(entry, list) and len(entry) > 1 and isinstance(entry[1], float) and entry[1] != round(entry[1]):
+            entry[1] = float(round(entry[1]))
+            changed = True
+    return changed
+
+
 def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> int:
     """Agrega filas al archivo local y descarta lo anterior a KEEP_DAYS."""
     path = path or DATA_PATH
@@ -184,10 +205,14 @@ def append_rows(rows: list[dict], now: datetime, path: Path | None = None) -> in
     if path.exists():
         for line in path.read_text(encoding="utf-8").splitlines():
             try:
-                if json.loads(line).get("t", "") >= cutoff:
-                    kept.append(line)
+                item = json.loads(line)
             except ValueError:
                 continue
+            if item.get("t", "") < cutoff:
+                continue
+            if _blur_home_distances(item):
+                line = json.dumps(item, separators=(",", ":"), ensure_ascii=False)
+            kept.append(line)
     existing = set()
     for line in kept:
         try:
