@@ -16,7 +16,7 @@
 
   const toggle = () => document.getElementById("lightningToggle");
   const info = () => document.getElementById("lightningInfo");
-  const isOn = () => !!(toggle() && toggle().checked);
+  const isOn = () => true; // siempre activo (sin interruptor)
 
   function ageMinutes(epochSeconds) {
     return Math.max(0, (Date.now() / 1000 - epochSeconds) / 60);
@@ -142,13 +142,6 @@
   window.RainTrackLightning = { nearby, refresh, redraw: draw };
 
   document.addEventListener("DOMContentLoaded", () => {
-    const checkbox = toggle();
-    if (!checkbox) return;
-    try { if (localStorage.getItem(STORAGE_KEY) === "0") checkbox.checked = false; } catch (e) {}
-    checkbox.addEventListener("change", () => {
-      try { localStorage.setItem(STORAGE_KEY, checkbox.checked ? "1" : "0"); } catch (e) {}
-      draw();
-    });
     refresh();
     timer = setInterval(() => { refresh(); }, REFRESH_MS);
     // Reponer la capa cuando el mapa termina de cargar o cambia de estilo (claro/oscuro).

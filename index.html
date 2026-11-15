@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.73">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.74">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.73</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.74</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -87,9 +87,8 @@
             <div class="layer-group">
               <div class="layer-group-title">📍 Puntos en el mapa</div>
               <label class="layer-check"><input id="camerasToggle" type="checkbox"> <span class="layer-label"><strong>📷 Cámaras</strong><small>Públicas y de volcanes · muestran si están en línea</small></span></label>
-              <label class="layer-check"><input id="quakeToggle" type="checkbox" checked> <span class="layer-label"><strong>🌍 Temblores y terremotos</strong><small>Desde M3.5 · OVSICORI, USGS y EMSC · informa después del sismo</small></span></label>
               <label class="layer-check"><input id="stationsToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Estaciones meteorológicas</strong><small>132 estaciones IMN + 1 panel WeatherLink · miden la lluvia</small></span></label>
-              <label class="layer-check"><input id="lightningToggle" type="checkbox" checked> <span class="layer-label"><strong>⚡ Rayos reales</strong><small id="lightningInfo">Rayos del satélite GOES-19 (NOAA). Cargando…</small></span></label>
+              <p class="layer-hint"><strong>⚡ Rayos reales</strong> · <span id="lightningInfo">Rayos del satélite GOES-19 (NOAA). Cargando…</span></p>
               <label class="layer-check"><input id="tempToggle" type="checkbox"> <span class="layer-label"><strong>🌡️ Temperatura actual</strong><small>Grados medidos por las estaciones del IMN, con color por rango</small></span></label>
               <div class="temp-legend" aria-hidden="true"><span style="background:#2563eb">&lt;16°</span><span style="background:#0891b2">16</span><span style="background:#16a34a">20</span><span style="background:#ca8a04">24</span><span style="background:#ea580c">28</span><span style="background:#dc2626">32°+</span></div>
               <p class="layer-hint">Se revisan cada 10 minutos. La lluvia se informa solo con las estaciones, que la miden; las cámaras solo indican su estado. Las imágenes oscuras, demoradas o sin detalle se marcan como no legibles y no generan alertas. Algunas cámaras (SkylineWebcams, Aeropuerto de Cóbano) abren el video en su página original.</p>
@@ -224,9 +223,12 @@
           <h2>🌍 Temblores y terremotos</h2>
           <p class="subtitle" id="quakeInfo">Cargando…</p>
         </div>
+        <button class="btn small-btn" id="quakeSectionToggle" type="button" aria-expanded="false">Mostrar ▼</button>
       </div>
+      <div id="quakePanel" hidden>
       <div class="quake-list" id="quakeList" aria-live="polite"></div>
       <p class="source-note">Fuentes: OVSICORI-UNA (red sísmica local), USGS y EMSC (centros internacionales, datos abiertos). Las magnitudes son preliminares y pueden cambiar. Esta lista informa <strong>después</strong> del sismo, con minutos de retraso: no es una alerta temprana. Para alerta temprana usa la app «OVSICORI-UNA Alerta Terremotos»; para reportes oficiales, la RSN (UCR-ICE) y el OVSICORI-UNA.</p>
+      </div>
     </section>
 
     <section class="section">
@@ -315,11 +317,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.73"></script>
-  <script src="assets/app.js?v=1.8.73"></script>
-  <script src="assets/landmarks.js?v=1.8.73"></script>
-  <script src="assets/ratelayer.js?v=1.8.73"></script>
-  <script src="assets/lightning.js?v=1.8.73"></script>
-  <script src="assets/quakes.js?v=1.8.73"></script>
+  <script src="assets/ambient.js?v=1.8.74"></script>
+  <script src="assets/app.js?v=1.8.74"></script>
+  <script src="assets/landmarks.js?v=1.8.74"></script>
+  <script src="assets/ratelayer.js?v=1.8.74"></script>
+  <script src="assets/lightning.js?v=1.8.74"></script>
+  <script src="assets/quakes.js?v=1.8.74"></script>
 </body>
 </html>

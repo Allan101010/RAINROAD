@@ -2868,6 +2868,7 @@ setupCollapsible("searchToggle", "searchPanel", "raintrackcr_section_search_v1")
 setupCollapsible("conditionsToggle", "conditionsPanel", "raintrackcr_section_conditions_v1");
 setupCollapsible("forecastToggle", "forecastPanel", "raintrackcr_section_forecast_v1");
 setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
+setupCollapsible("quakeSectionToggle", "quakePanel", "raintrackcr_section_quakes_v1");
 
 $("radarSource").value = ownRainSelected ? "raintrack" : (RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr");
 $("librewxrColorScheme").value = String(librewxrColorScheme);

@@ -47,8 +47,7 @@
   }
 
   function enabled() {
-    const checkbox = $q("quakeToggle");
-    return !checkbox || checkbox.checked;
+    return true; // siempre activo (sin interruptor)
   }
 
   function quakes() {
@@ -207,14 +206,6 @@
   window.RainTrackQuakes = { refresh, redraw: renderAll };
 
   document.addEventListener("DOMContentLoaded", () => {
-    const checkbox = $q("quakeToggle");
-    if (checkbox) {
-      try { if (localStorage.getItem(STORAGE_KEY) === "0") checkbox.checked = false; } catch (e) {}
-      checkbox.addEventListener("change", () => {
-        try { localStorage.setItem(STORAGE_KEY, checkbox.checked ? "1" : "0"); } catch (e) {}
-        renderAll();
-      });
-    }
     refresh();
     setInterval(refresh, REFRESH_MS);
     setInterval(renderAll, 60000);
