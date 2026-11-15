@@ -97,7 +97,8 @@
     } else {
       const p = window.__ambientMoonPhase != null ? window.__ambientMoonPhase : moonPhase(new Date());
       title = moonName(p);
-      html += `<div class="amb-body amb-moon ${kind === "clear" ? "" : "dim"}" title="${title}">${moonSvg(p)}</div>`;
+      const [phaseName, phaseLit] = title.split(" · ");
+      html += `<div class="amb-body amb-moon ${kind === "clear" ? "" : "dim"}" title="${title}">${moonSvg(p)}<span class="amb-moon-label"><b>${phaseName}</b>${phaseLit ? `<br>${phaseLit.replace("% iluminada", " % iluminada")}` : ""}</span></div>`;
       if (kind === "clear" || kind === "partly") {
         let stars = "";
         for (let i = 0; i < 16; i++) {

@@ -2741,7 +2741,7 @@ function showLocationError(error, keepExistingLocation = false) {
   $("heroTemp").textContent = "--°";
   $("heroIcon").textContent = "📍";
   $("heroText").textContent = "Sin ubicación";
-  $("heroFeel").textContent = "Toca «Mi ubicación» en el mapa";
+  $("heroFeel").textContent = "Activa el GPS";
   $("weatherHero").classList.remove("is-loading");
   $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
   $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';

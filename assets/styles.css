@@ -1438,3 +1438,8 @@ body.map-focus .radar-title { font-size: 14px; }
 /* El clima de mi ubicación va arriba; la tarjeta grande ya no se muestra. */
 #homeWeatherCard { display: none !important; }
 #conditionsSection .weather-grid { grid-template-columns: 1fr; }
+
+/* Nombre de la fase debajo de la luna (solo cuando se muestra la luna). */
+.amb-moon { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.amb-moon-label { color: #aebbd0; font-size: 10.5px; line-height: 1.25; text-align: right; white-space: nowrap; }
+.amb-moon-label b { color: #dbe5f5; font-weight: 700; }
