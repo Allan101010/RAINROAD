@@ -2370,7 +2370,7 @@ function buildRainWindows(hours) {
 
 function renderForecast(location, data) {
   const hours = getNext24Hours(data);
-  $("forecastTitle").textContent = "Pronóstico por hora · " + location.name;
+  $("forecastTitle").textContent = "⏱️ Pronóstico por hora · " + location.name;
   const summary = $("rainSummary");
   const windows = buildRainWindows(hours);
 
@@ -2645,7 +2645,7 @@ function showLocationError(error, keepExistingLocation = false) {
   $("homeWeatherCard").innerHTML = '<div class="place-name">Mi ubicación actual</div><p class="subtitle error-text">No se pudo obtener la ubicación GPS. Inténtalo nuevamente.</p>';
   $("homeSolarCard").innerHTML = '<div class="solar-place">Mi ubicación actual</div><p class="subtitle error-text">Se necesita la ubicación GPS para calcular el amanecer y el atardecer.</p>';
   $("mapLocationChip").textContent = "🇨🇷 Costa Rica · Ubicación pendiente";
-  $("forecastTitle").textContent = "Pronóstico por hora · Mi ubicación actual";
+  $("forecastTitle").textContent = "⏱️ Pronóstico por hora · Mi ubicación actual";
   $("rainSummary").innerHTML = '<div class="summary-title">Resumen de lluvia</div><p class="summary-line muted">Permite el acceso al GPS o busca un destino para consultar el pronóstico.</p>';
   $("hourlyGrid").innerHTML = "";
 
@@ -2859,11 +2859,15 @@ function setupCollapsible(buttonId, panelId, storageKey) {
   const apply = open => {
     panel.hidden = !open;
     button.setAttribute("aria-expanded", String(open));
-    button.textContent = open ? "Ocultar ▲" : "Mostrar ▼";
+    if (!button.classList.contains("fold-btn")) button.textContent = open ? "Ocultar ▲" : "Mostrar ▼";
+    button.closest(".fold-head")?.classList.toggle("is-open", open);
   };
   let saved = false;
   try { saved = localStorage.getItem(storageKey) === "open"; } catch (error) { /* sin almacenamiento */ }
   apply(saved);
+  // Toda la franja del título es tocable, no solo el botón.
+  const head = button.closest(".fold-head");
+  if (head) head.addEventListener("click", event => { if (!event.target.closest("button, a")) button.click(); });
   button.addEventListener("click", () => {
     const open = panel.hidden;
     apply(open);

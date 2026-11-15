@@ -1340,3 +1340,50 @@ body.map-focus .radar-title { font-size: 14px; }
   #mapLocationChip,
   .maplibregl-ctrl-top-right { display: none !important; }
 }
+
+/* Secciones plegables: franjas tipo tarjeta con flecha, en vez de botones sueltos. */
+.fold-head {
+  flex-wrap: nowrap;
+  gap: 14px;
+  padding: 14px 14px 14px 18px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, .13), rgba(15, 23, 42, 0) 60%), var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+.fold-head:hover { border-color: rgba(125, 211, 252, .45); }
+.fold-head > div, .fold-head > h2 { min-width: 0; flex: 1 1 auto; }
+.fold-head h2 { font-size: 17px; line-height: 1.3; letter-spacing: -.2px; }
+.fold-head .subtitle { margin-top: 4px; font-size: 12.5px; }
+.fold-head.is-open { margin-bottom: 10px; border-color: rgba(125, 211, 252, .4); }
+.fold-head > .btn { flex: 0 0 auto; white-space: nowrap; }
+.fold-btn {
+  flex: 0 0 auto;
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+  cursor: pointer;
+  transition: background .2s ease, transform .25s ease;
+}
+.fold-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -7px 0 0 -4.5px;
+  border-right: 2.5px solid #7dd3fc;
+  border-bottom: 2.5px solid #7dd3fc;
+  transform: rotate(45deg);
+  transition: transform .25s ease, margin .25s ease;
+}
+.fold-btn[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: -2px; }
+.fold-btn:hover { background: rgba(125, 211, 252, .16); }
+@media (prefers-reduced-motion: reduce) { .fold-btn, .fold-btn::after, .fold-head { transition: none; } }

@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.8.75">
+  <link rel="stylesheet" href="assets/styles.css?v=1.8.76">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.75</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.8.76</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span> Iniciando sistema</div>
   </header>
 
@@ -218,12 +218,12 @@
     </section>
 
     <section class="section" id="quakeSection">
-      <div class="section-head">
+      <div class="section-head fold-head">
         <div>
           <h2>🌍 Temblores y terremotos</h2>
           <p class="subtitle" id="quakeInfo">Cargando…</p>
         </div>
-        <button class="btn small-btn" id="quakeSectionToggle" type="button" aria-expanded="false">Mostrar ▼</button>
+        <button class="fold-btn" id="quakeSectionToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
       </div>
       <div id="quakePanel" hidden>
       <div class="quake-list" id="quakeList" aria-live="polite"></div>
@@ -232,9 +232,9 @@
     </section>
 
     <section class="section">
-      <div class="section-head">
+      <div class="section-head fold-head">
         <h2>🔎 Buscar otro destino</h2>
-        <button class="btn small-btn" id="searchToggle" type="button" aria-expanded="false">Mostrar ▼</button>
+        <button class="fold-btn" id="searchToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
       </div>
       <div class="search-box" id="searchPanel" hidden>
         <form class="search-form" id="searchForm">
@@ -247,9 +247,9 @@
     </section>
 
     <section class="section">
-      <div class="section-head">
-        <h2>Condiciones meteorológicas</h2>
-        <button class="btn small-btn" id="conditionsToggle" type="button" aria-expanded="false">Mostrar ▼</button>
+      <div class="section-head fold-head">
+        <h2>🌤️ Condiciones meteorológicas</h2>
+        <button class="fold-btn" id="conditionsToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
       </div>
       <div id="conditionsPanel" hidden>
       <div class="weather-grid">
@@ -266,9 +266,9 @@
     </section>
 
     <section class="section">
-      <div class="section-head">
-        <h2 id="forecastTitle">Pronóstico por hora · Mi ubicación actual</h2>
-        <button class="btn small-btn" id="forecastToggle" type="button" aria-expanded="false">Mostrar ▼</button>
+      <div class="section-head fold-head">
+        <h2 id="forecastTitle">⏱️ Pronóstico por hora · Mi ubicación actual</h2>
+        <button class="fold-btn" id="forecastToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
       </div>
       <div id="forecastPanel" hidden>
         <div class="forecast-summary" id="rainSummary">
@@ -281,9 +281,9 @@
     </section>
 
     <section class="section">
-      <div class="section-head">
+      <div class="section-head fold-head">
         <h2>🌅 Amanecer y atardecer</h2>
-        <button class="btn small-btn" id="solarToggle" type="button" aria-expanded="false">Mostrar ▼</button>
+        <button class="fold-btn" id="solarToggle" type="button" aria-expanded="false" aria-label="Mostrar u ocultar la sección"></button>
       </div>
       <div id="solarPanel" hidden>
       <div class="solar-grid">
@@ -300,7 +300,7 @@
     </section>
 
     <section class="section">
-      <div class="section-head">
+      <div class="section-head fold-head">
         <div>
           <h2>📍 Mi ubicación actual</h2>
           <p class="subtitle" id="homeLocationDescription">Se reutilizará la última ubicación durante 30 minutos. Puedes actualizarla manualmente cuando quieras.</p>
@@ -317,11 +317,11 @@
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/ambient.js?v=1.8.75"></script>
-  <script src="assets/app.js?v=1.8.75"></script>
-  <script src="assets/landmarks.js?v=1.8.75"></script>
-  <script src="assets/ratelayer.js?v=1.8.75"></script>
-  <script src="assets/lightning.js?v=1.8.75"></script>
-  <script src="assets/quakes.js?v=1.8.75"></script>
+  <script src="assets/ambient.js?v=1.8.76"></script>
+  <script src="assets/app.js?v=1.8.76"></script>
+  <script src="assets/landmarks.js?v=1.8.76"></script>
+  <script src="assets/ratelayer.js?v=1.8.76"></script>
+  <script src="assets/lightning.js?v=1.8.76"></script>
+  <script src="assets/quakes.js?v=1.8.76"></script>
 </body>
 </html>
