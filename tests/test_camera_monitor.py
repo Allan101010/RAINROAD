@@ -344,7 +344,10 @@ class HomeRainEstimateTests(unittest.TestCase):
             self.assertEqual(result[0]["estimate"], "possible_rain")
             self.assertEqual((result[0]["lat"], result[0]["lon"]), (9.91, -83.61))
             stale = self.ct.home_estimates(datetime(2026, 11, 14, 18, 0, tzinfo=timezone.utc), None, None, path)
-            self.assertEqual(stale, [])
+            # Sin lectura reciente la cámara se conserva, marcada como sin conexión.
+            self.assertEqual(len(stale), 1)
+            self.assertTrue(stale[0]["stale"])
+            self.assertEqual(stale[0]["estimate"], "unknown")
 
 
 if __name__ == "__main__":

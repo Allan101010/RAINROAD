@@ -1007,7 +1007,13 @@ function homeCameraEnabled() {
 
 function homeCameraRows() {
   const rows = cameraMonitorData && Array.isArray(cameraMonitorData.home_cameras) ? cameraMonitorData.home_cameras : [];
-  return rows.filter(row => row && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
+  const limit = 20 * 60 * 1000;
+  return rows.filter(row => row && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)))
+    .map(row => {
+      // Sin lectura de la tablet en 20 min = sin conexión (también si el bot dejó de publicar).
+      const stale = row.stale === true || !(Date.now() - Date.parse(row.t) <= limit);
+      return stale ? { ...row, stale: true, estimate: "unknown" } : row;
+    });
 }
 
 // Con varias cámaras de casa se junta una sola opinión: llueve si la mitad o más de las que
@@ -1035,6 +1041,10 @@ function homeCameraName(id) {
 function homeCameraPopupText(summary) {
   const lines = summary.rows.map(row => {
     const minutes = Math.max(0, Math.round((Date.now() - Date.parse(row.t)) / 60000));
+    if (row.stale) {
+      const lastText = minutes >= 120 ? "hace " + Math.round(minutes / 60) + " h" : "hace " + minutes + " min";
+      return "• " + homeCameraName(row.id) + ": SIN CONEXIÓN · última lectura " + lastText;
+    }
     const state = row.estimate === "possible_rain" ? "posible lluvia"
       : row.estimate === "no_rain" ? "sin señales de lluvia" : "sin opinión (de noche o poca visibilidad)";
     return "• " + homeCameraName(row.id) + ": " + state + " (hace " + minutes + " min)";
@@ -1048,12 +1058,13 @@ function updateHomeCameraMarker() {
   if (!mapReady || !homeCameraEnabled() || !summary.rows.length) return;
   const row = summary.rows[0];
   const rain = summary.estimate === "possible_rain";
+  const offline = summary.rows.some(item => item.stale);
   const element = document.createElement("div");
   element.textContent = summary.rows.length > 1 ? "📷" + summary.rows.length : "📷";
   element.style.cssText = "min-width:30px;height:30px;padding:0 " + (summary.rows.length > 1 ? "6px" : "0") + ";border-radius:15px;display:flex;align-items:center;justify-content:center;" +
-    "font-size:" + (summary.rows.length > 1 ? "12px" : "15px") + ";font-weight:800;color:#fff;border:3px solid " + (rain ? "#38bdf8" : "#ffffff") + ";" +
-    "background:" + (rain ? "#0369a1" : "#475569") + ";" +
-    "box-shadow:0 2px 9px rgba(0,0,0,.4);" + (summary.estimate === "unknown" ? "opacity:.6;" : "");
+    "font-size:" + (summary.rows.length > 1 ? "12px" : "15px") + ";font-weight:800;color:#fff;border:3px solid " + (offline ? "#fecaca" : rain ? "#38bdf8" : "#ffffff") + ";" +
+    "background:" + (offline ? "#dc2626" : rain ? "#0369a1" : "#475569") + ";" +
+    "box-shadow:0 2px 9px rgba(0,0,0,.4);" + (!offline && summary.estimate === "unknown" ? "opacity:.6;" : "");
   const popup = new maplibregl.Popup({ offset: 16 });
   popup.setDOMContent(Object.assign(document.createElement("div"), { textContent: homeCameraPopupText(summary), style: "white-space:pre-line" }));
   homeCameraMarker = new maplibregl.Marker({ element, anchor: "center" })

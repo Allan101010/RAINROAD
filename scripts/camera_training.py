@@ -265,8 +265,10 @@ def home_estimates(now: datetime, lat: float | None, lon: float | None, path: Pa
         rows.sort(key=lambda r: r["t"])
         latest = rows[-1]
         if latest["t"] < fresh_after:
-            continue
-        item = {"id": cam, "t": latest["t"], **estimate_home_rain(latest, rows[:-1])}
+            # Sin lectura reciente: la cámara sigue en el mapa pero marcada como sin conexión.
+            item = {"id": cam, "t": latest["t"], "estimate": "unknown", "stale": True}
+        else:
+            item = {"id": cam, "t": latest["t"], **estimate_home_rain(latest, rows[:-1])}
         if lat is not None and lon is not None:
             item["lat"] = round(lat, HOME_COORD_DECIMALS)
             item["lon"] = round(lon, HOME_COORD_DECIMALS)
