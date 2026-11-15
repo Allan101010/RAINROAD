@@ -1428,6 +1428,9 @@ body.map-focus .radar-title { font-size: 14px; }
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.hero-place b { color: #f1f5f9; font-weight: 700; }
+.hero-place-sep { margin: 0 7px; color: #64748b; }
+.hero-place-area { color: #94a3b8; font-weight: 500; }
 .weather-hero.is-rain .hero-text { color: #7dd3fc; }
 .weather-hero.is-loading .hero-temp,
 .weather-hero.is-loading .hero-text { opacity: .35; }

@@ -910,7 +910,7 @@ document.addEventListener("raintrack:ambient", event => updateWeatherHero(event.
 
 // Nombre del lugar donde estás (OpenStreetMap / Nominatim, gratis). Se guarda por zona de ~100 m
 // para no consultar de más (la política de Nominatim pide pocas consultas).
-const PLACE_CACHE_KEY = "raintrackcr_place_v1";
+const PLACE_CACHE_KEY = "raintrackcr_place_v2";
 let heroPlaceRequest = 0;
 function placeLabelFromAddress(addr) {
   if (!addr) return "";
@@ -919,29 +919,33 @@ function placeLabelFromAddress(addr) {
   const parts = [local, canton && canton !== local ? canton : ""].filter(Boolean);
   return parts.join(", ") || String(addr.state || "").replace(/^Provincia\s+(de\s+)?/i, "");
 }
-function showHeroPlace(text) {
+function showHeroPlace(text, road) {
   const el = $("heroPlace");
-  el.textContent = text ? "📍 " + text : "";
+  el.innerHTML = !text ? "" : "📍 " + (road ? `<b>${escapeHtml(road)}</b><span class="hero-place-sep">·</span>` : "")
+    + `<span class="hero-place-area">${escapeHtml(text)}</span>`;
+  el.title = [road, text].filter(Boolean).join(" · ");
   el.hidden = !text;
 }
 async function updateHeroPlace(location) {
   if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lon)) return;
-  const key = location.lat.toFixed(3) + "," + location.lon.toFixed(3);
+  // Zona de ~50 m: suficiente para notar el cambio de calle sin consultar a cada rato.
+  const key = (Math.round(location.lat * 2000) / 2000) + "," + (Math.round(location.lon * 2000) / 2000);
   let cache = {};
   try { cache = JSON.parse(localStorage.getItem(PLACE_CACHE_KEY) || "{}"); } catch (e) { cache = {}; }
-  if (cache.key === key && cache.label) { showHeroPlace(cache.label); return; }
-  if (cache.label) showHeroPlace(cache.label); // mientras tanto, el último lugar conocido
+  if (cache.key === key && cache.label) { showHeroPlace(cache.label, cache.road); return; }
+  if (cache.label) showHeroPlace(cache.label, cache.road); // mientras tanto, el último lugar conocido
   const ticket = ++heroPlaceRequest;
   try {
-    const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&addressdetails=1&accept-language=es"
+    const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=es"
       + "&lat=" + location.lat.toFixed(5) + "&lon=" + location.lon.toFixed(5);
     const response = await fetch(url, { headers: { Accept: "application/json" } });
     if (!response.ok) throw new Error("HTTP " + response.status);
     const data = await response.json();
     const label = placeLabelFromAddress(data.address);
+    const road = String((data.address && (data.address.road || data.address.pedestrian || data.address.residential)) || "").trim();
     if (ticket !== heroPlaceRequest || !label) return;
-    showHeroPlace(label);
-    try { localStorage.setItem(PLACE_CACHE_KEY, JSON.stringify({ key, label })); } catch (e) {}
+    showHeroPlace(label, road);
+    try { localStorage.setItem(PLACE_CACHE_KEY, JSON.stringify({ key, label, road })); } catch (e) {}
   } catch (error) {
     console.warn("No se pudo obtener el nombre del lugar:", error);
   }
