@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from array import array
 from datetime import datetime, timezone
@@ -158,6 +159,10 @@ def run_round(config: dict) -> int:
             print(f"{datetime.now():%H:%M:%S} {name}: la cámara no respondió a tiempo", flush=True)
         except subprocess.CalledProcessError:
             print(f"{datetime.now():%H:%M:%S} {name}: no se pudo leer la imagen (revisa la dirección RTSP)", flush=True)
+        except urllib.error.HTTPError as exc:  # el servidor ntfy contestó con error: se anota el código
+            wait = exc.headers.get("Retry-After") if exc.headers else None
+            extra = f", reintentar en {wait} s" if wait else ""
+            print(f"{datetime.now():%H:%M:%S} {name}: ntfy respondió {exc.code}{extra}", flush=True)
         except Exception as exc:  # una cámara con problemas no detiene a las demás
             print(f"{datetime.now():%H:%M:%S} {name}: error {type(exc).__name__}", flush=True)
     return sent
