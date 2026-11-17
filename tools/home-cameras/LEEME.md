@@ -1,6 +1,6 @@
 # Cámaras de casa para RainTrack CR
 
-Una tablet Android que se queda en casa lee tus cámaras cada 5 minutos, calcula unos números
+Una tablet Android que se queda en casa lee tus cámaras cada 8 minutos, calcula unos números
 (brillo, contraste, cielo, bordes) y envía **solo esos números**. La foto se borra al instante y
 nunca sale de tu red. El bot los usa para aprender cómo se ve la lluvia en tu pueblo.
 
@@ -47,7 +47,7 @@ cd tools/home-cameras
 python camaras_casa.py --descubrir 192.168.0.XXX --clave TU_CLAVE
 ```
 Prueba nueve direcciones comunes y te dice cuál funciona (sin mostrar tu clave). Si nunca pusiste clave, omite `--clave`. Evita claves con los símbolos `& ? # %`.
-- Cada cámara extra son 3 fotos más cada 5 minutos: no pasa nada con 2 o 3; con más conviene subir `intervalo_segundos`.
+- Cada cámara extra son 3 fotos más cada 8 minutos: no pasa nada con 2 o 3; con más conviene subir `intervalo_segundos`.
 
 ## 5. Tema privado de ntfy
 Inventa un nombre largo y secreto (es la "contraseña" del canal). Por ejemplo, en Termux:
@@ -95,7 +95,7 @@ En el repositorio: Settings → Secrets and variables → Actions → New reposi
 Es una estimación, no una medición.
 
 ## Privacidad
-- Salen solo unos 15 números por cámara cada 5 minutos. Nada de imágenes ni de tu dirección RTSP.
+- Salen solo unos 15 números por cámara cada 8 minutos. Nada de imágenes ni de tu dirección RTSP.
 - La clave de tus cámaras queda únicamente en `config.json`, dentro de tu tablet.
 
 ## Actualizar el programa de la tablet

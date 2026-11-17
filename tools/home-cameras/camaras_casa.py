@@ -139,6 +139,9 @@ def build_message(camera_id: str, features: dict, now: datetime | None = None) -
     }
 
 
+MIN_INTERVAL_SECONDS = 480
+
+
 def send(topic: str, message: dict, server: str = "https://ntfy.sh") -> None:
     request = urllib.request.Request(
         f"{server}/{topic}", data=json.dumps(message, separators=(",", ":")).encode("utf-8"),
@@ -215,7 +218,8 @@ def main() -> int:
         print("Falta config.json: copia config.ejemplo.json a config.json y complétalo.")
         return 1
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    interval = int(config.get("intervalo_segundos", 300))
+    # ntfy.sh gratis permite ~250 mensajes al día: cada 8 min son ~180, con margen para reinicios.
+    interval = max(MIN_INTERVAL_SECONDS, int(config.get("intervalo_segundos", MIN_INTERVAL_SECONDS)))
     while True:
         run_round(config)
         if args.una_vez:
