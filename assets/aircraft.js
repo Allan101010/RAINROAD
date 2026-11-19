@@ -19,10 +19,10 @@
 
   // Coordenadas aproximadas de los aeropuertos principales.
   const AIRPORTS = [
-    { icao: "MROC", iata: "SJO", name: "Aeropuerto Internacional Juan Santamaría", lat: 9.9939, lon: -84.2088, wiki: "Aeropuerto_Internacional_Juan_Santamaría" },
-    { icao: "MRPV", iata: "SYQ", name: "Aeropuerto Nacional Tobías Bolaños", lat: 9.9571, lon: -84.1398, wiki: "Aeropuerto_Internacional_Tobías_Bolaños_Palma" },
-    { icao: "MRLB", iata: "LIR", name: "Aeropuerto Internacional Daniel Oduber (Liberia)", lat: 10.5933, lon: -85.5444, wiki: "Aeropuerto_Internacional_Daniel_Oduber_Quirós" },
-    { icao: "MRLM", iata: "LIO", name: "Aeropuerto Internacional de Limón", lat: 9.9567, lon: -83.0220, wiki: "Aeropuerto_Internacional_de_Limón" }
+    { icao: "MROC", runway: 70, iata: "SJO", name: "Aeropuerto Internacional Juan Santamaría", lat: 9.9939, lon: -84.2088, wiki: "Aeropuerto_Internacional_Juan_Santamaría" },
+    { icao: "MRPV", runway: 90, iata: "SYQ", name: "Aeropuerto Nacional Tobías Bolaños", lat: 9.9571, lon: -84.1398, wiki: "Aeropuerto_Internacional_Tobías_Bolaños_Palma" },
+    { icao: "MRLB", runway: 70, iata: "LIR", name: "Aeropuerto Internacional Daniel Oduber (Liberia)", lat: 10.5933, lon: -85.5444, wiki: "Aeropuerto_Internacional_Daniel_Oduber_Quirós" },
+    { icao: "MRLM", runway: 80, iata: "LIO", name: "Aeropuerto Internacional de Limón", lat: 9.9567, lon: -83.0220, wiki: "Aeropuerto_Internacional_de_Limón" }
   ];
 
   const $q = id => document.getElementById(id);
@@ -142,6 +142,9 @@
   // ---------- Dibujo ----------
   const PLANE_SVG = "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" aria-hidden=\"true\"><path d=\"M12 1.5c.9 0 1.5.9 1.5 2v6.2l8 4.6v2.2l-8-2.3v4.6l2.2 1.7v1.9L12 20.6 8.3 22.4v-1.9l2.2-1.7v-4.6l-8 2.3v-2.2l8-4.6V3.5c0-1.1.6-2 1.5-2z\" fill=\"currentColor\" stroke=\"#0b1220\" stroke-width=\"1\" stroke-linejoin=\"round\"/></svg>";
 
+  // Pista vista desde arriba (vertical; el marcador la gira al rumbo real de la pista).
+  const RUNWAY_SVG = "<svg viewBox=\"0 0 14 44\" width=\"14\" height=\"44\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"12\" height=\"42\" rx=\"2\" fill=\"#334155\" stroke=\"#e2e8f0\" stroke-width=\"1.2\"/><path d=\"M3.5 4h7M3.5 40h7\" stroke=\"#fff\" stroke-width=\"1.4\"/><path d=\"M7 8v28\" stroke=\"#fff\" stroke-width=\"1.2\" stroke-dasharray=\"3 3\"/></svg>";
+
   function planeLabel(plane) {
     return plane.call || plane.reg || plane.hex.toUpperCase();
   }
@@ -174,11 +177,11 @@
       const el = document.createElement("button");
       el.type = "button";
       el.className = "airport-marker";
-      el.textContent = "🛫";
+      el.innerHTML = RUNWAY_SVG;
       el.title = airport.name;
       el.setAttribute("aria-label", airport.name);
       el.addEventListener("click", event => { event.stopPropagation(); openAirport(airport, el); });
-      airportMarkers.push(new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([airport.lon, airport.lat]).addTo(map));
+      airportMarkers.push(new maplibregl.Marker({ element: el, anchor: "center", rotation: airport.runway || 0, rotationAlignment: "map" }).setLngLat([airport.lon, airport.lat]).addTo(map));
     });
   }
 
@@ -326,7 +329,7 @@
     } catch (error) {
       failures += 1;
       if (Date.now() - lastGoodAt > KEEP_ON_ERROR_MS) clearPlanes();
-      setInfo("No se pudieron cargar los aviones. Reintentando…");
+      setInfo("Los servicios de aviones no permiten leerlos desde la app todavía. Reintentando…");
       schedule(Math.min(MAX_BACKOFF_MS, REFRESH_MS * Math.pow(2, failures)));
     } finally { inFlight = false; }
   }

@@ -1420,7 +1420,8 @@ body.map-focus .sunbar { display: none !important; }
 /* Aviones y aeropuertos */
 .aircraft-marker { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
 .aircraft-marker svg { display: block; pointer-events: none; }
-.airport-marker { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 2px solid #fff; border-radius: 50%; background: #1d4ed8; font-size: 15px; line-height: 1; box-shadow: 0 2px 8px rgba(0,0,0,.5); cursor: pointer; }
+.airport-marker { display: flex; align-items: center; justify-content: center; width: 16px; height: 46px; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+.airport-marker svg { display: block; pointer-events: none; }
 .aircraft-detail { color: #e5edf7; font: 12px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .aircraft-photo { margin: 0 0 10px; min-height: 40px; }
 .aircraft-photo img { display: block; width: 100%; max-height: 190px; object-fit: cover; border: 1px solid rgba(148,163,184,.18); border-radius: 11px; background: #0b1220; }
