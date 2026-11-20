@@ -1,14 +1,14 @@
 /* Aviones en vivo + aeropuertos (capa opcional, apagada por defecto).
-   Fuente: redes abiertas de receptores ADS-B de voluntarios (airplanes.live; adsb.lol y adsb.fi de respaldo).
+   Fuente: adsb.fi (receptores ADS-B de voluntarios), traído por la tablet de la casa a un Worker de Cloudflare.
    Solo se piden aviones mientras la capa está encendida y la pestaña visible. Se envía al servicio el centro del
    mapa redondeado (2 decimales) y un radio; nada más, y no se guarda nada.
    La cobertura depende de receptores de voluntarios: puede haber huecos y retrasos. No sirve para navegar. */
 (function () {
   "use strict";
+  // La tablet de la casa baja los aviones de adsb.fi y los publica en este Worker (los servicios no dejan leerlos desde una página).
+  const WORKER = "https://raintrack-aviones.raintrackcr.workers.dev";
   const PROVIDERS = [
-    { name: "airplanes.live", url: (lat, lon, nm) => "https://api.airplanes.live/v2/point/" + lat + "/" + lon + "/" + nm },
-    { name: "adsb.lol", url: (lat, lon, nm) => "https://api.adsb.lol/v2/point/" + lat + "/" + lon + "/" + nm },
-    { name: "adsb.fi", url: (lat, lon, nm) => "https://opendata.adsb.fi/api/v2/lat/" + lat + "/lon/" + lon + "/dist/" + nm }
+    { name: "tablet de casa", url: (lat, lon, nm) => WORKER + "/?lat=" + lat + "&lon=" + lon + "&r=" + nm }
   ];
   const REFRESH_MS = 10000;
   const MAX_BACKOFF_MS = 60000;
@@ -38,6 +38,7 @@
   let failures = 0;
   let providerIndex = 0;
   let lastGoodAt = 0;
+  let wakeStarted = 0;
   let planesByHex = new Map();
   const photoCache = new Map();   // hex -> Promise<foto|null>
   const wikiCache = new Map();    // título -> Promise<{src, url}|null>
@@ -55,6 +56,17 @@
     const clat = (south + north) / 2, clon = (west + east) / 2;
     const km = kmBetween(clat, clon, north, east);
     return Math.min(250, Math.max(15, Math.ceil(km / 1.852)));
+  }
+
+  // Avanza la posición según velocidad y rumbo (estima dónde va el avión entre lecturas; máximo 90 s).
+  function extrapolate(plane, nowMs) {
+    if (plane.onGround || plane.gsKt == null || plane.track == null || plane.gsKt < 40 || !plane.fixAt) return [plane.lat, plane.lon];
+    const seconds = Math.min(90, Math.max(0, (nowMs - plane.fixAt) / 1000));
+    const km = plane.gsKt * 1.852 * seconds / 3600;
+    const rad = Math.PI / 180;
+    const dLat = km * Math.cos(plane.track * rad) / 111.32;
+    const dLon = km * Math.sin(plane.track * rad) / (111.32 * Math.cos(plane.lat * rad));
+    return [plane.lat + dLat, plane.lon + dLon];
   }
 
   function parsePlanes(payload) {
@@ -81,7 +93,8 @@
         track,
         vrFpm: Number.isFinite(Number(item.baro_rate)) && item.baro_rate != null ? Number(item.baro_rate) : null,
         squawk: String(item.squawk || "").trim(),
-        seen: Number.isFinite(seen) ? seen : 0
+        seen: Number.isFinite(seen) ? seen : 0,
+        fixAt: 0
       });
     });
     return out;
@@ -196,14 +209,16 @@
       const known = planeMarkers.get(plane.hex);
       if (known) {
         known.plane = plane;
-        known.marker.setLngLat([plane.lon, plane.lat]);
+        const at = extrapolate(plane, Date.now());
+        known.marker.setLngLat([at[1], at[0]]);
         known.marker.setRotation(plane.track == null ? 0 : plane.track);
         known.el.style.color = altitudeColor(plane);
         return;
       }
       const el = planeElement(plane);
+      const at = extrapolate(plane, Date.now());
       const marker = new maplibregl.Marker({ element: el, anchor: "center", rotation: plane.track == null ? 0 : plane.track, rotationAlignment: "map" })
-        .setLngLat([plane.lon, plane.lat]).addTo(map);
+        .setLngLat([at[1], at[0]]).addTo(map);
       const item = { marker, el, plane };
       el.addEventListener("click", event => { event.stopPropagation(); openPlane(item.plane, el); });
       planeMarkers.set(plane.hex, item);
@@ -214,6 +229,16 @@
       planeMarkers.delete(hex);
       planesByHex.delete(hex);
     });
+  }
+
+  let animTimer = null;
+  function animate() {
+    const now = Date.now();
+    planeMarkers.forEach(item => { const at = extrapolate(item.plane, now); item.marker.setLngLat([at[1], at[0]]); });
+  }
+  function setAnimation(on) {
+    clearInterval(animTimer);
+    animTimer = on ? setInterval(() => { if (!document.hidden) animate(); }, 1000) : null;
   }
 
   // ---------- Ventana de detalle ----------
@@ -249,7 +274,7 @@
       row("Matrícula", esc(plane.reg)) +
       row("Código ICAO", esc(plane.hex.toUpperCase())) +
       row("Transpondedor", esc(plane.squawk) + (note ? " · " + esc(note) : "")) +
-      "<p class=\"aircraft-note\">Posición recibida hace " + Math.round(plane.seen) + " s por receptores de voluntarios. " +
+      "<p class=\"aircraft-note\">Posición estimada desde una lectura de hace " + Math.round(Math.max(0, (Date.now() - (plane.fixAt || Date.now())) / 1000)) + " s (adsb.fi, receptores de voluntarios). " +
       "La foto es de referencia (puede ser otro momento o configuración del mismo avión). No usar para navegación.</p></div>";
     showMapDetail({ eyebrow: "AVIÓN EN VIVO", title: planeLabel(plane), subtitle: [plane.type, plane.desc].filter(Boolean).join(" · "), content, markerElement: el });
     planePhoto(plane.hex).then(photo => fillPhoto(photoId, photo, p =>
@@ -317,19 +342,29 @@
       }
       if (!payload) throw lastError || new Error("sin respuesta");
       if (!enabled) return;
+      const ageS = Number.isFinite(Number(payload.age_s)) && payload.age_s != null ? Number(payload.age_s) : null;
+      const fixAt = Date.now() - (ageS == null ? 0 : ageS * 1000);
       const planes = parsePlanes(payload);
+      planes.forEach(plane => { plane.fixAt = fixAt - plane.seen * 1000; });
       drawPlanes(planes);
       failures = 0;
       lastGoodAt = Date.now();
       const time = new Date().toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" });
-      setInfo(planes.length
-        ? planeMarkers.size + " aviones en el área · " + used.name + " · " + time
-        : "Sin aviones recibidos en esta área ahora · " + used.name + " · " + time);
+      if (payload.stale) {
+        setInfo(wakeStarted && Date.now() - wakeStarted < 75000
+          ? "Despertando la tablet de casa… (tarda hasta 40 s)"
+          : "La tablet de casa no está enviando aviones. Revisa que esté encendida y con internet.");
+      } else {
+        wakeStarted = 0;
+        setInfo(planes.length
+          ? planeMarkers.size + " aviones en el área · vía tablet de casa · " + time
+          : "Sin aviones en esta área ahora · " + time);
+      }
       schedule();
     } catch (error) {
       failures += 1;
       if (Date.now() - lastGoodAt > KEEP_ON_ERROR_MS) clearPlanes();
-      setInfo("Los servicios de aviones no permiten leerlos desde la app todavía. Reintentando…");
+      setInfo("No se pudo contactar el servidor de aviones. Reintentando…");
       schedule(Math.min(MAX_BACKOFF_MS, REFRESH_MS * Math.pow(2, failures)));
     } finally { inFlight = false; }
   }
@@ -339,13 +374,16 @@
     clearTimeout(timer);
     clearTimeout(moveTimer);
     if (!enabled) {
+      setAnimation(false);
       clearPlanes();
       clearAirports();
       setInfo("Apagado. Se piden aviones solo mientras esta capa está encendida.");
       return;
     }
-    setInfo("Buscando aviones…");
+    setInfo("Despertando la tablet de casa… (tarda hasta 40 s)");
+    wakeStarted = Date.now();
     failures = 0;
+    setAnimation(true);
     drawAirports();
     refresh();
   }
@@ -368,6 +406,6 @@
     setInfo("Apagado. Se piden aviones solo mientras esta capa está encendida.");
   }
 
-  window.RainTrackAircraft = { setEnabled, refresh, _test: { parsePlanes, radiusNm, kmBetween, altitudeColor, squawkNote, ftToM, ktToKmh, AIRPORTS, PROVIDERS } };
+  window.RainTrackAircraft = { setEnabled, refresh, _test: { parsePlanes, extrapolate, radiusNm, kmBetween, altitudeColor, squawkNote, ftToM, ktToKmh, AIRPORTS, PROVIDERS } };
   document.addEventListener("DOMContentLoaded", init);
 })();

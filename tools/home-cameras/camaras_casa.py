@@ -220,6 +220,13 @@ def main() -> int:
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     # ntfy.sh gratis permite ~250 mensajes al día: cada 8 min son ~180, con margen para reinicios.
     interval = max(MIN_INTERVAL_SECONDS, int(config.get("intervalo_segundos", MIN_INTERVAL_SECONDS)))
+    if not args.una_vez:
+        try:  # puente de aviones para la app (hilo aparte; si falla, las cámaras siguen igual)
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import aviones_casa
+            aviones_casa.start(config)
+        except Exception as exc:
+            print(f"aviones: no se pudo iniciar ({exc})", flush=True)
     while True:
         run_round(config)
         if args.una_vez:

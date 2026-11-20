@@ -45,3 +45,13 @@ assert.ok(t.AIRPORTS.length >= 2);
 t.AIRPORTS.forEach(a => assert.ok(a.lat > 8 && a.lat < 11.5 && a.lon > -86 && a.lon < -82.5, a.icao + " en Costa Rica"));
 assert.ok(t.PROVIDERS.every(p => /^https:\/\//.test(p.url(10, -84, 50))), "todas las fuentes usan https");
 console.log("aircraft tests ok");
+
+// Extrapolación: un avión a 360 nudos rumbo norte avanza ~0.1° de latitud por minuto
+const p = { lat: 10, lon: -84, gsKt: 360, track: 0, onGround: false, fixAt: 1000 };
+const [la, lo] = t.extrapolate(p, 1000 + 60000);
+assert.ok(Math.abs(la - 10.0998) < 0.002 && Math.abs(lo + 84) < 1e-9, "norte: " + la + "," + lo);
+const [la2] = t.extrapolate(p, 1000 + 600000);
+assert.ok(Math.abs(la2 - 10.1497) < 0.003, "máximo 90 s de estimación");
+assert.deepEqual(Array.from(t.extrapolate({ ...p, onGround: true }, 99999)), [10, -84], "en tierra no se mueve");
+assert.ok(/^https:\/\/raintrack-aviones\.raintrackcr\.workers\.dev/.test(t.PROVIDERS[0].url(9.9, -84, 50)), "lee del Worker");
+console.log("aircraft extrapolation ok");

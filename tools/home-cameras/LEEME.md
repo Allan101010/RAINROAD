@@ -109,3 +109,11 @@ cd tools/home-cameras && python camaras_casa.py
 
 Tu `config.json` no se toca. Desde la versión con "movimiento", cada ronda saca 3 fotos seguidas
 (medio segundo entre una y otra) y manda cuánto cambió la imagen en la calle; las fotos se borran.
+
+## Puente de aviones
+
+El mismo programa trae los aviones para la capa "✈️ Aviones en vivo" de la app. Solo trabaja mientras alguien
+tiene esa capa encendida: cada 20 s pregunta si hay interés y, si lo hay, baja los aviones de adsb.fi cada 15 s
+y los sube a un Worker de Cloudflare (`tools/aircraft-worker/worker.js`). La clave para publicar se crea sola
+en `~/.raintrack_aviones_clave` (no la compartas). Para apagarlo, agrega `"aviones": false` en `config.json`.
+En `camaras.log` aparece como "aviones: ...".
