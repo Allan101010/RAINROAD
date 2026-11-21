@@ -35,21 +35,31 @@ def _json(url: str):
         return json.loads(r.read().decode("utf-8"))
 
 
-def pick_cameras(catalog: dict, alerts: dict) -> list[dict]:
-    """Cámaras con foto directa, en línea y con imagen reciente según el último informe del bot."""
+ROUND = {"n": 0}
+
+
+def pick_cameras(catalog: dict, alerts: dict, rotate: bool = False) -> list[dict]:
+    """Cámaras con foto directa y con imagen reciente según el último informe del bot.
+
+    Si hay más de MAX_PER_ROUND, se turnan entre rondas para que todas se analicen."""
     status = {c.get("id"): c for c in alerts.get("cameras", [])}
     chosen = []
     for cam in catalog.get("cameras", []):
         info = status.get(cam.get("id"), {})
         if not cam.get("snapshot_url") or cam.get("lat") is None:
             continue
-        if info.get("availability_status") != "online":
+        if info.get("availability_status") not in ("online", "delayed"):
             continue
         age = info.get("image_age_minutes")
         if age is not None and age > MAX_AGE_MIN:
             continue
         chosen.append(cam)
-    return chosen[:MAX_PER_ROUND]
+    if len(chosen) <= MAX_PER_ROUND:
+        return chosen
+    start = (ROUND["n"] * MAX_PER_ROUND) % len(chosen) if rotate else 0
+    if rotate:
+        ROUND["n"] += 1
+    return (chosen[start:] + chosen[:start])[:MAX_PER_ROUND]
 
 
 def small_jpeg(data: bytes) -> bytes:
@@ -89,7 +99,7 @@ def loop() -> None:
             if START_HOUR <= hour <= END_HOUR and time.time() - last_round >= EVERY_S:
                 last_round = time.time()
                 cams = pick_cameras(_json(PAGES + "camera-catalog.json?t=" + str(int(time.time()))),
-                                    _json(PAGES + "camera-alerts.json?t=" + str(int(time.time()))))
+                                    _json(PAGES + "camera-alerts.json?t=" + str(int(time.time()))), rotate=True)
                 counts: dict[str, int] = {}
                 for cam in cams:
                     try:
