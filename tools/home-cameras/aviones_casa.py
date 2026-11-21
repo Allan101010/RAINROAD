@@ -3,6 +3,8 @@
 Corre dentro de camaras_casa.py (un hilo aparte) en la tablet de la casa. Solo trabaja cuando alguien
 tiene encendida la capa "Aviones" en la app: pregunta al Worker cada 20 s si hay interés y, si lo hay,
 baja de adsb.fi los aviones alrededor de Costa Rica cada 15 s y se los sube al Worker.
+Además, cada 10 min guarda el viento y la temperatura que reportan los aviones (para estimar hacia
+dónde se mueve la lluvia).
 
 adsb.fi bloquea a los servidores de nube pero acepta conexiones de casa; por eso este puente.
 La clave para publicar se crea sola la primera vez y se guarda fuera del repositorio.
@@ -22,6 +24,7 @@ SOURCE = "https://opendata.adsb.fi/api/v2/lat/9.75/lon/-84.2/dist/250"   # centr
 KEY_PATH = Path.home() / ".raintrack_aviones_clave"
 POLL_DEMAND_S = 20
 SEND_EVERY_S = 15
+WIND_EVERY_S = 600   # viento de los aviones: se guarda cada 10 min aunque nadie mire la capa
 UA = {"User-Agent": "RainTrackCR-tablet/1.0 (uso personal)"}
 
 
@@ -41,9 +44,24 @@ def _get_json(url: str, timeout: int = 15) -> dict:
         return json.loads(r.read().decode("utf-8"))
 
 
-def _publish(worker: str, key: str, payload: dict) -> dict:
+def wind_obs(planes: list) -> list:
+    """Aviones que reportan viento (calculado por los receptores a partir de rumbo y velocidad)."""
+    out = []
+    for a in planes:
+        if a.get("wd") is None or a.get("ws") is None or a.get("lat") is None or a.get("lon") is None:
+            continue
+        alt = a.get("alt_baro")
+        if alt == "ground":
+            continue
+        out.append({"hex": a.get("hex"), "lat": a.get("lat"), "lon": a.get("lon"), "alt": alt if alt is not None else a.get("alt_geom"),
+                    "wd": a.get("wd"), "ws": a.get("ws"), "oat": a.get("oat"), "track": a.get("track"), "gs": a.get("gs"),
+                    "seen": a.get("seen_pos", a.get("seen"))})
+    return out
+
+
+def _post(worker: str, path: str, key: str, payload: dict) -> dict:
     body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    req = urllib.request.Request(worker + "/publicar", data=body, method="POST",
+    req = urllib.request.Request(worker + path, data=body, method="POST",
                                  headers={**UA, "Content-Type": "application/json", "X-Clave": key})
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read().decode("utf-8"))
@@ -53,8 +71,14 @@ def loop(worker: str = WORKER) -> None:
     key = _key()
     active = False
     last_error = ""
+    last_wind = 0.0
     while True:
         try:
+            if time.time() - last_wind >= WIND_EVERY_S:
+                last_wind = time.time()
+                obs = wind_obs((lambda d: d.get("aircraft") or d.get("ac") or [])(_get_json(SOURCE)))
+                if obs:
+                    _post(worker, "/vientos", key, {"obs": obs})
             wanted = bool(_get_json(worker + "/demanda").get("wanted"))
             if wanted != active:
                 _log("alguien está mirando, enviando" if wanted else "nadie mirando, en pausa")
@@ -64,7 +88,7 @@ def loop(worker: str = WORKER) -> None:
                 continue
             data = _get_json(SOURCE)
             planes = data.get("aircraft") or data.get("ac") or []
-            _publish(worker, key, {"ac": planes, "src": "adsb.fi"})
+            _post(worker, "/publicar", key, {"ac": planes, "src": "adsb.fi"})
             last_error = ""
             time.sleep(SEND_EVERY_S)
         except Exception as exc:  # nunca debe tumbar el programa de las cámaras

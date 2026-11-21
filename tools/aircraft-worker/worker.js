@@ -3,6 +3,8 @@
 //   GET  /?lat=9.93&lon=-84.08&r=80   → aviones dentro del radio (millas náuticas). También marca que alguien está mirando.
 //   GET  /demanda                      → {"wanted":true} si alguien miró en los últimos minutos (la tablet solo trabaja entonces).
 //   POST /publicar  (cabecera X-Clave) → la tablet sube la foto actual. La primera clave que llega queda registrada.
+//   POST /vientos   (cabecera X-Clave) → la tablet guarda viento y temperatura que reportan los aviones (cada 10 min).
+//   GET  /vientos?horas=24             → esas mediciones, para analizarlas (se guardan 30 días).
 // Requiere un binding D1 llamado DB.
 const ORIGIN = "https://allan101010.github.io";
 const CORS = { "Access-Control-Allow-Origin": ORIGIN, "Access-Control-Allow-Methods": "GET", "Vary": "Origin" };
@@ -26,7 +28,20 @@ function nmBetween(lat1, lon1, lat2, lon2) {
 }
 
 async function ready(db) {
-  await db.prepare("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT, t INTEGER)").run();
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT, t INTEGER)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS winds (t INTEGER, hex TEXT, lat REAL, lon REAL, alt INTEGER, wd INTEGER, ws INTEGER, oat INTEGER, track INTEGER, gs INTEGER)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS winds_t ON winds (t)")
+  ]);
+}
+
+async function checkKey(db, req) {
+  const clave = req.headers.get("X-Clave") || "";
+  if (clave.length < 20) return false;
+  const hash = await sha256(clave);
+  const saved = await getRow(db, "clave");
+  if (!saved) { await putRow(db, "clave", hash); return true; }   // primer registro
+  return saved.v === hash;
 }
 const getRow = (db, k) => db.prepare("SELECT v, t FROM kv WHERE k = ?").bind(k).first();
 const putRow = (db, k, v) => db.prepare("INSERT INTO kv (k, v, t) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, t = excluded.t").bind(k, v, nowS()).run();
@@ -39,12 +54,7 @@ export default {
     await ready(env.DB);
 
     if (url.pathname === "/publicar" && req.method === "POST") {
-      const clave = req.headers.get("X-Clave") || "";
-      if (clave.length < 20) return json({ error: "clave" }, 401);
-      const hash = await sha256(clave);
-      const saved = await getRow(env.DB, "clave");
-      if (!saved) await putRow(env.DB, "clave", hash);          // primer registro
-      else if (saved.v !== hash) return json({ error: "clave" }, 401);
+      if (!(await checkKey(env.DB, req))) return json({ error: "clave" }, 401);
       const text = await req.text();
       if (text.length > 500000) return json({ error: "muy grande" }, 413);
       let data;
@@ -53,6 +63,28 @@ export default {
       const slim = list.slice(0, 800).map(a => Object.fromEntries(KEEP.filter(k => a[k] !== undefined).map(k => [k, a[k]])));
       await putRow(env.DB, "snap", JSON.stringify({ ac: slim, src: String(data.src || "adsb.fi").slice(0, 30) }));
       return json({ ok: true, n: slim.length });
+    }
+
+    if (url.pathname === "/vientos" && req.method === "POST") {
+      if (!(await checkKey(env.DB, req))) return json({ error: "clave" }, 401);
+      let data;
+      try { data = JSON.parse(await req.text()); } catch (e) { return json({ error: "json" }, 400); }
+      const t = nowS();
+      const num = v => (Number.isFinite(Number(v)) && v !== null && v !== "" ? Math.round(Number(v)) : null);
+      const rows = (Array.isArray(data.obs) ? data.obs : []).slice(0, 300)
+        .filter(o => Number.isFinite(o.lat) && Number.isFinite(o.lon) && Number.isFinite(Number(o.wd)) && Number.isFinite(Number(o.ws)))
+        .map(o => env.DB.prepare("INSERT INTO winds (t, hex, lat, lon, alt, wd, ws, oat, track, gs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+          .bind(t - Math.min(60, Math.max(0, num(o.seen) || 0)), String(o.hex || "").slice(0, 8), Math.round(o.lat * 1000) / 1000, Math.round(o.lon * 1000) / 1000,
+                num(o.alt), num(o.wd), num(o.ws), num(o.oat), num(o.track), num(o.gs)));
+      rows.push(env.DB.prepare("DELETE FROM winds WHERE t < ?").bind(t - 30 * 86400));
+      await env.DB.batch(rows);
+      return json({ ok: true, n: rows.length - 1 });
+    }
+
+    if (url.pathname === "/vientos" && req.method === "GET") {
+      const hours = Math.min(720, Math.max(1, Number(url.searchParams.get("horas")) || 24));
+      const res = await env.DB.prepare("SELECT t, hex, lat, lon, alt, wd, ws, oat, track, gs FROM winds WHERE t >= ? ORDER BY t").bind(nowS() - hours * 3600).all();
+      return new Response(JSON.stringify({ rows: res.results || [] }), { headers: { ...JSON_HEAD, "Access-Control-Allow-Origin": "*" } });
     }
 
     if (url.pathname === "/demanda") {
