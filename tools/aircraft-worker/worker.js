@@ -66,6 +66,13 @@ const putRow = (db, k, v) => db.prepare("INSERT INTO kv (k, v, t) VALUES (?, ?, 
 
 export default {
   async fetch(req, env) {
+    try { return await handle(req, env); }
+    catch (e) { return json({ error: "interno", detail: String(e && e.stack || e).slice(0, 400) }, 500); }
+  }
+};
+
+async function handle(req, env) {
+  {
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
     if (!env.DB) return json({ error: "falta binding DB" }, 500);
     const url = new URL(req.url);
@@ -139,8 +146,10 @@ export default {
       try { out = await env.AI.run(AI_MODEL, input); }
       catch (e) {
         if (!/agree/i.test(String(e))) return json({ error: "ia", detail: String(e).slice(0, 300) }, 502);
-        await env.AI.run(AI_MODEL, { prompt: "agree" });   // licencia de Meta: se acepta una vez
-        out = await env.AI.run(AI_MODEL, input);
+        try {
+          await env.AI.run(AI_MODEL, { prompt: "agree" });   // licencia de Meta: se acepta una vez
+          out = await env.AI.run(AI_MODEL, input);
+        } catch (e2) { return json({ error: "ia", detail: String(e2).slice(0, 300) }, 502); }
       }
       const raw = String((out && (out.response || out.result || "")) || "").trim().slice(0, 60);
       const word = (raw.toUpperCase().match(/RAIN|FOG|CLEAR|UNKNOWN/) || ["UNKNOWN"])[0];
@@ -150,7 +159,7 @@ export default {
       const lat = Number(req.headers.get("X-Lat")), lon = Number(req.headers.get("X-Lon"));
       await env.DB.batch([
         env.DB.prepare("INSERT INTO ia (t, cam, label, raw, lat, lon, img) VALUES (?, ?, ?, ?, ?, ?, ?)")
-          .bind(t, cam, label, raw, Number.isFinite(lat) ? lat : null, Number.isFinite(lon) ? lon : null, buf),
+          .bind(t, cam, label, raw, Number.isFinite(lat) ? lat : null, Number.isFinite(lon) ? lon : null, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)),
         env.DB.prepare("INSERT INTO kv (k, v, t) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, t = excluded.t").bind("ia_" + day, String(count + 1), t),
         env.DB.prepare("DELETE FROM ia WHERE t < ?").bind(t - 7 * 86400)
       ]);
@@ -189,4 +198,4 @@ export default {
     }
     return json({ error: "ruta" }, 404);
   }
-};
+}
