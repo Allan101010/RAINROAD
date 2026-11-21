@@ -141,16 +141,25 @@ async function handle(req, env) {
       if (count >= AI_DAILY_CAP) return json({ error: "cupo", used: count }, 429);
       const buf = new Uint8Array(await req.arrayBuffer());
       if (buf.length < 1000 || buf.length > 400000) return json({ error: "tamaño" }, 413);
-      const input = { messages: [{ role: "user", content: AI_PROMPT }], image: [...buf], max_tokens: 6, temperature: 0 };
-      let out;
-      try { out = await env.AI.run(AI_MODEL, input); }
-      catch (e) {
-        if (!/agree/i.test(String(e))) return json({ error: "ia", detail: String(e).slice(0, 300) }, 502);
-        try {
-          await env.AI.run(AI_MODEL, { prompt: "agree" });   // licencia de Meta: se acepta una vez
-          out = await env.AI.run(AI_MODEL, input);
-        } catch (e2) { return json({ error: "ia", detail: String(e2).slice(0, 300) }, 502); }
+      let b64 = "";
+      for (let i = 0; i < buf.length; i += 0x8000) b64 += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+      b64 = btoa(b64);
+      // Formatos que acepta el modelo: la foto dentro del mensaje, o la foto aparte con "prompt".
+      const inputs = [
+        { messages: [{ role: "user", content: [{ type: "text", text: AI_PROMPT }, { type: "image_url", image_url: { url: "data:image/jpeg;base64," + b64 } }] }], max_tokens: 6, temperature: 0 },
+        { prompt: AI_PROMPT, image: [...buf], max_tokens: 6, temperature: 0 }
+      ];
+      let out = null, lastError = "";
+      for (let attempt = 0; attempt < 2 && !out; attempt++) {
+        for (const input of inputs) {
+          try { out = await env.AI.run(AI_MODEL, input); break; }
+          catch (e) { lastError = String(e); }
+        }
+        if (!out && /agree/i.test(lastError)) {
+          try { await env.AI.run(AI_MODEL, { prompt: "agree" }); } catch (e) { /* respuesta de la licencia */ }   // licencia de Meta: una vez
+        } else break;
       }
+      if (!out) return json({ error: "ia", detail: lastError.slice(0, 300) }, 502);
       const raw = String((out && (out.response || out.result || "")) || "").trim().slice(0, 60);
       const word = (raw.toUpperCase().match(/RAIN|FOG|CLEAR|UNKNOWN/) || ["UNKNOWN"])[0];
       const label = AI_LABELS[word];
