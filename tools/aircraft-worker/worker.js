@@ -5,11 +5,15 @@
 //   POST /publicar  (cabecera X-Clave) → la tablet sube la foto actual. La primera clave que llega queda registrada.
 //   POST /vientos   (cabecera X-Clave) → la tablet guarda viento y temperatura que reportan los aviones (cada 10 min).
 //   GET  /vientos?horas=24             → esas mediciones, para analizarlas (se guardan 30 días).
+//   POST /casa, /estaciones (X-Clave)  → la tablet publica la estimación de la cámara de casa (cada 2 min) y
+//                                        lecturas frescas de estaciones del IMN (cada 3 min con la app abierta).
+//   GET  /tiempo                       → lo último de ambas, y marca que la app está abierta.
 // Requiere un binding D1 llamado DB.
 const ORIGIN = "https://allan101010.github.io";
 const CORS = { "Access-Control-Allow-Origin": ORIGIN, "Access-Control-Allow-Methods": "GET", "Vary": "Origin" };
 const JSON_HEAD = { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" };
-const DEMAND_WINDOW_S = 180;   // la tablet sigue enviando hasta 3 min después de la última consulta
+const DEMAND_WINDOW_S = 180;
+const WX_WINDOW_S = 900;       // estaciones: la tablet sigue leyendo 15 min después de la última visita   // la tablet sigue enviando hasta 3 min después de la última consulta
 const STALE_S = 90;            // una foto más vieja que esto no se entrega como "en vivo"
 const KEEP = ["hex", "flight", "r", "t", "desc", "lat", "lon", "alt_baro", "alt_geom", "gs", "track", "baro_rate", "squawk", "seen_pos", "seen"];
 
@@ -87,9 +91,30 @@ export default {
       return new Response(JSON.stringify({ rows: res.results || [] }), { headers: { ...JSON_HEAD, "Access-Control-Allow-Origin": "*" } });
     }
 
+    if ((url.pathname === "/casa" || url.pathname === "/estaciones") && req.method === "POST") {
+      if (!(await checkKey(env.DB, req))) return json({ error: "clave" }, 401);
+      const text = await req.text();
+      if (text.length > 200000) return json({ error: "muy grande" }, 413);
+      try { JSON.parse(text); } catch (e) { return json({ error: "json" }, 400); }
+      await putRow(env.DB, url.pathname.slice(1), text);
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/tiempo" && req.method === "GET") {
+      const d = await getRow(env.DB, "demand_wx");
+      if (!d || nowS() - d.t >= 30) await putRow(env.DB, "demand_wx", "1");
+      const out = {};
+      for (const k of ["casa", "estaciones"]) {
+        const row = await getRow(env.DB, k);
+        if (row) out[k] = { ...JSON.parse(row.v), age_s: nowS() - row.t };
+      }
+      return json(out);
+    }
+
     if (url.pathname === "/demanda") {
       const d = await getRow(env.DB, "demand");
-      return json({ wanted: !!d && nowS() - d.t < DEMAND_WINDOW_S });
+      const w = await getRow(env.DB, "demand_wx");
+      return json({ wanted: !!d && nowS() - d.t < DEMAND_WINDOW_S, wx_wanted: !!w && nowS() - w.t < WX_WINDOW_S });
     }
 
     if (url.pathname === "/" && req.method === "GET") {

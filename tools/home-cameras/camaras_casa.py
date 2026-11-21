@@ -139,7 +139,8 @@ def build_message(camera_id: str, features: dict, now: datetime | None = None) -
     }
 
 
-MIN_INTERVAL_SECONDS = 480
+MIN_INTERVAL_SECONDS = 480   # ntfy
+FAST_INTERVAL_SECONDS = 120  # lecturas al Worker
 
 
 def send(topic: str, message: dict, server: str = "https://ntfy.sh") -> None:
@@ -149,15 +150,29 @@ def send(topic: str, message: dict, server: str = "https://ntfy.sh") -> None:
     urllib.request.urlopen(request, timeout=20).read()
 
 
+LAST_NTFY: dict[str, float] = {}
+
+
 def run_round(config: dict) -> int:
     sent = 0
     for camera in config["cameras"]:
         name = camera["id"]
         try:
             features = analyze(grab_burst(camera["rtsp"]))
-            send(config["ntfy_topic"], build_message(name, features))
+            message = build_message(name, features)
+            live = ""
+            try:  # estimación al instante en el Worker (cada ronda)
+                import tiempo_casa
+                estimate = tiempo_casa.publish_home(message)
+                live = f", en vivo: {estimate.get('estimate')}" if estimate else ""
+            except Exception as exc:
+                live = f", en vivo falló ({type(exc).__name__})"
+            # ntfy guarda el historial del bot; su plan gratis aguanta ~250 mensajes al día: uno cada 8 min.
+            if time.time() - LAST_NTFY.get(name, 0) >= MIN_INTERVAL_SECONDS - 30:
+                send(config["ntfy_topic"], message)
+                LAST_NTFY[name] = time.time()
             sent += 1
-            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')})", flush=True)
+            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')}{live})", flush=True)
         except subprocess.TimeoutExpired:
             print(f"{datetime.now():%H:%M:%S} {name}: la cámara no respondió a tiempo", flush=True)
         except subprocess.CalledProcessError:
@@ -218,13 +233,15 @@ def main() -> int:
         print("Falta config.json: copia config.ejemplo.json a config.json y complétalo.")
         return 1
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    # ntfy.sh gratis permite ~250 mensajes al día: cada 8 min son ~180, con margen para reinicios.
-    interval = max(MIN_INTERVAL_SECONDS, int(config.get("intervalo_segundos", MIN_INTERVAL_SECONDS)))
+    # Lectura cada 2 min (va al Worker); a ntfy solo una cada 8 min (ver run_round).
+    interval = max(FAST_INTERVAL_SECONDS, int(config.get("intervalo_rapido_segundos", FAST_INTERVAL_SECONDS)))
     if not args.una_vez:
         try:  # puente de aviones para la app (hilo aparte; si falla, las cámaras siguen igual)
             sys.path.insert(0, str(Path(__file__).resolve().parent))
             import aviones_casa
             aviones_casa.start(config)
+            import tiempo_casa
+            tiempo_casa.start(config)
         except Exception as exc:
             print(f"aviones: no se pudo iniciar ({exc})", flush=True)
     while True:

@@ -117,3 +117,11 @@ tiene esa capa encendida: cada 20 s pregunta si hay interés y, si lo hay, baja 
 y los sube a un Worker de Cloudflare (`tools/aircraft-worker/worker.js`). La clave para publicar se crea sola
 en `~/.raintrack_aviones_clave` (no la compartas). Para apagarlo, agrega `"aviones": false` en `config.json`.
 En `camaras.log` aparece como "aviones: ...".
+
+## Datos en vivo (cámara cada 2 min y estaciones cada 3 min)
+
+La cámara se lee cada 2 min: la tablet calcula ahí mismo si parece llover (misma regla del bot) y lo publica
+en el Worker, y la app lo muestra al instante. A ntfy sigue yendo una lectura cada 8 min para el historial.
+Mientras alguien tiene la app abierta, la tablet también lee cada 3 min las estaciones del IMN del Valle Central
+(cambia las zonas con `"estaciones_zonas": ["Valle Central", "Zona Norte"]` en `config.json`).
+Necesita una vez: `pip install requests beautifulsoup4`. En `camaras.log` aparece como "tiempo: ...".
