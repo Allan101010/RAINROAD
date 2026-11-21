@@ -156,7 +156,8 @@
   const PLANE_SVG = "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" aria-hidden=\"true\"><path d=\"M12 1.5c.9 0 1.5.9 1.5 2v6.2l8 4.6v2.2l-8-2.3v4.6l2.2 1.7v1.9L12 20.6 8.3 22.4v-1.9l2.2-1.7v-4.6l-8 2.3v-2.2l8-4.6V3.5c0-1.1.6-2 1.5-2z\" fill=\"currentColor\" stroke=\"#0b1220\" stroke-width=\"1\" stroke-linejoin=\"round\"/></svg>";
 
   // Pista vista desde arriba (vertical; el marcador la gira al rumbo real de la pista).
-  const RUNWAY_SVG = "<svg viewBox=\"0 0 14 44\" width=\"14\" height=\"44\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"12\" height=\"42\" rx=\"2\" fill=\"#334155\" stroke=\"#e2e8f0\" stroke-width=\"1.2\"/><path d=\"M3.5 4h7M3.5 40h7\" stroke=\"#fff\" stroke-width=\"1.4\"/><path d=\"M7 8v28\" stroke=\"#fff\" stroke-width=\"1.2\" stroke-dasharray=\"3 3\"/></svg>";
+  // Pista finita dentro de un círculo pequeño; se gira al rumbo real de la pista.
+  const runwaySvg = deg => "<svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><g transform=\"rotate(" + (deg || 0) + " 10 10)\"><rect x=\"8.6\" y=\"3.5\" width=\"2.8\" height=\"13\" rx=\"0.8\" fill=\"#e2e8f0\"/><path d=\"M10 5.6v8.8\" stroke=\"#0f172a\" stroke-width=\"0.7\" stroke-dasharray=\"1.4 1.2\"/></g></svg>";
 
   function planeLabel(plane) {
     return plane.call || plane.reg || plane.hex.toUpperCase();
@@ -190,11 +191,11 @@
       const el = document.createElement("button");
       el.type = "button";
       el.className = "airport-marker";
-      el.innerHTML = RUNWAY_SVG;
+      el.innerHTML = runwaySvg(airport.runway);
       el.title = airport.name;
       el.setAttribute("aria-label", airport.name);
       el.addEventListener("click", event => { event.stopPropagation(); openAirport(airport, el); });
-      airportMarkers.push(new maplibregl.Marker({ element: el, anchor: "center", rotation: airport.runway || 0, rotationAlignment: "map" }).setLngLat([airport.lon, airport.lat]).addTo(map));
+      airportMarkers.push(new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([airport.lon, airport.lat]).addTo(map));
     });
   }
 
