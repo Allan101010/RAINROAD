@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import threading
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
@@ -134,4 +135,7 @@ if __name__ == "__main__":
     s.headers["User-Agent"] = "Mozilla/5.0 (Linux; Android 14) RainTrackCR-tablet/1.0"
     cams = pick_cameras(_json(PAGES + "camera-catalog.json"), _json(PAGES + "camera-alerts.json"))
     for cam in cams[: int(sys.argv[1]) if len(sys.argv) > 1 else 3]:
-        print(cam["id"], classify(s, cam))
+        try:
+            print(cam["id"], classify(s, cam))
+        except urllib.error.HTTPError as exc:
+            print(cam["id"], "error", exc.code, exc.read().decode("utf-8", "replace")[:400])
