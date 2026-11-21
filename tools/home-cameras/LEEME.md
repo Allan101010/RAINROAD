@@ -125,3 +125,10 @@ en el Worker, y la app lo muestra al instante. A ntfy sigue yendo una lectura ca
 Mientras alguien tiene la app abierta, la tablet también lee cada 3 min las estaciones del IMN del Valle Central
 (cambia las zonas con `"estaciones_zonas": ["Valle Central", "Zona Norte"]` en `config.json`).
 Necesita una vez: `pip install requests beautifulsoup4`. En `camaras.log` aparece como "tiempo: ...".
+
+## Prueba de IA en cámaras públicas
+
+De día, cada 20 min, la tablet baja la foto de las cámaras públicas en línea y el Worker le pregunta a una IA
+de visión (Cloudflare Workers AI, plan gratis) si se ve LLUVIA, NUBLADO, DESPEJADO o NO_SE_VE. Es una prueba:
+no se muestra en la app hasta compararla con las estaciones. Para apagarla: `"ia_camaras": false`.
+Probar a mano: `python ia_camaras.py 3`. En `camaras.log` aparece como "ia: ...".

@@ -8,12 +8,24 @@
 //   POST /casa, /estaciones (X-Clave)  → la tablet publica la estimación de la cámara de casa (cada 2 min) y
 //                                        lecturas frescas de estaciones del IMN (cada 3 min con la app abierta).
 //   GET  /tiempo                       → lo último de ambas, y marca que la app está abierta.
+//   POST /ia  (X-Clave, X-Cam, cuerpo JPEG) → la IA de visión clasifica la foto: LLUVIA, NUBLADO, DESPEJADO o NO_SE_VE.
+//   GET  /ia?horas=24                  → resultados de la prueba;  GET /ia/foto?id=N → la foto analizada (7 días).
+// Bindings: D1 "DB" y Workers AI "AI".
 // Requiere un binding D1 llamado DB.
 const ORIGIN = "https://allan101010.github.io";
 const CORS = { "Access-Control-Allow-Origin": ORIGIN, "Access-Control-Allow-Methods": "GET", "Vary": "Origin" };
 const JSON_HEAD = { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" };
 const DEMAND_WINDOW_S = 180;
-const WX_WINDOW_S = 900;       // estaciones: la tablet sigue leyendo 15 min después de la última visita   // la tablet sigue enviando hasta 3 min después de la última consulta
+const WX_WINDOW_S = 900;
+const AI_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
+const AI_DAILY_CAP = 1100;     // el plan gratis da 10 000 "neuronas" al día; cada foto pequeña usa ~8
+const AI_PROMPT = "You are checking a public outdoor webcam image for a rain-alert app. Answer with exactly one word:\n" +
+  "RAIN - rain is visibly falling, or raindrops/streaks are on the lens, or the scene shows active rain (wet shiny ground with grey rainy sky).\n" +
+  "FOG - overcast, grey, misty or foggy, but no visible rain.\n" +
+  "CLEAR - sunny, blue sky or partly cloudy and dry.\n" +
+  "UNKNOWN - too dark, blurry, blocked, frozen or not an outdoor view.\n" +
+  "One word only.";
+const AI_LABELS = { RAIN: "LLUVIA", FOG: "NUBLADO", CLEAR: "DESPEJADO", UNKNOWN: "NO_SE_VE" };       // estaciones: la tablet sigue leyendo 15 min después de la última visita   // la tablet sigue enviando hasta 3 min después de la última consulta
 const STALE_S = 90;            // una foto más vieja que esto no se entrega como "en vivo"
 const KEEP = ["hex", "flight", "r", "t", "desc", "lat", "lon", "alt_baro", "alt_geom", "gs", "track", "baro_rate", "squawk", "seen_pos", "seen"];
 
@@ -35,7 +47,9 @@ async function ready(db) {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT, t INTEGER)"),
     db.prepare("CREATE TABLE IF NOT EXISTS winds (t INTEGER, hex TEXT, lat REAL, lon REAL, alt INTEGER, wd INTEGER, ws INTEGER, oat INTEGER, track INTEGER, gs INTEGER)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS winds_t ON winds (t)")
+    db.prepare("CREATE INDEX IF NOT EXISTS winds_t ON winds (t)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ia (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, cam TEXT, label TEXT, raw TEXT, lat REAL, lon REAL, img BLOB)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS ia_t ON ia (t)")
   ]);
 }
 
@@ -109,6 +123,50 @@ export default {
         if (row) out[k] = { ...JSON.parse(row.v), age_s: nowS() - row.t };
       }
       return json(out);
+    }
+
+    if (url.pathname === "/ia" && req.method === "POST") {
+      if (!(await checkKey(env.DB, req))) return json({ error: "clave" }, 401);
+      if (!env.AI) return json({ error: "falta binding AI" }, 500);
+      const day = new Date().toISOString().slice(0, 10);
+      const used = await getRow(env.DB, "ia_" + day);
+      const count = used ? Number(used.v) : 0;
+      if (count >= AI_DAILY_CAP) return json({ error: "cupo", used: count }, 429);
+      const buf = new Uint8Array(await req.arrayBuffer());
+      if (buf.length < 1000 || buf.length > 400000) return json({ error: "tamaño" }, 413);
+      const input = { messages: [{ role: "user", content: AI_PROMPT }], image: [...buf], max_tokens: 6, temperature: 0 };
+      let out;
+      try { out = await env.AI.run(AI_MODEL, input); }
+      catch (e) {
+        if (!/agree/i.test(String(e))) return json({ error: "ia", detail: String(e).slice(0, 300) }, 502);
+        await env.AI.run(AI_MODEL, { prompt: "agree" });   // licencia de Meta: se acepta una vez
+        out = await env.AI.run(AI_MODEL, input);
+      }
+      const raw = String((out && (out.response || out.result || "")) || "").trim().slice(0, 60);
+      const word = (raw.toUpperCase().match(/RAIN|FOG|CLEAR|UNKNOWN/) || ["UNKNOWN"])[0];
+      const label = AI_LABELS[word];
+      const t = nowS();
+      const cam = String(req.headers.get("X-Cam") || "").slice(0, 80);
+      const lat = Number(req.headers.get("X-Lat")), lon = Number(req.headers.get("X-Lon"));
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO ia (t, cam, label, raw, lat, lon, img) VALUES (?, ?, ?, ?, ?, ?, ?)")
+          .bind(t, cam, label, raw, Number.isFinite(lat) ? lat : null, Number.isFinite(lon) ? lon : null, buf),
+        env.DB.prepare("INSERT INTO kv (k, v, t) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, t = excluded.t").bind("ia_" + day, String(count + 1), t),
+        env.DB.prepare("DELETE FROM ia WHERE t < ?").bind(t - 7 * 86400)
+      ]);
+      return json({ label, raw, used: count + 1 });
+    }
+
+    if (url.pathname === "/ia" && req.method === "GET") {
+      const hours = Math.min(168, Math.max(1, Number(url.searchParams.get("horas")) || 24));
+      const res = await env.DB.prepare("SELECT id, t, cam, label, raw, lat, lon FROM ia WHERE t >= ? ORDER BY t").bind(nowS() - hours * 3600).all();
+      return new Response(JSON.stringify({ rows: res.results || [] }), { headers: { ...JSON_HEAD, "Access-Control-Allow-Origin": "*" } });
+    }
+
+    if (url.pathname === "/ia/foto" && req.method === "GET") {
+      const row = await env.DB.prepare("SELECT img FROM ia WHERE id = ?").bind(Number(url.searchParams.get("id")) || 0).first();
+      if (!row || !row.img) return json({ error: "no existe" }, 404);
+      return new Response(new Uint8Array(row.img), { headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400", "Access-Control-Allow-Origin": "*" } });
     }
 
     if (url.pathname === "/demanda") {

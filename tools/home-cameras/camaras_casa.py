@@ -242,6 +242,8 @@ def main() -> int:
             aviones_casa.start(config)
             import tiempo_casa
             tiempo_casa.start(config)
+            import ia_camaras
+            ia_camaras.start(config)
         except Exception as exc:
             print(f"aviones: no se pudo iniciar ({exc})", flush=True)
     while True:
