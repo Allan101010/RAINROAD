@@ -1044,6 +1044,14 @@ function homeRainEstimate(estimate) {
   return estimate === "rain" || estimate === "possible_rain";
 }
 
+// Tamaño del círculo según qué tan fuerte salpica la lluvia (máximo HOME_RAIN_RADIUS_KM).
+const HOME_RAIN_INTENSITY_KM = { fuerte: 10, moderada: 7, ligera: 4, terminando: 2 };
+function homeRowRadiusKm(row) {
+  const km = HOME_RAIN_INTENSITY_KM[row && row.intensity] || (row && row.estimate === "rain" ? 10 : 4);
+  return Math.min(HOME_RAIN_RADIUS_KM, km);
+}
+const HOME_RAIN_INTENSITY_TEXT = { fuerte: "LLUVIA FUERTE", moderada: "LLUVIA", ligera: "lluvia ligera", terminando: "lluvia terminando" };
+
 function homeCameraSummary() {
   const rows = homeCameraRows();
   const opinions = rows.filter(row => homeRainEstimate(row.estimate) || row.estimate === "no_rain");
@@ -1059,7 +1067,8 @@ function homeCameraRaining(radiusKm) {
   if (!homeLocation) return false;
   const summary = homeCameraSummary();
   if (!homeRainEstimate(summary.estimate)) return false;
-  return summary.rows.some(row => distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= radiusKm);
+  return summary.rows.some(row => homeRainEstimate(row.estimate) &&
+    distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= Math.min(radiusKm, homeRowRadiusKm(row)));
 }
 
 function homeCameraName(id) {
@@ -1084,7 +1093,8 @@ function homeCameraPopupText(summary) {
       return "• " + homeCameraName(row.id) + ": SIN CONEXIÓN · última lectura " + lastText;
     }
     const night = row.mode === "ir" ? " · visión nocturna" : "";
-    const state = row.estimate === "rain" ? "LLUVIA (gotas salpicando)" + night
+    const state = row.intensity && homeRainEstimate(row.estimate) ? HOME_RAIN_INTENSITY_TEXT[row.intensity] + " (gotas salpicando)" + night
+      : row.estimate === "rain" ? "LLUVIA (gotas salpicando)" + night
       : row.estimate === "possible_rain" ? "posible lluvia" + night
       : row.estimate === "no_rain" ? "sin señales de lluvia" + night
       : "sin opinión (" + (HOME_CAMERA_NO_OPINION[row.reason] || "poca visibilidad") + ")";
@@ -2154,7 +2164,7 @@ function routeHomeCameraRain(lat, lon) {
   const summary = homeCameraSummary();
   if (!homeRainEstimate(summary.estimate)) return false;
   return summary.rows.some(row => homeRainEstimate(row.estimate) &&
-    distanceKm(lat, lon, Number(row.lat), Number(row.lon)) <= HOME_RAIN_RADIUS_KM);
+    distanceKm(lat, lon, Number(row.lat), Number(row.lon)) <= homeRowRadiusKm(row));
 }
 
 function routeClock(date) {

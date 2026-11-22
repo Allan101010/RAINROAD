@@ -327,22 +327,61 @@ def _splash_signal(features: dict) -> bool | None:
     return road >= HOME_SPLASH_MIN and road >= HOME_SPLASH_RATIO * ref + 0.1
 
 
+HOME_SPLASH_HEAVY = 5.0          # % de puntos que salpican: lluvia fuerte
+HOME_SPLASH_WEAK = 0.15          # señal débil (solo cuenta si ya venía lloviendo)
+HOME_SPLASH_EPISODE_MINUTES = 30  # "ya venía lloviendo" = señal en la última media hora
+HOME_SPLASH_FADE_MINUTES = 10     # sin ninguna señal por 10 min: se apaga
+
+
+def _splash_level(features: dict) -> str | None:
+    """fuerte / moderada / ligera / debil, o None si no hay salpicaduras."""
+    road, ref = features.get("splash_road"), features.get("splash_ref")
+    if road is None or ref is None:
+        return None
+    road, ref = float(road), float(ref)
+    if road >= HOME_SPLASH_MIN and road >= HOME_SPLASH_RATIO * ref + 0.1:
+        return "fuerte" if road >= HOME_SPLASH_HEAVY else "moderada" if road >= HOME_SPLASH_STRONG else "ligera"
+    if road >= HOME_SPLASH_WEAK and road >= 3 * ref + 0.05:
+        return "debil"
+    return None
+
+
+def _row_time(row: dict):
+    try:
+        return datetime.fromisoformat(str(row["t"]).replace("Z", "+00:00"))
+    except (KeyError, ValueError):
+        return None
+
+
 def _estimate_splash(latest: dict, history: list[dict]) -> dict | None:
-    """Lluvia por salpicaduras, a cualquier hora en que la imagen se vea (día, infrarrojo o luz del corredor)."""
+    """Lluvia por salpicaduras, a cualquier hora en que la imagen se vea (día, infrarrojo o luz del corredor).
+
+    Sube rápido y baja despacio: fuerte/moderada piden dos lecturas seguidas; cuando la lluvia afloja se
+    pasa a "ligera" y luego a "terminando", y solo se apaga tras 10 min sin ninguna señal."""
     features = latest.get("f", {})
-    signal = _splash_signal(features)
-    if not signal:
+    if features.get("splash_road") is None:
         return None
-    strong = float(features["splash_road"]) >= HOME_SPLASH_STRONG
-    previous = _recent_rows(latest, history, HOME_SPLASH_REPEAT_MINUTES)
-    repeated = any(_splash_signal(r.get("f", {})) for r in previous)
-    if not (strong or repeated):
-        return None
-    previous_strong = any(_splash_signal(r.get("f", {})) and float(r["f"]["splash_road"]) >= HOME_SPLASH_STRONG
-                          for r in previous)
-    # Gotas fuertes en dos lecturas seguidas = lluvia clara; si no, solo señales.
-    estimate = "rain" if strong and previous_strong else "possible_rain"
-    return {"estimate": estimate, "basis": "splash", "splash": round(float(features["splash_road"]), 2)}
+    level = _splash_level(features)
+    road = round(float(features["splash_road"]), 2)
+    recent = _recent_rows(latest, history, HOME_SPLASH_EPISODE_MINUTES)
+    levels = [(_row_time(r), _splash_level(r.get("f", {}))) for r in recent]
+    episode = any(lv in ("fuerte", "moderada", "ligera") for _, lv in levels)
+    previous = {lv for t, lv in levels if t and _row_time(latest) and (_row_time(latest) - t) <= timedelta(minutes=HOME_SPLASH_REPEAT_MINUTES)}
+    base = {"basis": "splash", "splash": road}
+    if level in ("fuerte", "moderada"):
+        if previous & {"fuerte", "moderada"}:
+            return {"estimate": "rain", "intensity": level, **base}
+        return {"estimate": "possible_rain", "intensity": "ligera", **base}
+    if level == "ligera" and (episode or previous & {"ligera", "debil"}):
+        return {"estimate": "possible_rain", "intensity": "ligera", **base}
+    if level == "debil" and episode:
+        return {"estimate": "possible_rain", "intensity": "ligera", **base}
+    if episode:
+        last_signal = max((t for t, lv in levels if lv and t), default=None)
+        now = _row_time(latest)
+        if last_signal and now and now - last_signal < timedelta(minutes=HOME_SPLASH_FADE_MINUTES):
+            return {"estimate": "possible_rain", "intensity": "terminando", **base}
+    return None
 
 
 def estimate_home_rain(latest: dict, history: list[dict]) -> dict:

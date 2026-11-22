@@ -37,3 +37,10 @@ console.log("home rain layer OK");
 api = load({ estimate: "rain", rows: [row("rain")] });
 assert.ok(api.homeRain(), "lluvia clara cuenta como lluvia");
 console.log("home rain clear-rain ok");
+
+// El círculo se achica cuando la lluvia afloja
+const r1 = load({ estimate: "rain", rows: [row("rain", { intensity: "fuerte" })] });
+const r2 = load({ estimate: "possible_rain", rows: [row("possible_rain", { intensity: "terminando" })] });
+assert.ok(r1.homeRain() && r2.homeRain(), "los dos dibujan lluvia");
+assert.ok(r1.homeRadiusM() === 10000 && r2.homeRadiusM() === 2000, "fuerte = 10 km, terminando = 2 km: " + r1.homeRadiusM() + " " + r2.homeRadiusM());
+console.log("home rain intensity ok");

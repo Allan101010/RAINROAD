@@ -68,8 +68,13 @@
           const drops = prev ? prev.drops : Array.from({ length: 45 }, () => ({   // zona grande (10 km): más gotas
             a: Math.random() * 6.283, r: Math.sqrt(Math.random()), p: Math.random(), v: 0.012 + Math.random() * 0.012
           }));
-          return { id: "home-camera", home: true, lat: Number(row.lat), lon: Number(row.lon), mm: row.estimate === "rain" ? 4 : 1, fresh: 1, drizzle: false,
-                   radiusM: HOME_RAIN_RADIUS_M, drops, storm: false, nextBolt: 0, bolt: null };
+          // Intensidad según las salpicaduras: el círculo y la cantidad de gotas bajan cuando la lluvia afloja.
+          const level = row.intensity || (row.estimate === "rain" ? "fuerte" : "ligera");
+          const km = { fuerte: 10, moderada: 7, ligera: 4, terminando: 2 }[level] || 4;
+          const mm = { fuerte: 6, moderada: 3, ligera: 1, terminando: 0.4 }[level] || 1;
+          return { id: "home-camera", home: true, lat: Number(row.lat), lon: Number(row.lon), mm, fresh: 1, drizzle: level === "terminando",
+                   radiusM: Math.min(HOME_RAIN_RADIUS_M, km * 1000), drops: drops.slice(0, Math.max(8, Math.round(drops.length * Math.min(1, km / 10)))),
+                   storm: false, nextBolt: 0, bolt: null };
         })
       : [];
     cells = rainyStations().map(s => {
@@ -195,5 +200,5 @@
       if (typeof map !== "undefined" && map && mapReady) { clearInterval(wait); sync(); }
     }, 500);
   });
-  window.RainTrackOwnRain = { sync, rebuild: buildCells, stormCount: () => cells.filter(c => c.storm).length, cellCount: () => cells.filter(c => !c.home).length, homeRain: () => cells.some(c => c.home), rainAt };
+  window.RainTrackOwnRain = { sync, rebuild: buildCells, stormCount: () => cells.filter(c => c.storm).length, cellCount: () => cells.filter(c => !c.home).length, homeRain: () => cells.some(c => c.home), homeRadiusM: () => { const c = cells.find(x => x.home); return c ? c.radiusM : 0; }, rainAt };
 })();

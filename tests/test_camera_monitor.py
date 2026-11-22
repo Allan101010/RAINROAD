@@ -477,3 +477,23 @@ def test_home_splash_rule():
     assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 5.0, 0.02), strong_before)["estimate"] == "rain"
     assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 1.3, 0.5), before)["estimate"] != "possible_rain"
     assert ct.estimate_home_rain(row("2026-11-22T20:40:00Z", 1.3, 0.04), before)["estimate"] != "possible_rain"
+
+
+def test_home_splash_fades_slowly():
+    import camera_training as ct
+
+    def row(m, road):
+        return {"t": f"2026-11-22T20:{m:02d}:00Z", "hour": 14, "q": "usable", "cam": "c",
+                "f": {"saturation": 40, "luma": 120, "ground_luma": 110, "splash_road": road, "splash_ref": 0.02}}
+
+    seq = [(2, 6), (4, 8), (6, 3), (8, 1.0), (10, 0), (14, 0), (20, 0)]
+    hist, got = [], []
+    for m, r in seq:
+        e = ct.estimate_home_rain(row(m, r), hist)
+        hist.append(row(m, r))
+        got.append((e["estimate"], e.get("intensity")))
+    assert got[1] == ("rain", "fuerte")
+    assert got[2] == ("rain", "moderada")
+    assert got[3] == ("possible_rain", "ligera")
+    assert got[4] == ("possible_rain", "terminando")
+    assert got[6][0] == "no_rain"
