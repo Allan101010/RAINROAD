@@ -25,7 +25,48 @@ const AI_PROMPT = "You are checking a public outdoor webcam image for a rain-ale
   "CLEAR - sunny, blue sky or partly cloudy and dry.\n" +
   "UNKNOWN - too dark, blurry, blocked, frozen or not an outdoor view.\n" +
   "One word only.";
-const AI_LABELS = { RAIN: "LLUVIA", FOG: "NUBLADO", CLEAR: "DESPEJADO", UNKNOWN: "NO_SE_VE" };       // estaciones: la tablet sigue leyendo 15 min después de la última visita   // la tablet sigue enviando hasta 3 min después de la última consulta
+const AI_LABELS = { RAIN: "LLUVIA", FOG: "NUBLADO", CLEAR: "DESPEJADO", UNKNOWN: "NO_SE_VE" };
+// Pregunta v2: lluvia sí/no por separado del cielo (los modelos chicos confunden "gris" con "lluvia").
+const AI_PROMPT_V2 = "Look at this outdoor webcam photo. Reply in exactly this format: RAIN=yes or RAIN=no; SKY=clear, partly, overcast, fog or unknown.\n" +
+  "RAIN=yes only if rain is actually visible: falling rain or rain streaks, raindrops on the lens, splashes, or ground that is shiny and wet with puddles during rain. " +
+  "A grey or cloudy sky alone is NOT rain. Sunshine or blue sky means RAIN=no. If it is too dark, blurry or not an outdoor view, reply RAIN=no; SKY=unknown.";
+const AI_TEST_MODELS = {
+  llama32: "@cf/meta/llama-3.2-11b-vision-instruct",
+  gemma3: "@cf/google/gemma-3-12b-it",
+  llama4: "@cf/meta/llama-4-scout-17b-16e-instruct",
+  mistral: "@cf/mistralai/mistral-small-3.1-24b-instruct"
+};
+const AI_TEST_DAILY_CAP = 300;
+
+function parseV2(raw) {
+  const text = String(raw || "").toLowerCase();
+  const rain = /rain\s*=\s*yes/.test(text) ? true : /rain\s*=\s*no/.test(text) ? false : null;
+  const sky = (text.match(/sky\s*=\s*(clear|partly|overcast|fog|unknown)/) || [])[1] || null;
+  return { rain, sky };
+}
+
+async function runVision(env, model, prompt, buf, maxTokens) {
+  let b64 = "";
+  for (let i = 0; i < buf.length; i += 0x8000) b64 += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+  b64 = btoa(b64);
+  const inputs = [
+    { messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: "data:image/jpeg;base64," + b64 } }] }], max_tokens: maxTokens, temperature: 0 },
+    { prompt, image: [...buf], max_tokens: maxTokens, temperature: 0 }
+  ];
+  let lastError = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const input of inputs) {
+      try {
+        const out = await env.AI.run(model, input);
+        const text = out && (out.response ?? out.result ?? (out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content));
+        return { raw: String(typeof text === "string" ? text : JSON.stringify(text || out)).trim().slice(0, 200), usage: out && out.usage };
+      } catch (e) { lastError = String(e); }
+    }
+    if (/agree/i.test(lastError)) { try { await env.AI.run(model, { prompt: "agree" }); } catch (e) { /* licencia */ } }
+    else break;
+  }
+  throw new Error(lastError.slice(0, 300));
+}       // estaciones: la tablet sigue leyendo 15 min después de la última visita   // la tablet sigue enviando hasta 3 min después de la última consulta
 const STALE_S = 90;            // una foto más vieja que esto no se entrega como "en vivo"
 const KEEP = ["hex", "flight", "r", "t", "desc", "lat", "lon", "alt_baro", "alt_geom", "gs", "track", "baro_rate", "squawk", "seen_pos", "seen"];
 
@@ -173,6 +214,26 @@ async function handle(req, env) {
         env.DB.prepare("DELETE FROM ia WHERE t < ?").bind(t - 7 * 86400)
       ]);
       return json({ label, raw, used: count + 1 });
+    }
+
+    if (url.pathname === "/ia/probar" && req.method === "GET") {
+      // Prueba de modelos sobre fotos ya guardadas (cupo diario propio, para no quitarle cupo a la tablet).
+      if (!env.AI) return json({ error: "falta binding AI" }, 500);
+      const model = AI_TEST_MODELS[url.searchParams.get("modelo") || "llama32"];
+      if (!model) return json({ error: "modelo", opciones: Object.keys(AI_TEST_MODELS) }, 400);
+      const day = "iap_" + new Date().toISOString().slice(0, 10);
+      const used = await getRow(env.DB, day);
+      const count = used ? Number(used.v) : 0;
+      if (count >= AI_TEST_DAILY_CAP) return json({ error: "cupo de prueba", used: count }, 429);
+      const row = await env.DB.prepare("SELECT img FROM ia WHERE id = ?").bind(Number(url.searchParams.get("id")) || 0).first();
+      if (!row || !row.img) return json({ error: "no existe" }, 404);
+      await putRow(env.DB, day, String(count + 1));
+      try {
+        const out = await runVision(env, model, AI_PROMPT_V2, new Uint8Array(row.img), 24);
+        return new Response(JSON.stringify({ ...parseV2(out.raw), raw: out.raw, usage: out.usage, used: count + 1 }), { headers: { ...JSON_HEAD, "Access-Control-Allow-Origin": "*" } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "ia", detail: String(e).slice(0, 300) }), { status: 502, headers: { ...JSON_HEAD, "Access-Control-Allow-Origin": "*" } });
+      }
     }
 
     if (url.pathname === "/ia" && req.method === "GET") {
