@@ -103,7 +103,7 @@ def motion_features(frames: list[Image.Image]) -> dict:
 # la calle (al aire libre, sin plantas) y la pared del corredor (techada). Se cambian por cámara en
 # config.json con "zona_lluvia" y "zona_techada": [x0, y0, x1, y1].
 DEFAULT_RAIN_ZONE = (0.0, 0.20, 0.55, 0.50)
-DEFAULT_ROOF_ZONE = (0.72, 0.55, 1.0, 1.0)
+DEFAULT_ROOF_ZONE = (0.80, 0.62, 0.98, 0.95)   # centro de la pared, lejos de la baranda y el goteo del techo
 SPLASH_WIDTH = 640
 SPLASH_DIFF = 12
 
