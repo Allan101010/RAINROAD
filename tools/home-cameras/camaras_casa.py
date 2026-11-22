@@ -281,11 +281,35 @@ def discover(ip: str, password: str) -> int:
     return 1
 
 
+def upload_debug_frames(config: dict) -> int:
+    """Sube dos fotos seguidas (medio segundo de diferencia) al Worker para ajustar las zonas de gotas."""
+    import io
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import aviones_casa
+    for camera in config["cameras"]:
+        frames = grab_burst(camera["rtsp"])
+        print(camera["id"], analyze(frames, camera).get("splash_road"), analyze(frames, camera).get("splash_ref"))
+        for i, frame in enumerate(frames[:2], 1):
+            out = io.BytesIO()
+            frame.convert("RGB").resize((1280, round(frame.height * 1280 / frame.width))).save(out, "JPEG", quality=90)
+            req = urllib.request.Request(aviones_casa.WORKER + "/ia", data=out.getvalue(), method="POST", headers={
+                **aviones_casa.UA, "Content-Type": "image/jpeg", "X-Clave": aviones_casa._key(),
+                "X-Cam": f"debug-{camera['id']}-{i}"})
+            try:
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    print("foto", i, "subida:", r.read().decode("utf-8")[:80])
+            except Exception as exc:
+                print("foto", i, "falló:", exc)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--una-vez", action="store_true")
     parser.add_argument("--descubrir", metavar="IP", help="busca la dirección RTSP que funciona en esa cámara")
     parser.add_argument("--clave", default="", help="clave de la cámara (vacía si nunca la cambiaste)")
+    parser.add_argument("--subir-fotos", action="store_true",
+                        help="sube 2 fotos seguidas de cada cámara al Worker para revisar las zonas (no se publican)")
     args = parser.parse_args()
     if args.descubrir:
         return discover(args.descubrir, args.clave)
@@ -293,6 +317,8 @@ def main() -> int:
         print("Falta config.json: copia config.ejemplo.json a config.json y complétalo.")
         return 1
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    if args.subir_fotos:
+        return upload_debug_frames(config)
     # Lectura cada 2 min (va al Worker); a ntfy solo una cada 8 min (ver run_round).
     interval = max(FAST_INTERVAL_SECONDS, int(config.get("intervalo_rapido_segundos", FAST_INTERVAL_SECONDS)))
     if not args.una_vez:
