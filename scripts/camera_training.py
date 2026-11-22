@@ -369,7 +369,8 @@ def _estimate_splash(latest: dict, history: list[dict]) -> dict | None:
     previous = {lv for t, lv in levels if t and _row_time(latest) and (_row_time(latest) - t) <= timedelta(minutes=HOME_SPLASH_REPEAT_MINUTES)}
     base = {"basis": "splash", "splash": road}
     if level in ("fuerte", "moderada"):
-        if previous & {"fuerte", "moderada"}:
+        # Dos lecturas seguidas fuertes, o una fuerte cuando ya venía lloviendo: lluvia clara.
+        if previous & {"fuerte", "moderada"} or episode:
             return {"estimate": "rain", "intensity": level, **base}
         return {"estimate": "possible_rain", "intensity": "ligera", **base}
     if level == "ligera" and (episode or previous & {"ligera", "debil"}):
