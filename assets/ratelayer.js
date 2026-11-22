@@ -3,8 +3,8 @@
 (function () {
   "use strict";
   const KEY = "raintrack-ownrain";
-  // La cámara ve lluvia local: se muestra alrededor de 15 km (mismo radio que usa el resumen de arriba).
-  const HOME_RAIN_RADIUS_M = (typeof HOME_RAIN_RADIUS_KM !== "undefined" ? HOME_RAIN_RADIUS_KM : 15) * 1000;
+  // La cámara ve lluvia local: se muestra alrededor de 10 km (mismo radio que usa el resumen de arriba).
+  const HOME_RAIN_RADIUS_M = (typeof HOME_RAIN_RADIUS_KM !== "undefined" ? HOME_RAIN_RADIUS_KM : 10) * 1000;
   // Radio de la zona de lluvia de una estación: la llovizna es más local; más lluvia, zona más amplia.
   const cellRadiusM = mm => mm < 0.5 ? 3500 : Math.min(11000, 4500 + mm * 700);
   const STORM_MM = 8; // lluvia intensa: se trata como tormenta (el IMN no publica rayos con coordenadas)
@@ -65,7 +65,7 @@
     const homeCells = homeRain && isRain(homeRain.estimate)
       ? homeRain.rows.filter(row => isRain(row.estimate) && !row.stale).slice(0, 1).map(row => {
           const prev = old.get("home-camera");
-          const drops = prev ? prev.drops : Array.from({ length: 70 }, () => ({   // zona grande (15 km): más gotas
+          const drops = prev ? prev.drops : Array.from({ length: 45 }, () => ({   // zona grande (10 km): más gotas
             a: Math.random() * 6.283, r: Math.sqrt(Math.random()), p: Math.random(), v: 0.012 + Math.random() * 0.012
           }));
           return { id: "home-camera", home: true, lat: Number(row.lat), lon: Number(row.lon), mm: row.estimate === "rain" ? 4 : 1, fresh: 1, drizzle: false,
