@@ -477,7 +477,7 @@ def test_home_splash_rule():
     assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 5.0, 0.02), strong_before)["estimate"] == "rain"
     # la zona techada también cambia (ruido de la cámara) y no venía lloviendo: no es lluvia
     assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 1.3, 0.5), [row("2026-11-22T20:20:00Z", 1.2, 0.5)])["estimate"] != "possible_rain"
-    assert ct.estimate_home_rain(row("2026-11-22T20:40:00Z", 1.3, 0.04), before)["estimate"] != "possible_rain"
+    assert ct.estimate_home_rain(row("2026-11-22T21:00:00Z", 1.3, 0.04), before)["estimate"] != "possible_rain"  # lluvia anterior hace 40 min
 
 
 def test_home_splash_fades_slowly():
