@@ -338,7 +338,11 @@ def _estimate_splash(latest: dict, history: list[dict]) -> dict | None:
     repeated = any(_splash_signal(r.get("f", {})) for r in previous)
     if not (strong or repeated):
         return None
-    return {"estimate": "possible_rain", "basis": "splash", "splash": round(float(features["splash_road"]), 2)}
+    previous_strong = any(_splash_signal(r.get("f", {})) and float(r["f"]["splash_road"]) >= HOME_SPLASH_STRONG
+                          for r in previous)
+    # Gotas fuertes en dos lecturas seguidas = lluvia clara; si no, solo señales.
+    estimate = "rain" if strong and previous_strong else "possible_rain"
+    return {"estimate": estimate, "basis": "splash", "splash": round(float(features["splash_road"]), 2)}
 
 
 def estimate_home_rain(latest: dict, history: list[dict]) -> dict:

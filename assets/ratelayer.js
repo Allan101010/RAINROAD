@@ -61,13 +61,14 @@
     const old = new Map(cells.map(c => [c.id, c]));
     // Cámara de casa: si ve señales de lluvia, se dibuja lluvia alrededor de varios km (estimación).
     const homeRain = typeof homeCameraSummary === "function" ? homeCameraSummary() : null;
-    const homeCells = homeRain && homeRain.estimate === "possible_rain"
-      ? homeRain.rows.filter(row => row.estimate === "possible_rain" && !row.stale).slice(0, 1).map(row => {
+    const isRain = e => e === "rain" || e === "possible_rain";
+    const homeCells = homeRain && isRain(homeRain.estimate)
+      ? homeRain.rows.filter(row => isRain(row.estimate) && !row.stale).slice(0, 1).map(row => {
           const prev = old.get("home-camera");
           const drops = prev ? prev.drops : Array.from({ length: 22 }, () => ({
             a: Math.random() * 6.283, r: Math.sqrt(Math.random()), p: Math.random(), v: 0.012 + Math.random() * 0.012
           }));
-          return { id: "home-camera", home: true, lat: Number(row.lat), lon: Number(row.lon), mm: 1, fresh: 1, drizzle: false,
+          return { id: "home-camera", home: true, lat: Number(row.lat), lon: Number(row.lon), mm: row.estimate === "rain" ? 4 : 1, fresh: 1, drizzle: false,
                    radiusM: HOME_RAIN_RADIUS_M, drops, storm: false, nextBolt: 0, bolt: null };
         })
       : [];

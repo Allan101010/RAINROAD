@@ -32,3 +32,8 @@ assert.equal(api.rainAt(10.0, -84.0), null, "lluvia de hace 50 min ya no cuenta 
 api = load({ estimate: "unknown", rows: [] }, [station(2, 5, { availability_status: "offline" })]);
 assert.equal(api.rainAt(10.0, -84.0), null, "estación caída no cuenta");
 console.log("home rain layer OK");
+
+// Lluvia clara ("rain") también pinta lluvia, más intensa que "posible lluvia"
+api = load({ estimate: "rain", rows: [row("rain")] });
+assert.ok(api.homeRain(), "lluvia clara cuenta como lluvia");
+console.log("home rain clear-rain ok");

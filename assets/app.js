@@ -1039,18 +1039,26 @@ function homeCameraRows() {
 
 // Con varias cámaras de casa se junta una sola opinión: llueve si la mitad o más de las que
 // tienen opinión ven señales de lluvia (cada cámara se compara con su propio aspecto normal).
+// "rain" = lluvia clara (gotas salpicando en dos lecturas seguidas); "possible_rain" = señales débiles.
+function homeRainEstimate(estimate) {
+  return estimate === "rain" || estimate === "possible_rain";
+}
+
 function homeCameraSummary() {
   const rows = homeCameraRows();
-  const opinions = rows.filter(row => row.estimate === "possible_rain" || row.estimate === "no_rain");
-  const rainVotes = opinions.filter(row => row.estimate === "possible_rain").length;
-  const estimate = !opinions.length ? "unknown" : (rainVotes > 0 && rainVotes * 2 >= opinions.length ? "possible_rain" : "no_rain");
+  const opinions = rows.filter(row => homeRainEstimate(row.estimate) || row.estimate === "no_rain");
+  const rainRows = opinions.filter(row => homeRainEstimate(row.estimate));
+  const raining = rainRows.length > 0 && rainRows.length * 2 >= opinions.length;
+  const estimate = !opinions.length ? "unknown"
+    : !raining ? "no_rain"
+    : rainRows.some(row => row.estimate === "rain") ? "rain" : "possible_rain";
   return { rows, estimate };
 }
 
 function homeCameraRaining(radiusKm) {
   if (!homeLocation) return false;
   const summary = homeCameraSummary();
-  if (summary.estimate !== "possible_rain") return false;
+  if (!homeRainEstimate(summary.estimate)) return false;
   return summary.rows.some(row => distanceKm(homeLocation.lat, homeLocation.lon, Number(row.lat), Number(row.lon)) <= radiusKm);
 }
 
@@ -1076,7 +1084,8 @@ function homeCameraPopupText(summary) {
       return "• " + homeCameraName(row.id) + ": SIN CONEXIÓN · última lectura " + lastText;
     }
     const night = row.mode === "ir" ? " · visión nocturna" : "";
-    const state = row.estimate === "possible_rain" ? "posible lluvia" + night
+    const state = row.estimate === "rain" ? "LLUVIA (gotas salpicando)" + night
+      : row.estimate === "possible_rain" ? "posible lluvia" + night
       : row.estimate === "no_rain" ? "sin señales de lluvia" + night
       : "sin opinión (" + (HOME_CAMERA_NO_OPINION[row.reason] || "poca visibilidad") + ")";
     return "• " + homeCameraName(row.id) + ": " + state + " (hace " + minutes + " min)";
@@ -1089,7 +1098,7 @@ function updateHomeCameraMarker() {
   const summary = homeCameraSummary();
   if (!mapReady || !summary.rows.length) return;
   const row = summary.rows[0];
-  const rain = summary.estimate === "possible_rain";
+  const rain = homeRainEstimate(summary.estimate);
   const offline = summary.rows.some(item => item.stale);
   // El ícono sigue el interruptor "Cámaras", salvo cuando está sin conexión: ese aviso (rojo) se ve siempre.
   if (!homeCameraEnabled() && !offline) return;
@@ -2143,8 +2152,8 @@ function routeStationEvidence(lat, lon) {
 // ¿La cámara de casa ve lluvia y este punto de la ruta está dentro de su zona?
 function routeHomeCameraRain(lat, lon) {
   const summary = homeCameraSummary();
-  if (summary.estimate !== "possible_rain") return false;
-  return summary.rows.some(row => row.estimate === "possible_rain" &&
+  if (!homeRainEstimate(summary.estimate)) return false;
+  return summary.rows.some(row => homeRainEstimate(row.estimate) &&
     distanceKm(lat, lon, Number(row.lat), Number(row.lon)) <= HOME_RAIN_RADIUS_KM);
 }
 
