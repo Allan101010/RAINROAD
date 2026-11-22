@@ -889,7 +889,7 @@ $("cameraAlertStack").addEventListener("click", event => {
 // ¿Llueve donde está el usuario? Se decide con estaciones medidas cercanas (no con el modelo).
 const AMBIENT_RAIN_RADIUS_KM = 15;
 // Si la cámara de casa ve lluvia, se da por cierta alrededor de este radio (mapa, resumen de arriba y rutas).
-const HOME_RAIN_RADIUS_KM = 5.5;
+const HOME_RAIN_RADIUS_KM = 15;
 const HOME_CAMERA_OFFLINE_MINUTES = 30; // sin lectura de la tablet en este tiempo = sin conexión
 
 function distanceKm(lat1, lon1, lat2, lon2) {
