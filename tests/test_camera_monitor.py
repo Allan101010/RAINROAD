@@ -460,3 +460,18 @@ class HomeRainEstimateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_home_splash_rule():
+    import camera_training as ct
+
+    def row(t, road, ref):
+        return {"t": t, "hour": 14, "q": "usable", "cam": "casa-patio",
+                "f": {"saturation": 40, "luma": 120, "ground_luma": 110, "splash_road": road, "splash_ref": ref}}
+
+    before = [row("2026-11-22T20:20:00Z", 1.2, 0.05)]
+    assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 1.3, 0.04), before)["basis"] == "splash"
+    assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 1.3, 0.04), [])["estimate"] != "possible_rain"
+    assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 2.5, 0.04), [])["estimate"] == "possible_rain"
+    assert ct.estimate_home_rain(row("2026-11-22T20:22:00Z", 1.3, 0.5), before)["estimate"] != "possible_rain"
+    assert ct.estimate_home_rain(row("2026-11-22T20:40:00Z", 1.3, 0.04), before)["estimate"] != "possible_rain"

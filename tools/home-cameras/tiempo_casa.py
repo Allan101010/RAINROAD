@@ -94,7 +94,8 @@ def publish_home(message: dict) -> dict | None:
     estimate = camera_training.estimate_home_rain(row, history)
     others = [r for r in _history() if r.get("cam") != row["cam"]]
     _save_history(others + history + [row])
-    payload = {"cams": [{"id": "home-" + row["cam"], "t": row["t"], **estimate}]}
+    extra = {k: row["f"][k] for k in ("splash_road", "splash_ref", "saturation", "motion") if k in row["f"]}
+    payload = {"cams": [{"id": "home-" + row["cam"], "t": row["t"], **estimate, "f": extra}]}
     aviones_casa._post(aviones_casa.WORKER, "/casa", aviones_casa._key(), payload)
     return estimate
 

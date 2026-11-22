@@ -99,6 +99,60 @@ def motion_features(frames: list[Image.Image]) -> dict:
     return {"motion": round(best[0], 2), "motion_spread": round(best[1], 3), "motion_median": round(best[2], 2)}
 
 
+# Zonas para las salpicaduras (fracciones de ancho/alto de la imagen). Por defecto, las de casa-patio:
+# la calle (al aire libre, sin plantas) y la pared del corredor (techada). Se cambian por cámara en
+# config.json con "zona_lluvia" y "zona_techada": [x0, y0, x1, y1].
+DEFAULT_RAIN_ZONE = (0.0, 0.20, 0.55, 0.50)
+DEFAULT_ROOF_ZONE = (0.72, 0.55, 1.0, 1.0)
+SPLASH_WIDTH = 640
+SPLASH_DIFF = 12
+
+
+def splash_features(frames: list[Image.Image], rain_zone=DEFAULT_RAIN_ZONE, roof_zone=DEFAULT_ROOF_ZONE) -> dict:
+    """Gotas que salpican: puntitos que cambian entre fotos seguidas, mirados con más detalle (640 px).
+
+    "splash_road" = % típico de puntos que cambian en los bloques de la zona al aire libre (la mediana de
+    24 bloques, así un carro o una persona que ocupa pocos bloques no cuenta). "splash_ref" = % en la zona
+    techada (ahí la lluvia no cae; sirve de comparación para el ruido de la cámara). Con lluvia la primera
+    sube mucho y la segunda no.
+    """
+    if len(frames) < 2:
+        return {}
+    grays = []
+    for frame in frames:
+        w, h = frame.size
+        size = (SPLASH_WIDTH, max(1, round(h * SPLASH_WIDTH / w)))
+        grays.append(ImageOps.grayscale(frame.convert("RGB").resize(size)))
+    W, H = grays[0].size
+
+    def box(zone):
+        return (int(zone[0] * W), int(zone[1] * H), int(zone[2] * W), int(zone[3] * H))
+
+    def changed(img, area):
+        hist = img.crop(area).histogram()
+        return 100.0 * sum(hist[SPLASH_DIFF:]) / max(1, sum(hist))
+
+    rx0, ry0, rx1, ry1 = box(rain_zone)
+    cols, rows = 8, 3
+    best = None
+    for first, second in zip(grays, grays[1:]):
+        diff = ImageChops.difference(first, second)
+        blocks = []
+        for r in range(rows):
+            for c in range(cols):
+                x0 = rx0 + (rx1 - rx0) * c // cols
+                x1 = rx0 + (rx1 - rx0) * (c + 1) // cols
+                y0 = ry0 + (ry1 - ry0) * r // rows
+                y1 = ry0 + (ry1 - ry0) * (r + 1) // rows
+                blocks.append(changed(diff, (x0, y0, x1, y1)))
+        blocks.sort()
+        road = blocks[len(blocks) // 2]
+        pair = (road, changed(diff, box(roof_zone)))
+        if best is None or pair[0] < best[0]:
+            best = pair
+    return {"splash_road": round(best[0], 2), "splash_ref": round(best[1], 2)}
+
+
 def grab_burst(rtsp_url: str, timeout: int = 30) -> list[Image.Image]:
     """Saca varias fotos seguidas con una sola conexión. La URL (con tu contraseña) nunca se imprime."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -121,10 +175,16 @@ def grab_frame(rtsp_url: str, timeout: int = 25) -> Image.Image:
     return grab_burst(rtsp_url, timeout)[0]
 
 
-def analyze(frames: list[Image.Image]) -> dict:
+def analyze(frames: list[Image.Image], camera: dict | None = None) -> dict:
     """Resumen completo: la foto del medio para las características y todas para el movimiento."""
+    camera = camera or {}
     features = extract_features(frames[len(frames) // 2])
     features.update(motion_features(frames))
+    try:
+        features.update(splash_features(frames, tuple(camera.get("zona_lluvia", DEFAULT_RAIN_ZONE)),
+                                        tuple(camera.get("zona_techada", DEFAULT_ROOF_ZONE))))
+    except Exception:
+        pass
     return features
 
 
@@ -158,7 +218,7 @@ def run_round(config: dict) -> int:
     for camera in config["cameras"]:
         name = camera["id"]
         try:
-            features = analyze(grab_burst(camera["rtsp"]))
+            features = analyze(grab_burst(camera["rtsp"]), camera)
             message = build_message(name, features)
             live = ""
             try:  # estimación al instante en el Worker (cada ronda)
@@ -172,7 +232,7 @@ def run_round(config: dict) -> int:
                 send(config["ntfy_topic"], message)
                 LAST_NTFY[name] = time.time()
             sent += 1
-            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')}{live})", flush=True)
+            print(f"{datetime.now():%H:%M:%S} {name}: enviado (luma {features['luma']}, color {features['saturation']}, movimiento {features.get('motion', '-')}, gotas {features.get('splash_road', '-')}/{features.get('splash_ref', '-')}{live})", flush=True)
         except subprocess.TimeoutExpired:
             print(f"{datetime.now():%H:%M:%S} {name}: la cámara no respondió a tiempo", flush=True)
         except subprocess.CalledProcessError:

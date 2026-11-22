@@ -113,7 +113,7 @@ def build_row(camera: dict, features: dict, stations: list[dict], flashes, now: 
 
 FEATURE_KEYS = ("luma", "contrast", "sky_luma", "sky_contrast", "ground_luma", "ground_contrast",
                 "edges", "sky_edges", "saturation", "sky_blue_ratio", "bright_frac", "dark_frac")
-OPTIONAL_FEATURE_KEYS = ("motion", "motion_spread", "motion_median")  # solo las manda la tablet nueva
+OPTIONAL_FEATURE_KEYS = ("motion", "motion_spread", "motion_median", "splash_road", "splash_ref")  # solo las manda la tablet nueva
 HOME_MAX_SKEW_MINUTES = 30
 
 
@@ -292,6 +292,55 @@ def _estimate_night(latest: dict, history: list[dict]) -> dict:
     return {"estimate": "possible_rain", **result}
 
 
+# Salpicaduras (camaras_casa.splash_features): % de puntos que cambian en la zona al aire libre frente a
+# la zona techada. Primera versión calibrada con un video de lluvia real del 22-nov (calle 0.6–3.5 %,
+# techo 0.02–0.4 %); falta confirmar con días secos.
+HOME_SPLASH_MIN = 0.5
+HOME_SPLASH_RATIO = 5.0
+HOME_SPLASH_STRONG = 2.0
+HOME_SPLASH_REPEAT_MINUTES = 15
+OPTIONAL_SPLASH_KEYS = ("splash_road", "splash_ref")
+
+
+def _recent_rows(latest: dict, history: list[dict], minutes: int) -> list[dict]:
+    """Lecturas anteriores (de la misma cámara) dentro de los últimos `minutes` minutos."""
+    try:
+        now = datetime.fromisoformat(str(latest["t"]).replace("Z", "+00:00"))
+    except (KeyError, ValueError):
+        return []
+    out = []
+    for row in history:
+        try:
+            t = datetime.fromisoformat(str(row["t"]).replace("Z", "+00:00"))
+        except (KeyError, ValueError):
+            continue
+        if timedelta(0) < now - t <= timedelta(minutes=minutes):
+            out.append(row)
+    return out
+
+
+def _splash_signal(features: dict) -> bool | None:
+    road, ref = features.get("splash_road"), features.get("splash_ref")
+    if road is None or ref is None:
+        return None
+    road, ref = float(road), float(ref)
+    return road >= HOME_SPLASH_MIN and road >= HOME_SPLASH_RATIO * ref + 0.1
+
+
+def _estimate_splash(latest: dict, history: list[dict]) -> dict | None:
+    """Lluvia por salpicaduras, a cualquier hora en que la imagen se vea (día, infrarrojo o luz del corredor)."""
+    features = latest.get("f", {})
+    signal = _splash_signal(features)
+    if not signal:
+        return None
+    strong = float(features["splash_road"]) >= HOME_SPLASH_STRONG
+    previous = _recent_rows(latest, history, HOME_SPLASH_REPEAT_MINUTES)
+    repeated = any(_splash_signal(r.get("f", {})) for r in previous)
+    if not (strong or repeated):
+        return None
+    return {"estimate": "possible_rain", "basis": "splash", "splash": round(float(features["splash_road"]), 2)}
+
+
 def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
     """Estimación experimental de lluvia con una sola cámara, a cualquier hora. No es una medición.
 
@@ -305,6 +354,9 @@ def estimate_home_rain(latest: dict, history: list[dict]) -> dict:
     if latest.get("q") != "usable":
         return {"estimate": "unknown", "reason": "low_quality"}
     mode = home_mode(latest)
+    splash = _estimate_splash(latest, history)
+    if splash:
+        return {**splash, "mode": mode}
     if mode == "lamp":
         return {"estimate": "unknown", "reason": "lamp_on", "mode": mode}
     if mode == "ir":
