@@ -498,3 +498,17 @@ def test_home_splash_fades_slowly():
     assert got[3] == ("possible_rain", "ligera")
     assert got[4] == ("possible_rain", "terminando")
     assert got[6][0] == "no_rain"
+
+
+def test_home_splash_windy_shadows_are_not_rain():
+    import camera_training as ct
+
+    def row(m, road, ref=0.0):
+        return {"t": f"2026-11-23T19:{m:02d}:00Z", "hour": 13, "q": "usable", "cam": "c",
+                "f": {"saturation": 31, "luma": 140, "ground_luma": 105, "splash_road": road, "splash_ref": ref}}
+
+    hist = []
+    for m, r in [(30, 0.6), (32, 0.55), (34, 0.57), (36, 0.5), (38, 0.06)]:
+        e = ct.estimate_home_rain(row(m, r), hist)
+        hist.append(row(m, r))
+        assert e["estimate"] != "possible_rain" and e["estimate"] != "rain"

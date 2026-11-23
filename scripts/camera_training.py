@@ -295,7 +295,7 @@ def _estimate_night(latest: dict, history: list[dict]) -> dict:
 # Salpicaduras (camaras_casa.splash_features): % de puntos que cambian en la zona al aire libre frente a
 # la zona techada. Primera versión calibrada con un video de lluvia real del 22-nov (calle 0.6–3.5 %,
 # techo 0.02–0.4 %); falta confirmar con días secos.
-HOME_SPLASH_MIN = 0.5
+HOME_SPLASH_MIN = 1.0   # viento moviendo sombras da ~0.6; lluvia real, 2.7 o más
 HOME_SPLASH_RATIO = 5.0
 HOME_SPLASH_STRONG = 2.0
 HOME_SPLASH_REPEAT_MINUTES = 15
@@ -365,7 +365,9 @@ def _estimate_splash(latest: dict, history: list[dict]) -> dict | None:
     road = round(float(features["splash_road"]), 2)
     recent = _recent_rows(latest, history, HOME_SPLASH_EPISODE_MINUTES)
     levels = [(_row_time(r), _splash_level(r.get("f", {}))) for r in recent]
-    episode = any(lv in ("fuerte", "moderada", "ligera") for _, lv in levels)
+    # Un episodio lo arranca lluvia clara (moderada/fuerte) o dos lecturas ligeras; una sola no basta.
+    episode = (any(lv in ("fuerte", "moderada") for _, lv in levels)
+               or sum(1 for _, lv in levels if lv == "ligera") >= 2)
     previous = {lv for t, lv in levels if t and _row_time(latest) and (_row_time(latest) - t) <= timedelta(minutes=HOME_SPLASH_REPEAT_MINUTES)}
     base = {"basis": "splash", "splash": road}
     if level in ("fuerte", "moderada"):
@@ -373,7 +375,7 @@ def _estimate_splash(latest: dict, history: list[dict]) -> dict | None:
         if previous & {"fuerte", "moderada"} or episode:
             return {"estimate": "rain", "intensity": level, **base}
         return {"estimate": "possible_rain", "intensity": "ligera", **base}
-    if level == "ligera" and (episode or previous & {"ligera", "debil"}):
+    if level == "ligera" and (episode or "ligera" in previous):
         return {"estimate": "possible_rain", "intensity": "ligera", **base}
     if level == "debil" and episode:
         return {"estimate": "possible_rain", "intensity": "ligera", **base}

@@ -91,7 +91,8 @@ def _last_rain(cam: str, stamp: str, estimate: dict) -> dict | None:
         saved = json.loads(LAST_RAIN_PATH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         saved = {}
-    seeing = estimate.get("estimate") == "rain" or (estimate.get("estimate") == "possible_rain" and estimate.get("intensity"))
+    seeing = estimate.get("estimate") == "rain" or (
+        estimate.get("estimate") == "possible_rain" and estimate.get("intensity") == "ligera")
     if seeing:
         saved[cam] = {"t": stamp, "intensity": estimate.get("intensity")}
         try:
