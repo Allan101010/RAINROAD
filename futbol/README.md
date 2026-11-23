@@ -1,83 +1,121 @@
-# Fútbol Mánager (prototipo 0.1)
+# Fútbol Mánager (versión 0.2)
 
-Juego de fútbol para Android: eres el entrenador de **Halcones FC** y juegas tú mismo las **jugadas clave** de los partidos, en 3D y con controles táctiles al estilo de los juegos de fútbol de consola.
+Juego de fútbol para Android: eres el **entrenador** y eliges el once, la formación y los cambios. El partido se simula minuto a minuto y, cuando llega una **jugada clave**, la juegas tú en 3D: atacar, defender, un tiro libre, un penal o un córner.
 
 Hecho con [Godot 4.3](https://godotengine.org) (gratis y de código abierto). Es para uso personal y no se publica en ninguna tienda.
 
-![Partido](docs/partido.png)
+![Menú](docs/menu.png)
 
 ## Instalarlo en tu Android
 
-1. Descarga el archivo [`builds/futbol-manager.apk`](builds/futbol-manager.apk) en el teléfono. En GitHub, abre el archivo y toca **Download** o **View raw**.
-2. Ábrelo desde la notificación de descarga o desde la app **Archivos**.
-3. Android te pedirá permiso para **instalar apps desconocidas** desde el navegador o la app de archivos. Actívalo solo para esa app.
-4. Toca **Instalar**. Si aparece un aviso de Play Protect, elige **Instalar de todas formas**; sale porque la app no viene de la tienda.
+1. Descarga [`builds/futbol-manager.apk`](builds/futbol-manager.apk) en el teléfono. En GitHub, abre el archivo y toca **Download** o **View raw**.
+2. Ábrelo y permite **instalar apps desconocidas** solo para el navegador o la app de archivos.
+3. Si ya tenías la versión anterior, se actualiza encima.
+4. Si sale un aviso de Play Protect, elige **Instalar de todas formas**; aparece porque la app no viene de la tienda.
 
-Requisitos: Android 7 o superior con procesador de 64 bits (casi todos los teléfonos desde 2017).
+Requisitos: Android 7 o superior con procesador de 64 bits.
+
+## Modos de juego
+
+| Modo | Qué es |
+|---|---|
+| **Partido rápido** | Eliges tu equipo y el rival, ajustas la alineación y juegas un partido. |
+| **Modo carrera** | Llevas un club de LaLiga durante 38 jornadas: alineación, entrenamiento semanal, clasificación (3, 1 y 0 puntos) y calendario. Se guarda solo. |
+| **Entrenamiento** | Practicas cualquier tipo de jugada del catálogo cuantas veces quieras. |
+
+## Cómo funciona un partido
+
+1. **Alineación**: elige una formación (4-3-3, 4-4-2, 4-2-3-1, 3-5-2 o 5-3-2) y toca dos jugadores para intercambiarlos. Un jugador fuera de su posición rinde menos (borde rojo).
+2. **Simulación**: el partido avanza minuto a minuto con comentarios, estadísticas y la energía de tus jugadores. Puedes cambiar la velocidad, pausar y hacer hasta 5 cambios.
+3. **Jugadas clave**: el juego elige una de las **110 jugadas** según lo que pasa en el partido: si tu equipo es rápido salen más contraataques; si vas perdiendo, más ataques en la frontal; si el rival es veloz, más contras en tu contra. Nunca repite una jugada en el mismo partido. Puedes **jugarla** o **simularla**.
+4. **Final**: 3 puntos por victoria, 1 por empate y 0 por derrota. El ánimo sube o baja según el resultado.
+
+### Los atributos importan
+
+Cada jugador tiene **velocidad, pase, tiro, defensa, portería, tiro libre y resistencia**, además de **energía** (baja durante el partido y se recupera entre jornadas) y **ánimo**. Ambos afectan a lo que rinde.
+
+- Un delantero rápido deja atrás a un central lento.
+- Un buen tirador pone el balón entre los tres palos desde lejos; uno malo la manda a la grada.
+- El portero **siempre reacciona**. Que la pare depende de su habilidad, de la velocidad del tiro y de lo ajustado que vaya al palo.
+- En el tiro libre cuenta el atributo **TL** del lanzador.
+
+### Las 110 jugadas
+
+| Tipo | Cantidad |
+|---|---|
+| Contraataques (2 contra 1, 3 contra 2, 4 contra 3; por izquierda, centro o derecha) | 18 |
+| Ataques en la frontal del área | 9 |
+| Mano a mano | 6 |
+| Desbordes por banda con centro | 8 |
+| Rechaces del portero | 4 |
+| Córners a favor (primer palo, punto de penal, segundo palo) | 6 |
+| Tiros libres directos (5 distancias x 5 ángulos) | 25 |
+| Penales a favor | 2 |
+| Penal en contra (eres el portero) | 1 |
+| Defender contraataques | 18 |
+| Defender la frontal | 6 |
+| Defender desbordes por banda | 4 |
+| Defender un mano a mano | 3 |
 
 ## Controles
 
-| Zona | En ataque | En defensa |
+| Botón | En ataque | En defensa |
 |---|---|---|
-| Mitad izquierda | Joystick (aparece donde pongas el dedo) | Joystick |
-| Botón rojo grande | **TIRO**: mantén para cargar la potencia y suelta | **BARRIDA** |
-| Botón verde | **PASE** raso al compañero hacia donde apuntas | **CAMBIAR** de jugador |
-| Botón azul | **AL HUECO**: pase al espacio, delante del compañero | **PRESIÓN**: mantén y tu jugador persigue al rival |
-| Botón amarillo | **SPRINT** (mantener) | **SPRINT** |
+| Joystick (mitad izquierda) | Mover | Mover |
+| Rojo | **TIRO**: mantén para cargar y suelta. Cerca de un balón aéreo hace un **cabezazo** | **BARRIDA** |
+| Verde | **PASE** al compañero hacia donde apuntas. Desde la banda hacia el área sale un **centro** | **CAMBIAR** de jugador |
+| Azul | **AL HUECO**: pase al espacio | **PRESIÓN**: mantén y persigue al rival |
+| Amarillo | **SPRINT** | **SPRINT** |
 
-Consejos:
-- Al tirar, inclina el joystick hacia arriba o hacia abajo para elegir el palo. Si cargas la barra hasta el rojo, el balón se te puede ir por encima.
-- Si te llega un pase y no tocas el joystick, el jugador corre solo a recibir.
-- Si el balón queda suelto cerca de ti, **TIRO** remata de primera.
+**Tiro libre** (cámara detrás del balón):
 
-En PC (para pruebas): WASD o flechas para moverte, **K** tiro, **J** pase, **L** al hueco, **Shift** sprint, **Q** cambiar.
+1. Mueve la mira amarilla con el joystick.
+2. Elige el efecto con **< EFECTO** y **EFECTO >**.
+3. Cambia de lanzador con **LANZADOR**.
+4. Mantén **TIRO** para cargar la potencia y suelta. Si apuntas alto, el balón sube para superar la barrera; si pasas de la marca blanca, se va por arriba.
 
-## Jugadas incluidas
-
-| Jugada | Situación | Tiempo |
-|---|---|---|
-| Contraataque | Minuto 78, 1-1. Robas en el medio campo y sales con 3 compañeros contra 3 defensas y el portero | 35 s |
-| Ataque en el área | Minuto 89, pierden 1-2. Balón en la frontal del área llena de defensas | 25 s |
-| Mano a mano | Minuto 64, 0-0. Solo contra el portero con un defensa persiguiéndote | 12 s |
-
-La jugada termina con gol, atajada, balón fuera, despeje o cuando se acaba el tiempo.
+**Penal en contra**: eliges **IZQUIERDA**, **CENTRO** o **DERECHA** antes de que patee el rival.
 
 ## Estructura
 
 ```
 futbol/
-├── project.godot          configuración (horizontal, renderizador compatible con móviles)
-├── export_presets.cfg     exportación a Android (solo arm64)
-├── build_apk.sh           compila el APK
-├── scenes/                menú y partido
+├── scenes/                menú, carrera, simulación y jugada 3D
 ├── scripts/
-│   ├── game_data.gd       equipos, jugadores, atributos y jugadas (base del modo mánager)
-│   ├── match.gd           partido: estadio, IA, pases, tiros, portero y reglas
-│   ├── player.gd          futbolista: modelo low-poly y animación por código
-│   ├── ball.gd            física del balón: bote, rodado, postes y red
-│   ├── hud.gd             joystick, botones multitáctiles, marcador y resultado
-│   ├── menu.gd            menú principal y plantilla
-│   └── mesh_util.gd       ayudas para crear geometría
+│   ├── game_data.gd       LaLiga, jugadores, alineaciones, liga y guardado
+│   ├── match_sim.gd       simulación minuto a minuto
+│   ├── jugadas.gd         catálogo de 110 jugadas y elección según el partido
+│   ├── match.gd           jugada en 3D: IA, pases, tiros, portero, balón parado
+│   ├── player.gd          futbolista low-poly animado por código
+│   ├── ball.gd            física del balón (bote, rodado, efecto, postes, red)
+│   ├── stadium.gd         estadio
+│   ├── hud.gd             joystick y botones táctiles
+│   ├── menu.gd            menú principal, partido rápido, carrera y entrenamiento
+│   ├── career.gd          centro del modo carrera
+│   ├── sim.gd             pantalla del partido simulado
+│   ├── lineup_panel.gd    editor de alineación y cambios
+│   └── ui.gd, mesh_util.gd
 ├── tests/
-│   ├── autotest.gd        la IA juega cada jugada 40 veces y reporta resultados
-│   └── shot.gd            captura pantallas de una jugada
+│   ├── autotest.gd        juega las 110 jugadas, simula partidos y una temporada entera
+│   └── shot.gd            capturas de todas las pantallas
 └── builds/                APK compilado
 ```
+
+## Notas
+
+- Los **clubes** son los de LaLiga; los **jugadores son inventados**, porque las plantillas reales cambian cada temporada. Se pueden editar en `scripts/game_data.gd`.
+- Una nueva carrera genera plantillas nuevas para los 20 equipos.
 
 ## Compilar
 
 ```bash
-# Prueba automática (sin pantalla)
-godot --headless -s tests/autotest.gd
-
-# APK (requiere plantillas de exportación de Godot 4.3 y un Android SDK configurado)
-GODOT=godot ./build_apk.sh
+godot --headless -s tests/autotest.gd   # prueba automática
+GODOT=godot ./build_apk.sh              # APK (plantillas de Godot 4.3 + Android SDK)
 ```
 
 ## Próximos pasos
 
-1. **Sensación de juego**: ajustar velocidades, pases y tiros con tus comentarios después de probarlo.
-2. **Animaciones de Mixamo** (gratis): correr, pasar, tirar, barrida, estiradas del portero. Reemplazarán los muñecos actuales.
-3. **Más jugadas**: penales (deslizar para tirar), tiros libres, córners y defender un contraataque rival.
-4. **Modo mánager**: alineación, tácticas, entrenamientos, liga con calendario y tabla, fichajes.
-5. **Sonido**: silbato, público y gol.
+- Animaciones de Mixamo para que los jugadores se muevan de forma realista.
+- Sonido: público, silbato y gol.
+- Más jugadas: defender córners y tiros libres en contra.
+- Mercado de fichajes, lesiones, tarjetas y más ligas.

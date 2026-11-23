@@ -1,11 +1,7 @@
 class_name Hud
 extends Control
-## Interfaz del partido: joystick virtual, botones táctiles multitáctiles,
-## marcador, mensajes y pantalla de resultado.
-
-signal retry_pressed
-signal next_pressed
-signal menu_pressed
+## Interfaz de la jugada: joystick virtual, botones multitáctiles que cambian según
+## el modo (ataque, defensa, balón parado, penal en contra), marcador, mensajes y resultado.
 
 const JOY_R := 85.0
 
@@ -14,27 +10,33 @@ var joy_index := -1
 var joy_base := Vector2.ZERO
 var joy_pos := Vector2.ZERO
 var controls_enabled := true
-var attack_mode := true
+var mode := "attack"
 var shot_power := -1.0
 
 var score_text := ""
 var minute_text := ""
 var time_left := 0.0
 var time_total := 1.0
-
+var info_text := ""
+var hint_text := ""
 var event_log: Array[String] = []
+
 var _buttons := {}
 var _just_pressed := {}
 var _just_released := {}
 var _msg := ""
 var _msg_t := 0.0
 var _msg_big := false
-var _result_panel: Control
 var _result_root: Control
-var _menu_btn: Button
 
-const LABELS_ATTACK := {"a": "TIRO", "b": "PASE", "c": "AL HUECO", "d": "SPRINT"}
-const LABELS_DEFENSE := {"a": "BARRIDA", "b": "CAMBIAR", "c": "PRESIÓN", "d": "SPRINT"}
+const LABELS := {
+	"attack": {"a": "TIRO", "b": "PASE", "c": "AL HUECO", "d": "SPRINT"},
+	"defense": {"a": "BARRIDA", "b": "CAMBIAR", "c": "PRESIÓN", "d": "SPRINT"},
+	"setpiece": {"a": "TIRO", "b": "LANZADOR", "c": "< EFECTO", "d": "EFECTO >"},
+	"penalty_shot": {"a": "TIRO", "b": "LANZADOR", "c": "", "d": ""},
+	"penalty_gk": {"a": "", "b": "< IZQUIERDA", "c": "CENTRO", "d": "DERECHA >"},
+	"none": {"a": "", "b": "", "c": "", "d": ""},
+}
 const COLORS := {"a": Color(0.9, 0.2, 0.2), "b": Color(0.2, 0.7, 0.3), "c": Color(0.25, 0.5, 0.95), "d": Color(0.95, 0.75, 0.15)}
 
 
@@ -43,31 +45,46 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for id in ["a", "b", "c", "d"]:
 		_buttons[id] = {"pos": Vector2.ZERO, "r": 50.0, "down": false, "idx": -1}
-	_menu_btn = Button.new()
-	_menu_btn.text = "MENÚ"
-	_menu_btn.add_theme_font_size_override("font_size", 22)
-	_menu_btn.custom_minimum_size = Vector2(110, 48)
-	_menu_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_menu_btn.position = Vector2(-126, 14)
-	_menu_btn.pressed.connect(func(): menu_pressed.emit())
-	add_child(_menu_btn)
 	resized.connect(_layout)
 	_layout()
+
+
+func set_mode(m: String) -> void:
+	if mode == m:
+		return
+	mode = m
+	release_all()
+	_layout()
+
+
+func _visible_button(id: String) -> bool:
+	return LABELS[mode][id] != ""
+
+
+func _uses_joystick() -> bool:
+	return mode in ["attack", "defense", "setpiece", "penalty_shot"]
 
 
 func _layout() -> void:
 	var s := size
 	if s.x < 10:
 		s = get_viewport_rect().size
-	_buttons.a.pos = Vector2(s.x - 115, s.y - 125)
-	_buttons.a.r = 68.0
-	_buttons.b.pos = Vector2(s.x - 265, s.y - 80)
-	_buttons.b.r = 54.0
-	_buttons.c.pos = Vector2(s.x - 235, s.y - 230)
-	_buttons.c.r = 50.0
-	_buttons.d.pos = Vector2(s.x - 85, s.y - 285)
-	_buttons.d.r = 44.0
-	_menu_btn.position = Vector2(s.x - 126, 14)
+	if mode == "penalty_gk":
+		_buttons.b.pos = Vector2(s.x * 0.18, s.y - 110)
+		_buttons.c.pos = Vector2(s.x * 0.5, s.y - 110)
+		_buttons.d.pos = Vector2(s.x * 0.82, s.y - 110)
+		for id in ["b", "c", "d"]:
+			_buttons[id].r = 70.0
+		_buttons.a.pos = Vector2(-500, -500)
+	else:
+		_buttons.a.pos = Vector2(s.x - 115, s.y - 125)
+		_buttons.a.r = 68.0
+		_buttons.b.pos = Vector2(s.x - 265, s.y - 80)
+		_buttons.b.r = 54.0
+		_buttons.c.pos = Vector2(s.x - 235, s.y - 230)
+		_buttons.c.r = 50.0
+		_buttons.d.pos = Vector2(s.x - 85, s.y - 285)
+		_buttons.d.r = 46.0
 	queue_redraw()
 
 
@@ -84,13 +101,15 @@ func _input(event: InputEvent) -> void:
 			var hit := false
 			for id in _buttons:
 				var b: Dictionary = _buttons[id]
+				if not _visible_button(id):
+					continue
 				if st.position.distance_to(b.pos) < b.r * 1.3 and b.idx == -1:
 					b.down = true
 					b.idx = st.index
 					_just_pressed[id] = true
 					hit = true
 					break
-			if not hit and joy_index == -1 and st.position.x < size.x * 0.5 and st.position.y > 90:
+			if not hit and _uses_joystick() and joy_index == -1 and st.position.x < size.x * 0.5 and st.position.y > 90:
 				joy_index = st.index
 				joy_base = st.position
 				joy_pos = st.position
@@ -132,6 +151,11 @@ func released(id: String) -> bool:
 	return _just_released.has(id)
 
 
+func press(id: String) -> void:
+	## Simula una pulsación (pruebas automáticas).
+	_just_pressed[id] = true
+
+
 func end_frame() -> void:
 	_just_pressed.clear()
 	_just_released.clear()
@@ -163,42 +187,55 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
-	# Marcador
-	var box := Rect2(16, 14, 330, 52)
-	draw_rect(box, Color(0.05, 0.07, 0.12, 0.85))
-	draw_rect(Rect2(16, 14, 6, 52), Color(0.82, 0.08, 0.14))
-	draw_string(font, Vector2(34, 50), score_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color.WHITE)
-	draw_rect(Rect2(266, 14, 80, 52), Color(0.95, 0.95, 0.95, 0.95))
-	draw_string(font, Vector2(266, 50), minute_text, HORIZONTAL_ALIGNMENT_CENTER, 80, 26, Color(0.05, 0.07, 0.12))
-	# Tiempo restante de la jugada
+	draw_rect(Rect2(16, 14, 360, 52), Color(0.05, 0.07, 0.12, 0.88))
+	draw_rect(Rect2(16, 14, 6, 52), Color(1.0, 0.8, 0.22))
+	draw_string(font, Vector2(32, 50), score_text, HORIZONTAL_ALIGNMENT_LEFT, 240, 26, Color.WHITE)
+	draw_rect(Rect2(286, 14, 90, 52), Color(0.95, 0.95, 0.95, 0.95))
+	draw_string(font, Vector2(286, 49), minute_text, HORIZONTAL_ALIGNMENT_CENTER, 90, 24, Color(0.05, 0.07, 0.12))
 	var frac := clampf(time_left / maxf(time_total, 0.01), 0.0, 1.0)
-	draw_rect(Rect2(16, 70, 330, 8), Color(0, 0, 0, 0.5))
-	draw_rect(Rect2(16, 70, 330 * frac, 8), Color(1.0, 0.85, 0.2) if frac > 0.25 else Color(1.0, 0.3, 0.2))
+	draw_rect(Rect2(16, 70, 360, 8), Color(0, 0, 0, 0.5))
+	draw_rect(Rect2(16, 70, 360 * frac, 8), Color(1.0, 0.85, 0.2) if frac > 0.25 else Color(1.0, 0.3, 0.2))
+	if info_text != "":
+		var w := minf(size.x - 540, 640)
+		if w > 200:
+			var x0 := 400.0 + (size.x - 540 - 400 - w) / 2.0 + 70
+			x0 = maxf(x0, 392.0)
+			draw_rect(Rect2(x0, 14, w, 40), Color(0.05, 0.07, 0.12, 0.75))
+			draw_string(font, Vector2(x0, 41), info_text, HORIZONTAL_ALIGNMENT_CENTER, w, 19, Color(1, 0.85, 0.3))
+	if hint_text != "":
+		var hy := size.y - 22 if mode != "penalty_gk" else size.y - 210
+		draw_string_outline(font, Vector2(0, hy), hint_text, HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, 6, Color(0, 0, 0, 0.7))
+		draw_string(font, Vector2(0, hy), hint_text, HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, Color.WHITE)
 
 	if controls_enabled:
-		# Joystick
-		var base := joy_base if joy_index != -1 else _default_joy_base()
-		var knob := base + joy_vec * JOY_R
-		draw_circle(base, JOY_R, Color(1, 1, 1, 0.12))
-		draw_arc(base, JOY_R, 0, TAU, 48, Color(1, 1, 1, 0.45), 3.0, true)
-		draw_circle(knob, 38, Color(1, 1, 1, 0.55 if joy_index != -1 else 0.3))
-		# Botones
-		var labels: Dictionary = LABELS_ATTACK if attack_mode else LABELS_DEFENSE
+		if _uses_joystick():
+			var base := joy_base if joy_index != -1 else _default_joy_base()
+			var knob := base + joy_vec * JOY_R
+			draw_circle(base, JOY_R, Color(1, 1, 1, 0.12))
+			draw_arc(base, JOY_R, 0, TAU, 48, Color(1, 1, 1, 0.45), 3.0, true)
+			draw_circle(knob, 38, Color(1, 1, 1, 0.55 if joy_index != -1 else 0.3))
+			if mode in ["setpiece", "penalty_shot"]:
+				draw_string(font, base + Vector2(-JOY_R, -JOY_R - 12), "APUNTAR", HORIZONTAL_ALIGNMENT_CENTER, JOY_R * 2, 18, Color(1, 1, 1, 0.85))
+		var labels: Dictionary = LABELS[mode]
 		for id in _buttons:
+			if not _visible_button(id):
+				continue
 			var b: Dictionary = _buttons[id]
 			var c: Color = COLORS[id]
-			c.a = 0.85 if b.down else 0.5
+			c.a = 0.88 if b.down else 0.55
 			draw_circle(b.pos, b.r, c)
 			draw_arc(b.pos, b.r, 0, TAU, 48, Color(1, 1, 1, 0.8), 3.0, true)
-			var fs := 22 if id == "a" else 17
+			var fs := 22 if id == "a" else 16
+			if mode == "penalty_gk":
+				fs = 20
 			draw_string_outline(font, b.pos + Vector2(-b.r, fs * 0.35), labels[id], HORIZONTAL_ALIGNMENT_CENTER, b.r * 2, fs, 4, Color(0, 0, 0, 0.6))
 			draw_string(font, b.pos + Vector2(-b.r, fs * 0.35), labels[id], HORIZONTAL_ALIGNMENT_CENTER, b.r * 2, fs, Color.WHITE)
-		# Barra de potencia del tiro
 		if shot_power >= 0.0:
 			var pb := Rect2(_buttons.a.pos + Vector2(-80, -_buttons.a.r - 34), Vector2(160, 16))
 			draw_rect(pb, Color(0, 0, 0, 0.6))
 			var pc := Color(0.3, 0.9, 0.3).lerp(Color(1, 0.2, 0.1), clampf(shot_power, 0, 1))
 			draw_rect(Rect2(pb.position, Vector2(160 * clampf(shot_power, 0, 1), 16)), pc)
+			draw_rect(Rect2(pb.position.x + 160 * 0.85, pb.position.y - 3, 2, 22), Color.WHITE)
 			draw_rect(pb, Color.WHITE, false, 2.0)
 
 	if _msg != "":
@@ -208,21 +245,23 @@ func _draw() -> void:
 		draw_string(font, Vector2(0, y), _msg, HORIZONTAL_ALIGNMENT_CENTER, size.x, fs2, Color(1, 0.95, 0.4) if _msg_big else Color.WHITE)
 
 
-func show_result(win: bool, title: String, reason: String) -> void:
+## buttons: Array de [texto, Callable].
+func show_result(win: bool, title: String, reason: String, buttons: Array) -> void:
 	hide_result()
 	release_all()
 	controls_enabled = false
-	_result_panel = PanelContainer.new()
+	shot_power = -1.0
+	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.05, 0.08, 0.12, 0.92)
+	sb.bg_color = Color(0.05, 0.08, 0.12, 0.94)
 	sb.border_color = Color(0.3, 0.9, 0.4) if win else Color(0.9, 0.3, 0.3)
 	sb.set_border_width_all(4)
-	sb.set_corner_radius_all(16)
+	sb.set_corner_radius_all(18)
 	sb.set_content_margin_all(28)
-	_result_panel.add_theme_stylebox_override("panel", sb)
+	panel.add_theme_stylebox_override("panel", sb)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 14)
-	_result_panel.add_child(vb)
+	panel.add_child(vb)
 	var t := Label.new()
 	t.text = title
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -233,34 +272,32 @@ func show_result(win: bool, title: String, reason: String) -> void:
 	r.text = reason
 	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	r.custom_minimum_size = Vector2(460, 0)
+	r.custom_minimum_size = Vector2(480, 0)
 	r.add_theme_font_size_override("font_size", 24)
 	vb.add_child(r)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 14)
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_child(hb)
-	hb.add_child(_mk_btn("Reintentar", func(): retry_pressed.emit()))
-	hb.add_child(_mk_btn("Siguiente", func(): next_pressed.emit()))
-	hb.add_child(_mk_btn("Menú", func(): menu_pressed.emit()))
+	for i in buttons.size():
+		var b: Array = buttons[i]
+		hb.add_child(UI.button(b[0], b[1], UI.GREEN if i == 0 else UI.GREY, Vector2(170, 62)))
 	var center := CenterContainer.new()
-	center.add_child(_result_panel)
+	center.add_child(panel)
 	add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_result_root = center
+	_result_title = title
+
+
+var _result_title := ""
+
+
+func result_title() -> String:
+	return _result_title if _result_root and is_instance_valid(_result_root) else ""
 
 
 func hide_result() -> void:
 	if _result_root and is_instance_valid(_result_root):
 		_result_root.queue_free()
 	_result_root = null
-	_result_panel = null
-
-
-func _mk_btn(text: String, cb: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(150, 60)
-	b.add_theme_font_size_override("font_size", 24)
-	b.pressed.connect(cb)
-	return b

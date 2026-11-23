@@ -16,6 +16,8 @@ var pas := 70.0
 var sho := 70.0
 var dfn := 60.0
 var gkp := 50.0
+var tl := 50.0
+var data_id := -1
 
 var velocity := Vector3.ZERO
 var move_input := Vector3.ZERO
@@ -30,6 +32,9 @@ var tackle_cd := 0.0
 var dive_t := 0.0
 var dive_target := Vector3.ZERO
 var dive_side := 0.0
+var dive_high := 0.0
+var head_anim := 0.0
+var celebrate := 0.0
 var lane_z := 0.0
 var run_ahead := 10.0
 var hold_t := 0.0
@@ -56,6 +61,8 @@ func setup(data: Dictionary, team_id: int, kit: Dictionary) -> void:
 	sho = data.sho
 	dfn = data.dfn
 	gkp = data.gkp
+	tl = data.get("tl", 50.0)
+	data_id = int(data.get("id", -1))
 	facing = Vector3.RIGHT if team == HOME else Vector3.LEFT
 	run_ahead = randf_range(7.0, 13.0)
 	_build(kit)
@@ -160,10 +167,18 @@ func _make_arm(x: float, skin: Color, shirt: Color) -> Node3D:
 	return pivot
 
 
+var _show_name := true
+
+
 func set_controlled(v: bool) -> void:
 	is_controlled = v
 	_ring.visible = v
-	_name_lbl.visible = v
+	_name_lbl.visible = v and _show_name
+
+
+func set_name_visible(v: bool) -> void:
+	_show_name = v
+	_name_lbl.visible = is_controlled and v
 
 
 func max_speed() -> float:
@@ -242,9 +257,23 @@ func _animate(dt: float) -> void:
 		_leg_r.rotation.x = -1.4
 	elif stun > 0.0:
 		_torso.rotation.x = -0.25
+	if head_anim > 0.0:
+		head_anim -= dt
+		var hp := sin(clampf(1.0 - head_anim / 0.45, 0.0, 1.0) * PI)
+		_body.position.y = hp * 0.55
+		_torso.rotation.x = 0.35 * hp
+		_arm_l.rotation.z = -0.9
+		_arm_r.rotation.z = 0.9
+		_leg_l.rotation.x = 0.3
+		_leg_r.rotation.x = 0.5
+	if celebrate > 0.0:
+		celebrate -= dt
+		_arm_l.rotation.z = -2.6
+		_arm_r.rotation.z = 2.6
+		_body.position.y = absf(sin(celebrate * 9.0)) * 0.3
 	if dive_t > 0.0:
 		var p := clampf(1.0 - dive_t / 0.7, 0.0, 1.0)
-		var lift := sin(p * PI)
+		var lift := sin(p * PI) * (1.0 + dive_high)
 		# El cuerpo gira hacia el lado de la estirada (en espacio local).
 		var local_side := dive_side * (1.0 if facing.x < 0 else -1.0)
 		_body.rotation.z = local_side * 1.35 * minf(p * 3.0, 1.0)
