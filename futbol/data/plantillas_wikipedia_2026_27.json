@@ -1,0 +1,3784 @@
+{
+ "Real_Madrid_CF": {
+  "updated": "2 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "BEL",
+    "name": "Thibaut Courtois",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Raúl Asencio",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "BRA",
+    "name": "Éder Militão",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Dean Huijsen",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "MF",
+    "nat": "ENG",
+    "name": "Jude Bellingham",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Eduardo Camavinga",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Vinícius Júnior",
+    "other": "vice-captain"
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "URU",
+    "name": "Federico Valverde",
+    "other": "captain"
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Endrick",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "FRA",
+    "name": "Kylian Mbappé",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Rodrygo",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ENG",
+    "name": "Trent Alexander-Arnold",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "UKR",
+    "name": "Andriy Lunin",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Aurélien Tchouaméni",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "MF",
+    "nat": "TUR",
+    "name": "Arda Güler",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Ibrahima Konaté",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Marc Cucurella",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Álvaro Carreras",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Carlos Espí",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "POR",
+    "name": "Bernardo Silva",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Brahim Díaz",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "GER",
+    "name": "Antonio Rüdiger",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Ferland Mendy",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "NED",
+    "name": "Denzel Dumfries",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "FW",
+    "nat": "CIV",
+    "name": "Yan Diomande",
+    "other": ""
+   },
+   {
+    "no": "27",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Thiago Pitarch",
+    "other": ""
+   }
+  ]
+ },
+ "FC_Barcelona": {
+  "updated": "2 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Joan Garcia",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "POR",
+    "name": "João Cancelo",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Alejandro Balde",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Brian Fariñas",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Pau Cubarsí",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Gavi",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Fermín López",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pedri",
+    "other": "vice-captain"
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Gabriel Jesus",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Lamine Yamal",
+    "other": "5th captain"
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Raphinha",
+    "other": "captain"
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Xavi Espart",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "POL",
+    "name": "Wojciech Szczęsny",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "FW",
+    "nat": "GER",
+    "name": "Karim Adeyemi",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "DEN",
+    "name": "Andreas Christensen",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rodri",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "FW",
+    "nat": "ENG",
+    "name": "Anthony Gordon",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Gerard Martín",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "SWE",
+    "name": "Roony Bardghji",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Dani Olmo",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "MF",
+    "nat": "NED",
+    "name": "Frenkie de Jong",
+    "other": "4th captain"
+   },
+   {
+    "no": "22",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Marc Bernal",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Jules Koundé",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Eric Garcia",
+    "other": "3rd captain"
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "CRO",
+    "name": "Dominik Livaković",
+    "other": ""
+   },
+   {
+    "no": "27",
+    "pos": "FW",
+    "nat": "BEL",
+    "name": "Jesse Bisiwu",
+    "other": ""
+   },
+   {
+    "no": "29",
+    "pos": "FW",
+    "nat": "EGY",
+    "name": "Hamza Abdelkarim",
+    "other": ""
+   }
+  ]
+ },
+ "Atlético_Madrid": {
+  "updated": "24 October 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ARG",
+    "name": "Juan Musso",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "MF",
+    "nat": "MEX",
+    "name": "Obed Vargas",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rodrigo Mendoza",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "MF",
+    "nat": "USA",
+    "name": "Johnny Cardoso",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Koke",
+    "other": "captain"
+   },
+   {
+    "no": "7",
+    "pos": "MF",
+    "nat": "KOR",
+    "name": "Lee Kang-in",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pablo Barrios",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "NOR",
+    "name": "Alexander Sørloth",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Álex Baena",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "NGA",
+    "name": "Ademola Lookman",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "SVN",
+    "name": "Jan Oblak",
+    "other": "vice-captain"
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Marcos Llorente",
+    "other": "3rd captain"
+   },
+   {
+    "no": "15",
+    "pos": "FW",
+    "nat": "CAN",
+    "name": "Jonathan David",
+    "other": "on loan from Juventus"
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Arnau Ortiz",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "SVK",
+    "name": "Dávid Hancko",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Marc Pubill",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ARG",
+    "name": "Julián Alvarez",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "ARG",
+    "name": "Giuliano Simeone",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Cristian Romero",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Alejandro Grimaldo",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "DEN",
+    "name": "Morten Hjulmand",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Robin Le Normand",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Salvi Esquivel",
+    "other": ""
+   },
+   {
+    "no": "30",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Dani Martínez",
+    "other": ""
+   }
+  ]
+ },
+ "Athletic_Bilbao": {
+  "updated": "17 November 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Unai Simón",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Dani Vivian",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Aitor Paredes",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Yeray Álvarez",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Beñat Prados",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Álex Berenguer",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Oihan Sancet",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "GHA",
+    "name": "Iñaki Williams",
+    "other": "captain"
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Nico Williams",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Gorka Guruzeta",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jesús Areso",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "MEX",
+    "name": "Álex Padilla",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Aymeric Laporte",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Hugo Rincón",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Iñigo Ruiz de Galarreta",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Yuri Berchiche",
+    "other": "vice-captain"
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Mikel Jauregizar",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Alejandro Rego",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Maroan Sannadi",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Nico Serrano",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Robert Navarro",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Beñat Gerenabarrena",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "FW",
+    "nat": "GNB",
+    "name": "Álvaro Djaló",
+    "other": ""
+   },
+   {
+    "no": "26",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Mikel Santos",
+    "other": ""
+   },
+   {
+    "no": "27",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Unai Egiluz",
+    "other": ""
+   },
+   {
+    "no": "28",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Peio Canales",
+    "other": ""
+   },
+   {
+    "no": "29",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Asier Hierro",
+    "other": ""
+   },
+   {
+    "no": "30",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Iker Monreal",
+    "other": ""
+   },
+   {
+    "no": "31",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Johaneko Louis-Jean",
+    "other": ""
+   },
+   {
+    "no": "32",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Luciano Mendiguren",
+    "other": ""
+   },
+   {
+    "no": "33",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Christian Imga",
+    "other": ""
+   },
+   {
+    "no": "34",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Txus Vizcay",
+    "other": ""
+   },
+   {
+    "no": "35",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Aritz Conde",
+    "other": ""
+   },
+   {
+    "no": "36",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Gaizka Supernova",
+    "other": ""
+   },
+   {
+    "no": "37",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Gorka Casanova",
+    "other": ""
+   },
+   {
+    "no": "38",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Andoni Emegara",
+    "other": ""
+   },
+   {
+    "no": "39",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Ander Douglas",
+    "other": ""
+   },
+   {
+    "no": "40",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Íñigo Lafuente",
+    "other": ""
+   },
+   {
+    "no": "41",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Íñaki Fontás",
+    "other": ""
+   },
+   {
+    "no": "42",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Ibai Estebaranz",
+    "other": ""
+   },
+   {
+    "no": "43",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Aingeru Aguirregomezcorta",
+    "other": ""
+   },
+   {
+    "no": "44",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Selton Sánchez",
+    "other": ""
+   }
+  ]
+ },
+ "Villarreal_CF": {
+  "updated": "1 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "BRA",
+    "name": "Luiz Júnior",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "CPV",
+    "name": "Logan Costa",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "USA",
+    "name": "Alex Freeman",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "MF",
+    "nat": "SEN",
+    "name": "Alassane Diatta",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Pau Navarro",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Gerard Moreno",
+    "other": "captain"
+   },
+   {
+    "no": "8",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Juan Foyth",
+    "other": "3rd captain"
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "GEO",
+    "name": "Georges Mikautadze",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Alberto Moleiro",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Ilias Akhomach",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "POR",
+    "name": "Renato Veiga",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Rubén Gómez",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Santi Comesaña",
+    "other": "vice-captain"
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "URU",
+    "name": "Santiago Mouriño",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Carlos Maciá",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "MF",
+    "nat": "CAN",
+    "name": "Tajon Buchanan",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "SEN",
+    "name": "Pape Gueye",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "CIV",
+    "name": "Nicolas Pépé",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Carlos Romero",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "CAN",
+    "name": "Tani Oluwaseyi",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Ayoze Pérez",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Sergi Cardona",
+    "other": "4th captain"
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "CAN",
+    "name": "Nathan Saliba",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "HUN",
+    "name": "Péter Gulácsi",
+    "other": ""
+   }
+  ]
+ },
+ "Real_Betis": {
+  "updated": "1 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Álvaro Valles",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Héctor Bellerín",
+    "other": "3rd captain"
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Diego Llorente",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "BRA",
+    "name": "Natan",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Marc Bartra",
+    "other": "vice-captain"
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "URU",
+    "name": "Facundo Bernal",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Antony",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pablo Fornals",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "COL",
+    "name": "Cucho Hernández",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Abde Ezzalzouli",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Fran García",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Ángel Ortiz",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Diego Conde",
+    "other": "on loan from Villarreal"
+   },
+   {
+    "no": "14",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Iker Losada",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "MF",
+    "nat": "MEX",
+    "name": "Álvaro Fidalgo",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Valentín Gómez",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rodrigo Riquelme",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "COL",
+    "name": "Nelson Deossa",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "IRL",
+    "name": "Troy Parrott",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "ARG",
+    "name": "Giovanni Lo Celso",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Marc Roca",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Isco",
+    "other": "captain"
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "DOM",
+    "name": "Junior Firpo",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Aitor Ruibal",
+    "other": "4th captain"
+   },
+   {
+    "no": "25",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Dani Ceballos",
+    "other": ""
+   }
+  ]
+ },
+ "Real_Sociedad": {
+  "updated": "1 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Álex Remiro",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "VEN",
+    "name": "Jon Aramburu",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Aihen Muñoz",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Jon Gorrotxategi",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Igor Zubeldia",
+    "other": "vice captain"
+   },
+   {
+    "no": "6",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jon Martín",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Ander Barrenetxea",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Beñat Turrientes",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ISL",
+    "name": "Orri Óskarsson",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Mikel Oyarzabal",
+    "other": "captain"
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "POR",
+    "name": "Gonçalo Guedes",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "FW",
+    "nat": "KEN",
+    "name": "Job Ochieng",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Unai Marrero",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "JPN",
+    "name": "Takefusa Kubo",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pablo Marín",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jon Pacheco",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Sergio Gómez",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Carlos Soler",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "DF",
+    "nat": "SEN",
+    "name": "Mamadou Sarr",
+    "other": "on loan from Chelsea"
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Álvaro Odriozola",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "MF",
+    "nat": "VEN",
+    "name": "Yangel Herrera",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Héctor Fort",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "RUS",
+    "name": "Arsen Zakharyan",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "CRO",
+    "name": "Luka Sučić",
+    "other": ""
+   }
+  ]
+ },
+ "Sevilla_FC": {
+  "updated": "13 October 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "GRE",
+    "name": "Odysseas Vlachodimos",
+    "other": "on loan from Newcastle"
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Juan Iglesias",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Julio Díaz",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Kike Salas",
+    "other": "vice-captain"
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Andrés Castrín",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Lucien Agoumé",
+    "other": "3rd captain"
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Alfon González",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "GEO",
+    "name": "Giorgi Kochorashvili",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "SCO",
+    "name": "Robbie Ure",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Peque Fernández",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "SUI",
+    "name": "Rubén Vargas",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "SEN",
+    "name": "Arouna Sangante",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Fran González",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Manu Bueno",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "POR",
+    "name": "Fábio Cardoso",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Isaac Romero",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "CHI",
+    "name": "Gabriel Suazo",
+    "other": "captain"
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Jon Guridi",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "BEL",
+    "name": "Lucas Stassin",
+    "other": "on loan from Saint-Étienne"
+   },
+   {
+    "no": "20",
+    "pos": "FW",
+    "nat": "POR",
+    "name": "Félix Correia",
+    "other": "on loan from Lille"
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "NGA",
+    "name": "Chidera Ejuke",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "José Ángel Carmona",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "BRA",
+    "name": "Marcão",
+    "other": "4th captain"
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Youssouf Fofana",
+    "other": "on loan from Milan"
+   },
+   {
+    "no": "30",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Miguel Sierra",
+    "other": ""
+   },
+   {
+    "no": "33",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Rafa Romero",
+    "other": ""
+   }
+  ]
+ },
+ "Valencia_CF": {
+  "updated": "2 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "MKD",
+    "name": "Stole Dimitrievski",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "MF",
+    "nat": "ARG",
+    "name": "Guido Rodríguez",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "José Copete",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "GUI",
+    "name": "Mouctar Diakhaby",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "César Tárrega",
+    "other": "3rd captain"
+   },
+   {
+    "no": "6",
+    "pos": "FW",
+    "nat": "NGA",
+    "name": "Umar Sadiq",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "NED",
+    "name": "Arnaut Danjuma",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Javi Guerra",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Hugo Duro",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ENG",
+    "name": "Harvey Elliott",
+    "other": "on loan from Liverpool"
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Luis Rioja",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "NED",
+    "name": "Justin de Haas",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Cristian Rivero",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "José Gayà",
+    "other": "captain"
+   },
+   {
+    "no": "15",
+    "pos": "MF",
+    "nat": "MLI",
+    "name": "Aliou Dieng",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Diego López",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pepelu",
+    "other": "vice-captain"
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Dani Raba",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "GLP",
+    "name": "Dimitri Foulquier",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jesús Vázquez",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Arnau Martínez",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "SUI",
+    "name": "Filip Ugrinić",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Pablo Maffeo",
+    "other": "on loan from Olympiacos"
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "NED",
+    "name": "Kayne van Oevelen",
+    "other": "on loan from Ipswich Town"
+   },
+   {
+    "no": "39",
+    "pos": "MF",
+    "nat": "JPN",
+    "name": "Ryūnosuke Satō",
+    "other": ""
+   },
+   {
+    "no": "",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Sergi Canós",
+    "other": ""
+   }
+  ]
+ },
+ "RC_Celta_de_Vigo": {
+  "updated": "1 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "TUR",
+    "name": "Altay Bayındır",
+    "other": "on loan from Manchester United"
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "SWE",
+    "name": "Carl Starfelt",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Marcos Alonso",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "SEN",
+    "name": "Abdoulaye Faye",
+    "other": "on loan from Bayer Leverkusen"
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Sergio Carreira",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "GUI",
+    "name": "Ilaix Moriba",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Borja Iglesias",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Miguel Román",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Ferran Jutglà",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Iago Aspas",
+    "other": "captain"
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Pablo Durán",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ROU",
+    "name": "Ionuț Radu",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Aleix Febas",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Álvaro Núñez",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Hugo González",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Javi Rueda",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Yoel Lago",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "SWE",
+    "name": "Williot Swedberg",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Javi Rodríguez",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "DF",
+    "nat": "URU",
+    "name": "Sebastián Cáceres",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Javi Galán",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Hugo Álvarez",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Couhaib Driouech",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Iván Villar",
+    "other": ""
+   },
+   {
+    "no": "39",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Jones El-Abdellaoui",
+    "other": ""
+   }
+  ]
+ },
+ "CA_Osasuna": {
+  "updated": "1 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Sergio Herrera",
+    "other": "3rd captain"
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jorge Herrando",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Lucas Torró",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Jon Moncayola",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Iker Muñoz",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Raúl García",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Aimar Oroz",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Kike Barja",
+    "other": "captain"
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Aitor Fernández",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rubén García",
+    "other": "vice-captain"
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Diego Rico",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Moi Gómez",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "FW",
+    "nat": "CRO",
+    "name": "Ante Budimir",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Raúl Moro",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Valentin Rosier",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "FW",
+    "nat": "FRA",
+    "name": "Romain Del Castillo",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "MF",
+    "nat": "BEL",
+    "name": "Jonathan Dubasin",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "CMR",
+    "name": "Enzo Boyomo",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Abel Bretones",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Alejandro Catena",
+    "other": ""
+   },
+   {
+    "no": "26",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Mauro Echegoyen",
+    "other": ""
+   },
+   {
+    "no": "27",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Iñigo Arguibide",
+    "other": ""
+   },
+   {
+    "no": "29",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Asier Osambela",
+    "other": ""
+   },
+   {
+    "no": "48",
+    "pos": "DF",
+    "nat": "GHA",
+    "name": "Rockson Yeboah",
+    "other": ""
+   }
+  ]
+ },
+ "Rayo_Vallecano": {
+  "updated": "3 September 2026|<ref>{{cite web|url=http://www.rayovallecano.es/equipo/plantilla/rayo|title=Plantilla Rayo Vallecano de Madrid|publisher=Rayo Vallecano|language=es|access-date=23 September 2022|archive-date=29 July 2017|archive-url=https://web.archive.org/web/20170729020613/http://www.rayovallecano.es/equipo/plantilla/rayo|url-status=live",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Dani Cárdenas",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ROU",
+    "name": "Andrei Rațiu",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ALB",
+    "name": "Marash Kumbulla",
+    "other": "on loan from Roma"
+   },
+   {
+    "no": "4",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pedro Díaz",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ITA",
+    "name": "Luiz Felipe",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "SEN",
+    "name": "Pathé Ciss",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Isi Palazón",
+    "other": "vice-captain"
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Unai López",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "BRA",
+    "name": "Alemão",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Sergio Camello",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ANG",
+    "name": "Randy Nteka",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ARG",
+    "name": "Augusto Batalla",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "GEO",
+    "name": "Giorgi Tsitaishvili",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Mujaid Sadick",
+    "other": "on loan from Genk"
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Adrià Pedrosa",
+    "other": "on loan from Sevilla"
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Álvaro García",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Jorge de Frutos",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "ALB",
+    "name": "Iván Balliu",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Fran Pérez",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Pelayo Fernández",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Óscar Valentín",
+    "other": "captain"
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Florian Lejeune",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "IDN",
+    "name": "Emil Audero",
+    "other": "on loan from Como"
+   },
+   {
+    "no": "33",
+    "pos": "DF",
+    "nat": "NED",
+    "name": "Jozhua Vertrouwd",
+    "other": ""
+   },
+   {
+    "no": "36",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Gnangoro Bouare",
+    "other": ""
+   },
+   {
+    "no": "37",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rayane Belaid",
+    "other": ""
+   }
+  ]
+ },
+ "Getafe_CF": {
+  "updated": "13 October 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "CZE",
+    "name": "Jiří Letáček",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "TOG",
+    "name": "Dakonam Djené",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Davinchi",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "GEO",
+    "name": "Saba Sazonov",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "MAR",
+    "name": "Abdel Abqar",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Mario Martín",
+    "other": ""
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Juanmi",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "SRB",
+    "name": "Nemanja Gudelj",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Borja Mayoral",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "URU",
+    "name": "Martín Satriano",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Ramon Terrats",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "David Soria",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Dani Carvajal",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "URU",
+    "name": "Sebastián Boselli",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Francho Serrano",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Kiko Femenía",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "NGA",
+    "name": "Christantus Uche",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "TUR",
+    "name": "Enes Ünal",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Iván Azón",
+    "other": "on loan from Como"
+   },
+   {
+    "no": "21",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Andrés García",
+    "other": "on loan from Aston Villa"
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "COL",
+    "name": "Johan Mojica",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "BEL",
+    "name": "Orel Mangala",
+    "other": "on loan from Lyon"
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Zaid Romero",
+    "other": ""
+   },
+   {
+    "no": "26",
+    "pos": "DF",
+    "nat": "CIV",
+    "name": "Jean Ives Valou",
+    "other": "on loan from Villarreal"
+   }
+  ]
+ },
+ "RCD_Espanyol": {
+  "updated": "2 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Ángel Fortuño",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Andoni Gorosabel",
+    "other": "on loan from Athletic Bilbao"
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "NED",
+    "name": "Quilindschy Hartman",
+    "other": "on loan from Burnley"
+   },
+   {
+    "no": "4",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Urko González de Zárate",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "GER",
+    "name": "Clemens Riedel",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "DF",
+    "nat": "URU",
+    "name": "Leandro Cabrera",
+    "other": "captain"
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Javi Puado",
+    "other": "vice-captain"
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Edu Expósito",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Roberto Fernández",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pol Lozano",
+    "other": "3rd captain"
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Pere Milla",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "SRB",
+    "name": "Marko Dmitrović",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Unai Nuñez",
+    "other": "on loan from Celta"
+   },
+   {
+    "no": "15",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Bryan Zaragoza",
+    "other": "on loan from Bayern Munich"
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "SVN",
+    "name": "Vanja Drkušić",
+    "other": "on loan from Zenit Saint Petersburg"
+   },
+   {
+    "no": "17",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Jofre Carreras",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Marcos Fernández",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Kike García",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "BRA",
+    "name": "Gabriel Moscardo",
+    "other": "on loan from Paris Saint-Germain"
+   },
+   {
+    "no": "21",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Roger Hinojo",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Álex Calatrava",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "MAR",
+    "name": "Omar El Hilali",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "FW",
+    "nat": "ENG",
+    "name": "Tyrhys Dolan",
+    "other": ""
+   },
+   {
+    "no": "26",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rafel Bauzà",
+    "other": ""
+   },
+   {
+    "no": "28",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Javi Hernández",
+    "other": ""
+   }
+  ]
+ },
+ "Deportivo_Alavés": {
+  "updated": "3 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Antonio Sivera",
+    "other": "captain"
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Nicolás Valentini",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "MAR",
+    "name": "Youssef Enríquez",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Denis Suárez",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Facundo Garcés",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Ander Guevara",
+    "other": "vice-captain"
+   },
+   {
+    "no": "7",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Ángel Pérez",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Antonio Blanco",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "DOM",
+    "name": "Mariano Díaz",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Carles Aleñá",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Toni Martínez",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Hugo Novoa",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ARG",
+    "name": "Adrián Rodríguez",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Nahuel Tenaglia",
+    "other": "3rd captain"
+   },
+   {
+    "no": "15",
+    "pos": "FW",
+    "nat": "ARG",
+    "name": "Lucas Boyé",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "FIN",
+    "name": "Ville Koski",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jonny Otto",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Mikel Rodríguez",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pablo Ibáñez",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Aitor Mañas",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "MF",
+    "nat": "ALG",
+    "name": "Abde Rebbach",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Miguel Rodríguez",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "URU",
+    "name": "Carlos Protesoni",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "GUI",
+    "name": "Selu Diallo",
+    "other": ""
+   },
+   {
+    "no": "27",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Xanet Olaiz",
+    "other": ""
+   },
+   {
+    "no": "29",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Izei Hernández",
+    "other": ""
+   },
+   {
+    "no": "31",
+    "pos": "GK",
+    "nat": "CAN",
+    "name": "Grégoire Świderski",
+    "other": ""
+   }
+  ]
+ },
+ "Levante_UD": {
+  "updated": "7 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Pablo Campos",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ALG",
+    "name": "Aïssa Mandi",
+    "other": "4th captain"
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "AUT",
+    "name": "Ifeanyi Ndukwe",
+    "other": "on loan from Liverpool"
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Adrián Dela",
+    "other": "vice-captain"
+   },
+   {
+    "no": "5",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Hugo Sotelo",
+    "other": "on loan from Celta"
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Dani Requena",
+    "other": "on loan from Villarreal"
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Roger Brugué",
+    "other": "captain"
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Jon Ander Olasagasti",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Iván Romero",
+    "other": "3rd captain"
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "SRB",
+    "name": "Petar Ratkov",
+    "other": "on loan from Lazio"
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "BEL",
+    "name": "Yanis Musuayi",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "AUS",
+    "name": "Mathew Ryan",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jorge Cabello",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Axel Tape",
+    "other": "on loan from Bayer Leverkusen"
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Víctor García",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Enzo Bardeli",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Oriol Rey",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "CMR",
+    "name": "Karl Etta Eyong",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "GER",
+    "name": "Jeremy Toljan",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Manu Sánchez",
+    "other": "on loan from Celta"
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "ARG",
+    "name": "Thiago Fernández",
+    "other": "on loan from Villarreal"
+   },
+   {
+    "no": "27",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Paco Cortés",
+    "other": ""
+   },
+   {
+    "no": "29",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Nacho Pérez",
+    "other": ""
+   },
+   {
+    "no": "32",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Álex Primo",
+    "other": ""
+   },
+   {
+    "no": "33",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Marc Santos",
+    "other": ""
+   }
+  ]
+ },
+ "Elche_CF": {
+  "updated": "19 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ARG",
+    "name": "Matías Dituro",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Buba Sangaré",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ISR",
+    "name": "Roy Revivo",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Bambo Diaby",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "MF",
+    "nat": "ARG",
+    "name": "Federico Redondo",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Pedro Bigas",
+    "other": "captain"
+   },
+   {
+    "no": "7",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Yago Santiago",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Marc Aguado",
+    "other": ""
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ARG",
+    "name": "Ezequiel Ponce",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ARG",
+    "name": "Facundo Buonanotte",
+    "other": "on loan from Brighton & Hove Albion"
+   },
+   {
+    "no": "11",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Germán Valera",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Gonzalo Villar",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Alejandro Iturbe",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Fer Niño",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ARG",
+    "name": "Kevin Lomónaco",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "POR",
+    "name": "Martim Neto",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Josan",
+    "other": "3rd captain"
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "FRA",
+    "name": "Thomas Lemar",
+    "other": "on loan from Atlético Madrid"
+   },
+   {
+    "no": "19",
+    "pos": "MF",
+    "nat": "COD",
+    "name": "Grady Diangana",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Tete Morente",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "CHI",
+    "name": "Lucas Cepeda",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Rubén Sánchez",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Víctor Chust",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "FW",
+    "nat": "ARG",
+    "name": "Abiel Osorio",
+    "other": ""
+   },
+   {
+    "no": "26",
+    "pos": "DF",
+    "nat": "CRO",
+    "name": "Matía Barzić",
+    "other": ""
+   },
+   {
+    "no": "29",
+    "pos": "MF",
+    "nat": "MAR",
+    "name": "Ali Houary",
+    "other": ""
+   },
+   {
+    "no": "32",
+    "pos": "MF",
+    "nat": "MAR",
+    "name": "Adam Boayar",
+    "other": ""
+   },
+   {
+    "no": "47",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Javi Morcillo",
+    "other": ""
+   }
+  ]
+ },
+ "Racing_de_Santander": {
+  "updated": "2 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "SWE",
+    "name": "Simon Eriksson",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Álvaro Mantilla",
+    "other": "vice-captain"
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Aarón Martín",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Manu Hernando",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Pablo Ramón",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Íñigo Sainz-Maza",
+    "other": "captain"
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "GEO",
+    "name": "Giorgi Guliashvili",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "POR",
+    "name": "André Almeida",
+    "other": "on loan from Valencia"
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Juan Carlos Arana",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Iñigo Vicente",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Andrés Martín",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Asier Villalibre",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Julen Agirrezabala",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "SEN",
+    "name": "Maguette Gueye",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Pablo García",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "URU",
+    "name": "Facundo González",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Jorge Salinas",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ITA",
+    "name": "Matteo Prati",
+    "other": "on loan from Cagliari"
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Iker Luque",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Sergio Canales",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "MAR",
+    "name": "Yassir Zabiri",
+    "other": "on loan from Rennes"
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "BRA",
+    "name": "Pedro Felipe",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Iván Martín",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "DF",
+    "nat": "FRA",
+    "name": "Jeanuël Belocian",
+    "other": "on loan from Bayer Leverkusen"
+   }
+  ]
+ },
+ "Deportivo_de_A_Coruña": {
+  "updated": "16 September 2026",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Germán Parreño",
+    "other": ""
+   },
+   {
+    "no": "2",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Adrià Altimira",
+    "other": ""
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Arnau Comas",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "BEL",
+    "name": "Lucas Noubi",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Dani Barcia",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Marc Casadó",
+    "other": "on loan from Barcelona"
+   },
+   {
+    "no": "7",
+    "pos": "FW",
+    "nat": "GAB",
+    "name": "Pierre-Emerick Aubameyang",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Diego Villares",
+    "other": "captain"
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "NED",
+    "name": "Zakaria Eddahchouri",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Yeremay Hernández",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "David Mella",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ITA",
+    "name": "Giacomo Quagliata",
+    "other": ""
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Leo Román",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Riki Rodríguez",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Miguel Loureiro",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "MF",
+    "nat": "ITA",
+    "name": "Lorenzo Amatucci",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Angeliño",
+    "other": "on loan from Roma"
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "DEN",
+    "name": "Jonathan Asp Jensen",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Luismi Cruz",
+    "other": ""
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "URU",
+    "name": "José María Giménez",
+    "other": "on loan from Atlético Madrid"
+   },
+   {
+    "no": "21",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Mario Soriano",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "DF",
+    "nat": "POL",
+    "name": "Bright Ede",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Ximo Navarro",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Adama Traoré",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Álvaro Fernández",
+    "other": ""
+   },
+   {
+    "no": "32",
+    "pos": "FW",
+    "nat": "CMR",
+    "name": "Bil Nsongo",
+    "other": ""
+   }
+  ]
+ },
+ "Málaga_CF": {
+  "updated": "21 November 2026|<ref>{{cite web|url=https://www.malagacf.com/en/malaga-club-de-futbol|title=Málaga Club de Fútbol – Players|publisher=Málaga CF|language=en|accessdate=20 November 2024",
+  "players": [
+   {
+    "no": "1",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Alfonso Herrero",
+    "other": "vice-captain"
+   },
+   {
+    "no": "2",
+    "pos": "MF",
+    "nat": "SWE",
+    "name": "Jens Cajuste",
+    "other": "on loan from Napoli"
+   },
+   {
+    "no": "3",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Carlos Puga",
+    "other": ""
+   },
+   {
+    "no": "4",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Einar Galilea",
+    "other": ""
+   },
+   {
+    "no": "5",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Álex Pastor",
+    "other": ""
+   },
+   {
+    "no": "6",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Ramón",
+    "other": "captain"
+   },
+   {
+    "no": "7",
+    "pos": "MF",
+    "nat": "MAR",
+    "name": "Haitam",
+    "other": ""
+   },
+   {
+    "no": "8",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Carlos Dotor",
+    "other": "on loan from Celta"
+   },
+   {
+    "no": "9",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Chupete",
+    "other": ""
+   },
+   {
+    "no": "10",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "David Larrubia",
+    "other": ""
+   },
+   {
+    "no": "11",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Joaquín Muñoz",
+    "other": ""
+   },
+   {
+    "no": "12",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "José Salinas",
+    "other": "on loan from Espanyol"
+   },
+   {
+    "no": "13",
+    "pos": "GK",
+    "nat": "ESP",
+    "name": "Carlos López",
+    "other": ""
+   },
+   {
+    "no": "14",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Rafa",
+    "other": ""
+   },
+   {
+    "no": "15",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Ángel Recio",
+    "other": ""
+   },
+   {
+    "no": "16",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Diego Murillo",
+    "other": ""
+   },
+   {
+    "no": "17",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Eneko Jauregi",
+    "other": ""
+   },
+   {
+    "no": "18",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Pablo Martínez",
+    "other": ""
+   },
+   {
+    "no": "19",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Juan Cruz",
+    "other": "on loan from Leganés"
+   },
+   {
+    "no": "20",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Fernando Calero",
+    "other": ""
+   },
+   {
+    "no": "21",
+    "pos": "FW",
+    "nat": "ESP",
+    "name": "Adrián Niño",
+    "other": ""
+   },
+   {
+    "no": "22",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Dani Lorenzo",
+    "other": ""
+   },
+   {
+    "no": "23",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Izan Merino",
+    "other": ""
+   },
+   {
+    "no": "24",
+    "pos": "MF",
+    "nat": "ESP",
+    "name": "Julen Lobete",
+    "other": ""
+   },
+   {
+    "no": "25",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Juan Berrocal",
+    "other": ""
+   },
+   {
+    "no": "31",
+    "pos": "DF",
+    "nat": "ESP",
+    "name": "Rafita",
+    "other": ""
+   },
+   {
+    "no": "35",
+    "pos": "MF",
+    "nat": "IRL",
+    "name": "Aarón Ochoa",
+    "other": ""
+   },
+   {
+    "no": "39",
+    "pos": "DF",
+    "nat": "MAR",
+    "name": "Adam Aznou",
+    "other": "on loan from Everton"
+   }
+  ]
+ }
+}

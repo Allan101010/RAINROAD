@@ -161,7 +161,10 @@ func _player_card(p: Dictionary, slot_pos: String, selected: bool) -> Control:
 	rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	top.add_child(rl)
 	var parts: PackedStringArray = str(p.name).split(" ")
-	var nm := UI.label(parts[parts.size() - 1] if parts.size() > 0 else p.name, 15, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
+	var short_name: String = parts[parts.size() - 1] if parts.size() > 1 else str(p.name)
+	if short_name in ["Júnior", "Junior", "Jr."] or short_name.length() > 12:
+		short_name = parts[0]
+	var nm := UI.label("%d %s" % [int(p.number), short_name], 15, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
 	nm.clip_text = true
 	vb.add_child(nm)
 	var b := UI.bar(float(p.energy), 120, 6)
@@ -179,7 +182,7 @@ func _bench_row(p: Dictionary, selected: bool) -> Control:
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(hb)
 	var cells: Array = [
-		[p.pos, 15, UI.GOLD, 42], [p.name, 15, UI.TEXT, 180],
+		[p.pos, 15, UI.GOLD, 42], ["%d  %s" % [int(p.number), p.name], 15, UI.TEXT, 180],
 		[str(GameData.rating(p)), 16, UI.rating_color(GameData.rating(p)), 36],
 		[str(int(p.energy)), 15, UI.GREEN if p.energy >= 70 else (UI.GOLD if p.energy >= 45 else UI.RED), 36],
 		[UI.morale_text(p.morale), 14, UI.morale_color(p.morale), 70],
@@ -257,7 +260,7 @@ func _swap(a: Dictionary, b: Dictionary) -> void:
 func _show_info(p: Dictionary) -> void:
 	if p.is_empty():
 		return
-	var s := "%s · %s · %d años · MED %d   VEL %d  PAS %d  TIR %d  DEF %d  TL %d  RES %d" % [p.name, p.pos, p.age, GameData.rating(p), p.spd, p.pas, p.sho, p.dfn, p.tl, p.res]
+	var s := "%d · %s · %s · MED %d   VEL %d  PAS %d  TIR %d  DEF %d  TL %d  RES %d" % [p.number, p.name, p.pos, GameData.rating(p), p.spd, p.pas, p.sho, p.dfn, p.tl, p.res]
 	if p.pos == "POR":
 		s += "  POR %d" % p.gkp
 	s += "   ·   Energía %d%%  ·  Ánimo: %s" % [int(p.energy), UI.morale_text(p.morale)]

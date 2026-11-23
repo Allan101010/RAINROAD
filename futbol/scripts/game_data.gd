@@ -3,68 +3,12 @@ extends Node
 ## guardado y el paso de información entre la simulación y las jugadas en 3D.
 
 const SAVE_PATH := "user://carrera.json"
+const DATA_VERSION := 2  # 2 = plantillas reales 2026/27
 
-# Nombre, abreviatura, nivel, camiseta, pantalón, medias, camiseta alternativa.
-# Los jugadores son inventados (se generan al empezar); los nombres de los clubes son reales.
-const LALIGA := [
-	["Real Madrid", "RMA", 86, "#f2f2f2", "#f2f2f2", "#f2f2f2", "#1d2a5c"],
-	["FC Barcelona", "BAR", 85, "#a50044", "#0a2a6e", "#0a2a6e", "#f2c94c"],
-	["Atlético de Madrid", "ATM", 82, "#cb3524", "#1b3a8c", "#cb3524", "#1d2a3a"],
-	["Athletic Club", "ATH", 79, "#e30613", "#111111", "#111111", "#2e7d32"],
-	["Villarreal CF", "VIL", 79, "#ffe14d", "#ffe14d", "#ffe14d", "#1b3a8c"],
-	["Real Betis", "BET", 78, "#0bb363", "#f2f2f2", "#0bb363", "#5b2a86"],
-	["Real Sociedad", "RSO", 77, "#0067b1", "#f2f2f2", "#0067b1", "#e6c229"],
-	["Girona FC", "GIR", 75, "#d71920", "#f2f2f2", "#d71920", "#111111"],
-	["Sevilla FC", "SEV", 75, "#f2f2f2", "#f2f2f2", "#d71920", "#d71920"],
-	["Valencia CF", "VAL", 75, "#f2f2f2", "#111111", "#111111", "#f39200"],
-	["RC Celta", "CEL", 75, "#8ac3ee", "#f2f2f2", "#8ac3ee", "#b22234"],
-	["CA Osasuna", "OSA", 74, "#d91a21", "#0a2240", "#0a2240", "#f2f2f2"],
-	["Rayo Vallecano", "RAY", 74, "#f2f2f2", "#f2f2f2", "#e30613", "#111111"],
-	["RCD Mallorca", "MLL", 73, "#e20613", "#111111", "#111111", "#f2f2f2"],
-	["Getafe CF", "GET", 73, "#005999", "#005999", "#005999", "#e30613"],
-	["RCD Espanyol", "ESP", 73, "#007fc8", "#f2f2f2", "#007fc8", "#f39200"],
-	["Deportivo Alavés", "ALA", 72, "#0057b8", "#f2f2f2", "#0057b8", "#f2c94c"],
-	["Levante UD", "LEV", 71, "#b4053f", "#004b9b", "#b4053f", "#f2f2f2"],
-	["Elche CF", "ELC", 71, "#f2f2f2", "#f2f2f2", "#05642c", "#05642c"],
-	["Real Oviedo", "OVI", 70, "#0047ab", "#f2f2f2", "#0047ab", "#f2f2f2"],
-]
-
-const FIRST := ["Álvaro", "Hugo", "Pablo", "Mario", "Diego", "Javier", "Sergio", "Iker", "Adrián", "Marcos",
-	"Raúl", "Óscar", "Unai", "Jon", "Aitor", "Carlos", "Dani", "Rubén", "Iván", "Víctor", "Gonzalo", "Nico",
-	"Alejandro", "Samuel", "Lucas", "Martín", "Bruno", "Thiago", "Mateo", "Enzo", "Leo", "Joao", "Rafa",
-	"Yeremi", "Moussa", "Ibrahim", "Kevin", "Lamine", "Ansu", "Pedro", "Gerard", "Jordi", "Pau", "Marc",
-	"Oriol", "Fermín", "Álex", "Jesús", "Antonio", "Manu", "Borja", "Isco", "Koke", "Saúl", "Luka", "Arda",
-	"Kenan", "Takumi", "Mikel", "Ander", "Oihan", "Eneko", "Julen", "Ángel", "Cristian", "Hernán", "Facundo",
-	"Gastón", "Rodrigo", "Thibaut", "Jules", "Aurélien", "Yan", "Ousmane", "Sadio", "Kike"]
-const LAST := ["García", "Fernández", "González", "Rodríguez", "López", "Martínez", "Sánchez", "Pérez",
-	"Gómez", "Martín", "Jiménez", "Ruiz", "Hernández", "Díaz", "Moreno", "Muñoz", "Álvarez", "Romero",
-	"Alonso", "Gutiérrez", "Navarro", "Torres", "Domínguez", "Vázquez", "Ramos", "Gil", "Ramírez", "Serrano",
-	"Blanco", "Molina", "Morales", "Suárez", "Ortega", "Delgado", "Castro", "Ortiz", "Rubio", "Marín", "Sanz",
-	"Iglesias", "Núñez", "Medina", "Garrido", "Cortés", "Castillo", "Santos", "Lozano", "Guerrero", "Cano",
-	"Prieto", "Méndez", "Cruz", "Calvo", "Gallego", "Vidal", "León", "Herrera", "Márquez", "Peña", "Cabrera",
-	"Flores", "Campos", "Vega", "Fuentes", "Carrasco", "Diez", "Aguirre", "Etxeberria", "Zubizarreta",
-	"Arrieta", "Goikoetxea", "Larrañaga", "Silva", "Costa", "Diallo", "Traoré", "Camara", "Mendes", "Duarte",
-	"Pellegrini", "Rossi", "Müller", "Dubois", "Kovač", "Yamamoto", "Okafor", "Mensah", "Valverde", "Soler"]
+# Plantillas reales: data/laliga_2026_27.json (se genera con tools/build_squads.py).
 
 const POS_ROLE := {"POR": "GK", "DFC": "DEF", "LD": "DEF", "LI": "DEF", "MCD": "MID", "MC": "MID",
 	"MCO": "MID", "ED": "FWD", "EI": "FWD", "DC": "FWD"}
-
-const SQUAD_POS := ["POR", "POR", "DFC", "DFC", "DFC", "DFC", "LD", "LD", "LI", "LI", "MCD", "MCD",
-	"MC", "MC", "MC", "MCO", "MCO", "ED", "ED", "EI", "EI", "DC", "DC", "DC"]
-
-# Perfil por posición: desplazamiento de cada atributo respecto al nivel del jugador.
-const PROFILE := {
-	"POR": {"spd": -25, "pas": -18, "sho": -35, "dfn": -30, "gkp": 6, "tl": -30},
-	"DFC": {"spd": -6, "pas": -8, "sho": -20, "dfn": 6, "gkp": -60, "tl": -20},
-	"LD": {"spd": 4, "pas": -3, "sho": -14, "dfn": 0, "gkp": -60, "tl": -10},
-	"LI": {"spd": 4, "pas": -3, "sho": -14, "dfn": 0, "gkp": -60, "tl": -10},
-	"MCD": {"spd": -4, "pas": 0, "sho": -10, "dfn": 3, "gkp": -60, "tl": -8},
-	"MC": {"spd": -1, "pas": 4, "sho": -4, "dfn": -8, "gkp": -60, "tl": -3},
-	"MCO": {"spd": 1, "pas": 5, "sho": 2, "dfn": -22, "gkp": -60, "tl": 3},
-	"ED": {"spd": 7, "pas": 0, "sho": -1, "dfn": -28, "gkp": -60, "tl": -2},
-	"EI": {"spd": 7, "pas": 0, "sho": -1, "dfn": -28, "gkp": -60, "tl": -2},
-	"DC": {"spd": 2, "pas": -6, "sho": 6, "dfn": -30, "gkp": -60, "tl": -4},
-}
 
 const FORMATIONS := {
 	"4-3-3": [["POR", 0.5, 0.92], ["LI", 0.12, 0.72], ["DFC", 0.37, 0.77], ["DFC", 0.63, 0.77], ["LD", 0.88, 0.72],
@@ -98,75 +42,48 @@ func _ready() -> void:
 
 # ------------------------------------------------------------------ Generación
 
-func generate_teams(seed_value: int) -> Array:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value
+const DATA_PATH := "res://data/laliga_2026_27.json"
+
+
+func generate_teams(_seed_value: int = 0) -> Array:
+	## Carga las plantillas reales de LaLiga 2026/27 (data/laliga_2026_27.json).
+	var f := FileAccess.open(DATA_PATH, FileAccess.READ)
+	var data = JSON.parse_string(f.get_as_text()) if f else null
 	var out: Array = []
 	_next_id = 1
-	for i in LALIGA.size():
-		var d: Array = LALIGA[i]
-		var team := {
-			"id": i, "name": d[0], "short": d[1], "strength": d[2],
-			"kit": {"shirt": d[3], "shorts": d[4], "socks": d[5], "alt": d[6]},
-			"formation": "4-3-3", "xi": [], "players": [],
-		}
-		var used_numbers := {}
-		var used_names := {}
-		for j in SQUAD_POS.size():
-			var pos: String = SQUAD_POS[j]
-			var starter_bonus := 2.0 if _is_starter_index(j) else -4.0
-			var level: float = d[2] + starter_bonus + rng.randf_range(-5.0, 3.0)
-			team.players.append(_make_player(rng, pos, level, used_numbers, used_names))
+	if typeof(data) != TYPE_DICTIONARY:
+		push_error("No se pudo leer " + DATA_PATH)
+		return out
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	for i in data.teams.size():
+		var t: Dictionary = data.teams[i]
+		var team := {"id": i, "name": t.name, "short": t.short, "strength": 75, "kit": t.kit,
+			"formation": t.formation, "xi": [], "players": []}
+		for src in t.players:
+			var p: Dictionary = src.duplicate()
+			p["id"] = _next_id
+			_next_id += 1
+			p["role"] = POS_ROLE[p.pos]
+			p["energy"] = 100.0
+			p["morale"] = rng.randf_range(60, 78)
+			p["goals"] = 0
+			p["apps"] = 0
+			p["age"] = 0
+			for k in ["number", "spd", "pas", "sho", "dfn", "gkp", "tl", "res", "ovr"]:
+				p[k] = int(p[k])
+			team.players.append(p)
 		auto_lineup(team)
+		team.strength = team_rating(team)
 		out.append(team)
 	return out
-
-
-func _is_starter_index(j: int) -> bool:
-	return j in [0, 2, 3, 6, 8, 10, 12, 13, 17, 19, 21]
-
-
-func _make_player(rng: RandomNumberGenerator, pos: String, level: float, used_numbers: Dictionary, used_names: Dictionary) -> Dictionary:
-	var prof: Dictionary = PROFILE[pos]
-	var p := {"id": _next_id, "pos": pos, "role": POS_ROLE[pos], "age": rng.randi_range(18, 34),
-		"energy": 100.0, "morale": rng.randf_range(60, 78), "goals": 0, "apps": 0}
-	_next_id += 1
-	var name := ""
-	for _t in 10:
-		name = "%s %s" % [FIRST[rng.randi() % FIRST.size()], LAST[rng.randi() % LAST.size()]]
-		if not used_names.has(name):
-			break
-	used_names[name] = true
-	p["name"] = name
-	for k in ["spd", "pas", "sho", "dfn", "gkp", "tl"]:
-		var v: float = level + prof[k] + rng.randfn(0.0, 5.0)
-		if k == "gkp" and pos != "POR":
-			v = rng.randf_range(8, 20)
-		if k == "tl" and rng.randf() < 0.12 and pos != "POR":
-			v += 12.0  # especialista en tiros libres
-		p[k] = int(clampf(v, 20, 96))
-	p["res"] = int(clampf(rng.randf_range(55, 92), 20, 96))
-	var pref := {"POR": [1, 13, 25], "DFC": [4, 5, 3, 2, 15, 24], "LD": [2, 12, 22], "LI": [3, 15, 18],
-		"MCD": [6, 16, 5], "MC": [8, 14, 20, 23], "MCO": [10, 21, 17], "ED": [7, 11, 19], "EI": [11, 7, 17],
-		"DC": [9, 19, 18, 29, 21]}
-	var num := 0
-	for n in pref[pos]:
-		if not used_numbers.has(n):
-			num = n
-			break
-	if num == 0:
-		for n in range(2, 40):
-			if not used_numbers.has(n):
-				num = n
-				break
-	used_numbers[num] = true
-	p["number"] = num
-	return p
 
 
 # ------------------------------------------------------------------ Jugadores
 
 func rating(p: Dictionary) -> int:
+	if p.has("ovr"):
+		return int(p.ovr)
 	var w := {"POR": {"gkp": 1.0}, "DFC": {"dfn": 0.6, "spd": 0.2, "pas": 0.2},
 		"LD": {"dfn": 0.4, "spd": 0.35, "pas": 0.25}, "LI": {"dfn": 0.4, "spd": 0.35, "pas": 0.25},
 		"MCD": {"dfn": 0.45, "pas": 0.35, "spd": 0.2}, "MC": {"pas": 0.5, "dfn": 0.2, "sho": 0.15, "spd": 0.15},
@@ -184,16 +101,36 @@ func form_factor(p: Dictionary) -> float:
 	return (0.78 + 0.22 * float(p.energy) / 100.0) * (0.95 + 0.1 * float(p.morale) / 100.0)
 
 
+const NEAR_POS := {
+	"DFC": {"LD": 0.9, "LI": 0.9, "MCD": 0.88}, "LD": {"LI": 0.9, "DFC": 0.88, "ED": 0.85}, "LI": {"LD": 0.9, "DFC": 0.88, "EI": 0.85},
+	"MCD": {"MC": 0.97, "DFC": 0.88, "MCO": 0.88}, "MC": {"MCD": 0.96, "MCO": 0.97}, "MCO": {"MC": 0.97, "ED": 0.9, "EI": 0.9, "DC": 0.88, "MCD": 0.86},
+	"ED": {"EI": 0.95, "DC": 0.9, "MCO": 0.9}, "EI": {"ED": 0.95, "DC": 0.9, "MCO": 0.9}, "DC": {"ED": 0.9, "EI": 0.9, "MCO": 0.88},
+}
+
+
 func slot_factor(p: Dictionary, slot_pos: String) -> float:
+	## Cuánto rinde un jugador en un puesto que no es el suyo.
 	if p.pos == slot_pos:
 		return 1.0
+	var near: Dictionary = NEAR_POS.get(slot_pos, {})
+	if near.has(p.pos):
+		return near[p.pos]
 	var r1: String = POS_ROLE[p.pos]
 	var r2: String = POS_ROLE[slot_pos]
 	if r1 == "GK" or r2 == "GK":
 		return 0.35
 	if r1 == r2:
-		return 0.93
-	return 0.78
+		return 0.9
+	return 0.75
+
+
+func with_slots(list: Array, formation: String) -> Array:
+	## Añade a cada jugador (efectivo) su posición en la formación (sx, sy).
+	var slots: Array = FORMATIONS[formation]
+	for i in list.size():
+		list[i]["sx"] = slots[i][1]
+		list[i]["sy"] = slots[i][2]
+	return list
 
 
 func effective(p: Dictionary, slot_pos := "") -> Dictionary:
@@ -217,22 +154,25 @@ func team_by_id(id) -> Dictionary:
 
 
 func auto_lineup(team: Dictionary) -> void:
-	## Elige el mejor once disponible para la formación actual.
+	## Elige el mejor once disponible: asigna cada vez la mejor pareja jugador-puesto.
 	var slots: Array = FORMATIONS[team.formation]
-	var used := {}
-	var xi: Array = []
-	for s in slots:
-		var best = null
-		var bv := -1.0
+	var pairs: Array = []
+	for si in slots.size():
 		for p in team.players:
-			if used.has(int(p.id)):
-				continue
-			var v := rating(p) * form_factor(p) * slot_factor(p, s[0])
-			if v > bv:
-				bv = v
-				best = p
-		used[int(best.id)] = true
-		xi.append(int(best.id))
+			pairs.append([rating(p) * form_factor(p) * slot_factor(p, slots[si][0]), si, int(p.id)])
+	pairs.sort_custom(func(a, b): return a[0] > b[0])
+	var xi: Array = []
+	xi.resize(slots.size())
+	var used := {}
+	var filled := 0
+	for pr in pairs:
+		if xi[pr[1]] != null or used.has(pr[2]):
+			continue
+		xi[pr[1]] = pr[2]
+		used[pr[2]] = true
+		filled += 1
+		if filled == slots.size():
+			break
 	team.xi = xi
 
 
@@ -338,6 +278,8 @@ func build_moment(j: Dictionary, ut: Dictionary, rt: Dictionary, ctx: String) ->
 		hx.append(effective(ul[i], us[i][0]))
 	for i in rl.size():
 		ax.append(effective(rl[i], rs[i][0]))
+	with_slots(hx, ut.formation)
+	with_slots(ax, rt.formation)
 	return {"jugada": j, "user_team": ut, "rival_team": rt, "home_xi": hx, "away_xi": ax, "minute": "ENT",
 		"score_user": 0, "score_rival": 0, "user_is_home": true, "context": ctx, "minute_short": true}
 
@@ -540,7 +482,7 @@ func new_season() -> void:
 func save_career() -> void:
 	if not has_career():
 		return
-	var data := {"career": career, "teams": teams, "stats": stats, "next_id": _next_id}
+	var data := {"career": career, "teams": teams, "stats": stats, "next_id": _next_id, "data_version": DATA_VERSION}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(data))
@@ -555,6 +497,8 @@ func load_career() -> bool:
 	var data = JSON.parse_string(f.get_as_text())
 	if typeof(data) != TYPE_DICTIONARY or not data.has("career"):
 		return false
+	if int(data.get("data_version", 1)) != DATA_VERSION:
+		return false  # partida de una versión con jugadores inventados
 	career = data.career
 	teams = data.teams
 	stats = data.get("stats", stats)

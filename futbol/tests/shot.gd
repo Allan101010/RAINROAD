@@ -8,8 +8,7 @@ var step := 0
 var node: Node = null
 var gd
 var plan := [
-	["menu", 40], ["quick", 15], ["lineup", 15], ["career", 15], ["tabla", 15], ["sim", 140],
-	["falta", 150], ["penal", 130], ["penal_contra", 120], ["def_contra", 150], ["corner", 110], ["contra", 200],
+	["frontal", 100], ["def_frontal", 112], ["contra", 104], ["falta", 120],
 ]
 
 
@@ -77,9 +76,10 @@ func _open(what: String) -> void:
 			root.add_child(node)
 		_:
 			var J = load("res://scripts/jugadas.gd")
-			var pool: Array = J.by_group(what)
+			var real_group := what.replace("2", "")
+			var pool: Array = J.by_group(real_group)
 			gd.moment = gd.build_moment(pool[pool.size() / 2], gd.teams[3].duplicate(true), gd.teams[0].duplicate(true), "training")
 			node = load("res://scenes/match.tscn").instantiate()
 			root.add_child(node)
-			if what in ["def_contra", "contra", "corner"]:
+			if what in ["def_frontal"]:
 				node.autoplay = true

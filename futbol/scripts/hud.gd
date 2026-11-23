@@ -76,15 +76,25 @@ func _layout() -> void:
 		for id in ["b", "c", "d"]:
 			_buttons[id].r = 70.0
 		_buttons.a.pos = Vector2(-500, -500)
-	else:
+	elif mode in ["setpiece", "penalty_shot"]:
 		_buttons.a.pos = Vector2(s.x - 115, s.y - 125)
-		_buttons.a.r = 68.0
-		_buttons.b.pos = Vector2(s.x - 265, s.y - 80)
+		_buttons.a.r = 72.0
+		_buttons.b.pos = Vector2(s.x - 275, s.y - 80)
 		_buttons.b.r = 54.0
-		_buttons.c.pos = Vector2(s.x - 235, s.y - 230)
+		_buttons.c.pos = Vector2(s.x - 245, s.y - 235)
 		_buttons.c.r = 50.0
-		_buttons.d.pos = Vector2(s.x - 85, s.y - 285)
-		_buttons.d.r = 46.0
+		_buttons.d.pos = Vector2(s.x - 90, s.y - 300)
+		_buttons.d.r = 50.0
+	else:
+		# SPRINT es el botón más grande, abajo a la derecha, donde descansa el pulgar.
+		_buttons.d.pos = Vector2(s.x - 112, s.y - 118)
+		_buttons.d.r = 82.0
+		_buttons.a.pos = Vector2(s.x - 128, s.y - 300)
+		_buttons.a.r = 60.0
+		_buttons.b.pos = Vector2(s.x - 290, s.y - 92)
+		_buttons.b.r = 60.0
+		_buttons.c.pos = Vector2(s.x - 278, s.y - 252)
+		_buttons.c.r = 50.0
 	queue_redraw()
 
 
@@ -225,7 +235,11 @@ func _draw() -> void:
 			c.a = 0.88 if b.down else 0.55
 			draw_circle(b.pos, b.r, c)
 			draw_arc(b.pos, b.r, 0, TAU, 48, Color(1, 1, 1, 0.8), 3.0, true)
-			var fs := 22 if id == "a" else 16
+			var fs := 16
+			if b.r >= 80:
+				fs = 26
+			elif b.r >= 58:
+				fs = 20
 			if mode == "penalty_gk":
 				fs = 20
 			draw_string_outline(font, b.pos + Vector2(-b.r, fs * 0.35), labels[id], HORIZONTAL_ALIGNMENT_CENTER, b.r * 2, fs, 4, Color(0, 0, 0, 0.6))

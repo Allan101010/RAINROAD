@@ -6,7 +6,7 @@ config_version=5
 
 config/name="Fútbol Mánager"
 config/description="Juego de fútbol: gestiona tu equipo y juega las jugadas clave."
-config/version="0.2"
+config/version="0.3"
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"

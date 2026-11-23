@@ -289,6 +289,8 @@ func moment_payload() -> Dictionary:
 		home_xi.append(GameData.effective(xi[u][i], slots[u][i]))
 	for i in xi[1 - u].size():
 		away_xi.append(GameData.effective(xi[1 - u][i], slots[1 - u][i]))
+	GameData.with_slots(home_xi, teams[u].formation)
+	GameData.with_slots(away_xi, teams[1 - u].formation)
 	return {"jugada": pending.jugada, "user_team": teams[u], "rival_team": teams[1 - u], "home_xi": home_xi,
 		"away_xi": away_xi, "minute": minute_label(), "score_user": score[u], "score_rival": score[1 - u],
 		"user_is_home": u == 0, "context": context}

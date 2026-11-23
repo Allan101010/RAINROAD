@@ -59,7 +59,7 @@ func _ready() -> void:
 	moment = GameData.moment if not GameData.moment.is_empty() else _default_moment()
 	jugada = moment.jugada
 	mode = jugada.mode
-	time_total = jugada.time
+	time_total = jugada.time * 1.5
 	time_left = time_total
 	Stadium.build(self, moment.user_team.name, moment.rival_team.name)
 	_kits = GameData.kits_for(moment.user_team, moment.rival_team)
@@ -86,6 +86,7 @@ func _spawn() -> void:
 	var ball_owner: Futbolista = null
 	for e in jugada.home:
 		var p := _make_player(_take(home_pool, e.role, e.get("taker", false)), HOME, e.pos)
+		p.key_player = true
 		p.lane_z = e.get("lane", e.pos.z)
 		if e.get("ball", false):
 			ball_owner = p
@@ -93,6 +94,7 @@ func _spawn() -> void:
 			taker = p
 	for e in jugada.away:
 		var p := _make_player(_take(away_pool, e.role, e.get("taker", false)), AWAY, e.pos)
+		p.key_player = true
 		p.lane_z = e.get("lane", e.pos.z)
 		if e.get("ball", false):
 			ball_owner = p
@@ -105,16 +107,17 @@ func _spawn() -> void:
 		"freekick", "penalty_for":
 			var bp: Vector3 = jugada.ball_pos
 			ball.place(bp + Vector3(0, Balon.R, 0))
-			takers = moment.home_xi.filter(func(d): return d.pos != "GK")
+			if mode == "freekick":
+				_build_wall(away_pool, int(jugada.get("wall", 4)))
+			_spawn_extras(home_pool, away_pool)
+			takers = home.filter(func(x): return x.role != "GK")
 			if mode == "freekick":
 				takers.sort_custom(func(a, b): return a.tl > b.tl)
 			else:
 				takers.sort_custom(func(a, b): return a.sho + a.tl * 0.5 > b.sho + b.tl * 0.5)
 			takers = takers.slice(0, 5)
 			taker_idx = 0
-			_spawn_taker()
-			if mode == "freekick":
-				_build_wall(away_pool, int(jugada.get("wall", 4)))
+			_place_taker(takers[0])
 			var gk := _gk_of(AWAY)
 			if gk:
 				gk.position = Vector3(HALF_L - 0.4, 0, -signf(bp.z) * 0.9 if absf(bp.z) > 2 else 0.0)
@@ -126,6 +129,7 @@ func _spawn() -> void:
 			ball.place(bp2 + Vector3(0, Balon.R, 0))
 			if taker:
 				taker.face_towards(bp2)
+			_spawn_extras(home_pool, away_pool)
 			var mygk := _gk_of(HOME)
 			if mygk:
 				mygk.position = Vector3(-HALF_L + 0.3, 0, 0)
@@ -134,6 +138,7 @@ func _spawn() -> void:
 			if taker:
 				ball.place(taker.position + Vector3(-0.4, Balon.R, -0.4 * signf(taker.position.z)))
 				taker.face_towards(Vector3(45, 0, 0))
+			_spawn_extras(home_pool, away_pool)
 		_:
 			if jugada.has("loose_ball"):
 				ball.place(jugada.loose_ball)
@@ -143,6 +148,7 @@ func _spawn() -> void:
 			elif ball_owner:
 				ball.place(ball_owner.position + ball_owner.facing * 0.55 + Vector3(0, Balon.R, 0))
 				_give_ball(ball_owner)
+			_spawn_extras(home_pool, away_pool)
 	for p in players:
 		if p.role != "GK" and mode in ["attack", "defend", "corner"]:
 			if p != ball_owner and p != taker:
@@ -187,18 +193,105 @@ func _make_player(data: Dictionary, team: int, pos: Vector3) -> Futbolista:
 	return p
 
 
-func _spawn_taker() -> void:
-	if taker:
-		players.erase(taker)
-		home.erase(taker)
-		taker.queue_free()
+func _place_taker(new_taker: Futbolista) -> void:
+	## Pone a un jugador como lanzador; el anterior ocupa el sitio del nuevo.
 	var bp: Vector3 = jugada.ball_pos
 	var dir := (Vector3(HALF_L, 0, 0) - bp).normalized()
 	var side := Vector3(-dir.z, 0, dir.x)
-	taker = _make_player(takers[taker_idx], HOME, bp - dir * 1.8 + side * 1.3)
+	var spot := bp - dir * 1.8 + side * 1.3
+	if taker and taker != new_taker:
+		taker.position = new_taker.position
+		taker.set_name_visible(true)
+	taker = new_taker
+	taker.position = spot
+	taker.velocity = Vector3.ZERO
 	taker.face_towards(bp)
 	_set_controlled(taker)
 	taker.set_name_visible(false)
+
+
+func _spawn_extras(home_pool: Array, away_pool: Array) -> void:
+	## Completa los once de cada equipo con el resto de jugadores.
+	var behind: bool = jugada.group in ["contra", "1v1", "def_contra", "def_1v1"]
+	for t in [HOME, AWAY]:
+		var pool: Array = home_pool if t == HOME else away_pool
+		while not pool.is_empty():
+			var data: Dictionary = pool.pop_front()
+			var pos := _extra_spot(t, data, behind)
+			for _k in 6:
+				var clash := false
+				for o in players:
+					if _hdist(o.position, pos) < 2.2:
+						clash = true
+						break
+				if not clash:
+					break
+				pos.z = clampf(pos.z + 2.6, -32.0, 32.0)
+			var p := _make_player(data, t, pos)
+			p.lane_z = pos.z
+			p.face_towards(ball.position)
+			if behind and data.pos != "GK":
+				var attacker := HOME if mode == "attack" else AWAY
+				if t != attacker:
+					p.stun = randf_range(0.6, 1.6)  # tardan en reaccionar al contraataque
+
+
+func _extra_spot(t: int, data: Dictionary, behind: bool) -> Vector3:
+	var d := dir_of(t)
+	var sx: float = data.get("sx", 0.5)
+	var sy: float = data.get("sy", 0.5)
+	if data.pos == "GK":
+		return Vector3(own_goal_x(t) + d * 0.6, 0, 0)
+	var r := randf_range(-1.5, 1.5)
+	match mode:
+		"penalty_for", "penalty_against":
+			var px := 32.0 if mode == "penalty_for" else -32.0
+			return Vector3(px - signf(px) * randf_range(0.0, 5.0), 0, (sx - 0.5) * 34.0 + r)
+		"freekick":
+			if t == HOME:
+				if sy > 0.7:
+					return Vector3(-4.0 + r * 3.0, 0, (sx - 0.5) * 30.0)
+				return Vector3(randf_range(39.0, 45.0), 0, (sx - 0.5) * 26.0 + r)
+			return Vector3(randf_range(44.0, 49.5), 0, (sx - 0.5) * 22.0 + r)
+		"corner":
+			if t == HOME:
+				if sy > 0.7:
+					return Vector3(randf_range(-2.0, 8.0), 0, (sx - 0.5) * 30.0)
+				return Vector3(randf_range(36.0, 44.0), 0, (sx - 0.5) * 24.0 + r)
+			if sy < 0.3:
+				return Vector3(randf_range(14.0, 22.0), 0, (sx - 0.5) * 20.0)
+			return Vector3(randf_range(44.0, 50.0), 0, (sx - 0.5) * 20.0 + r)
+	var pos := _shape_spot(t, Vector2(sx, sy))
+	if behind:
+		# En un contraataque, el equipo que defiende está descolocado: detrás del balón.
+		var attacker := HOME if mode == "attack" else AWAY
+		if t != attacker:
+			var ad := dir_of(attacker)
+			pos.x = ball.position.x - ad * randf_range(9.0, 30.0)
+		elif sy > 0.6:
+			pos.x = ball.position.x - dir_of(t) * randf_range(12.0, 30.0)
+	pos.x = clampf(pos.x, -HALF_L + 2, HALF_L - 2)
+	return pos
+
+
+func _shape_spot(t: int, sl: Vector2) -> Vector3:
+	## Posición de un jugador según su formación, el balón y quién tiene la posesión.
+	var d := dir_of(t)
+	var own := own_goal_x(t)
+	var poss := -1
+	if ball.carrier:
+		poss = ball.carrier.team
+	elif ball.last_touch:
+		poss = ball.last_touch.team
+	var attacking := poss == t
+	var bx := (ball.position.x - own) * d
+	var back_line := clampf(bx - (30.0 if attacking else 17.0), 9.0, 58.0)
+	var depth := clampf((0.8 - sl.y) / 0.66, 0.0, 1.2)
+	var span := 36.0 if attacking else 24.0
+	var dist := minf(back_line + depth * span, 97.0)
+	var width := 58.0 if attacking else 42.0
+	var z := (sl.x - 0.5) * width + ball.position.z * 0.3
+	return Vector3(own + d * dist, 0, clampf(z, -31.0, 31.0))
 
 
 func _build_wall(pool: Array, n: int) -> void:
@@ -320,6 +413,7 @@ func _play_step(dt: float) -> void:
 	if mode == "corner" and not corner_done:
 		_corner_step()
 	_update_control_target()
+	_compute_marks()
 	_handle_input(dt)
 	for p in players:
 		if p == controlled and not autoplay:
@@ -366,7 +460,7 @@ func _setpiece_step(dt: float) -> void:
 	aim.y = clampf(aim.y - inp.z * 2.4 * dt, 0.15, 3.2)
 	if hud.pressed("b") or _key_edge(KEY_Q) == 1:
 		taker_idx = (taker_idx + 1) % takers.size()
-		_spawn_taker()
+		_place_taker(takers[taker_idx])
 		hud.show_message("Lanzador: %s" % taker.pname, 1.0)
 	if mode == "freekick":
 		if hud.pressed("c") or _key_edge(KEY_Z) == 1:
@@ -631,13 +725,15 @@ func _handle_input(dt: float) -> void:
 	p.sprinting = hud.is_down("d") or Input.is_key_pressed(KEY_SHIFT)
 	var attack := _attacking()
 
-	if ball.carrier == null and ball.pass_target == p and inp.length() < 0.2:
+	if ball.carrier == null and ball.pass_target == p and ball.kind in ["pass", "through", "cross"]:
+		# El receptor va solo a por el balón aunque sigas tocando el joystick.
 		_run_to(p, _receive_point(p), true)
 	elif not attack and c_down and ball.carrier:
 		_run_to(p, ball.carrier.position, true)
 	else:
 		p.move_input = inp
 
+	_update_pass_marker(p, inp, attack)
 	if attack:
 		if ball.carrier == p:
 			if a_press:
@@ -682,6 +778,21 @@ func _handle_input(dt: float) -> void:
 				_set_controlled(c)
 
 
+var _marked_target: Futbolista = null
+
+
+func _update_pass_marker(p: Futbolista, inp: Vector3, attack: bool) -> void:
+	var t: Futbolista = null
+	if attack and ball.carrier == p:
+		t = _select_pass_target(p, inp.normalized() if inp.length() > 0.2 else p.facing)
+	if t != _marked_target:
+		if _marked_target and is_instance_valid(_marked_target):
+			_marked_target.set_pass_target(false)
+		_marked_target = t
+		if t:
+			t.set_pass_target(true)
+
+
 func _user_aim(p: Futbolista, inp: Vector3) -> float:
 	if absf(inp.z) > 0.25:
 		return signf(inp.z) * lerpf(1.2, 3.1, absf(inp.z))
@@ -719,22 +830,36 @@ func _kick(p: Futbolista, v: Vector3, kind: String) -> void:
 		p.facing = d.normalized()
 
 
-func _pass(p: Futbolista, through: bool, inp: Vector3) -> void:
-	var mates := _field(team_of(p.team), true, true).filter(func(x): return x != p)
-	var dir := inp.normalized() if inp.length() > 0.2 else p.facing
+func _select_pass_target(p: Futbolista, dir: Vector3) -> Futbolista:
+	## Compañero al que va el pase: el más alineado con la dirección del joystick,
+	## penalizando la distancia y las líneas de pase tapadas.
 	var best: Futbolista = null
 	var best_score := -INF
-	for m in mates:
-		var to: Vector3 = m.position - p.position
-		var dist := to.length()
-		if dist < 2.0:
+	for m in _field(team_of(p.team), true, true):
+		if m == p:
 			continue
-		var score := dir.dot(to / dist) * 2.0 - dist / 35.0
+		var to: Vector3 = m.position - p.position
+		to.y = 0
+		var dist := to.length()
+		if dist < 3.0 or dist > 45.0:
+			continue
+		var align := dir.dot(to / dist)
+		if align < 0.2:
+			continue
+		var score := align * 3.0 - dist / 28.0
+		if _lane_blocked(p.position, m.position, p.team, 0.9):
+			score -= 1.2
 		if score > best_score:
 			best_score = score
 			best = m
+	return best
+
+
+func _pass(p: Futbolista, through: bool, inp: Vector3) -> void:
+	var dir := inp.normalized() if inp.length() > 0.2 else p.facing
+	var best := _select_pass_target(p, dir)
 	if best == null:
-		_kick(p, dir * 14.0 + Vector3(0, 0.5, 0), "pass")
+		_kick(p, dir * 12.0 + Vector3(0, 0.5, 0), "pass")
 		return
 	_pass_to(p, best, through)
 
@@ -762,7 +887,7 @@ func _pass_to(p: Futbolista, best: Futbolista, through: bool) -> void:
 		var v := dirn * 18.0 + Vector3(0, (1.6 - ball.position.y + 0.5 * Balon.GRAVITY * t * t) / t, 0)
 		_kick(p, v, "cross")
 	else:
-		var v_end := 3.5 if through else 5.5
+		var v_end := 3.5 if through else 4.5
 		var spd := sqrt(v_end * v_end + 2.0 * (Balon.ROLL_DECEL + 0.4) * 1.2 * d2)
 		_kick(p, dirn * spd + Vector3(0, 0.6, 0), "through" if through else "pass")
 	ball.pass_target = best
@@ -968,6 +1093,9 @@ func _receive_point(p: Futbolista) -> Vector3:
 
 
 func _ai_support(p: Futbolista) -> void:
+	if not p.key_player and p.role != "FWD":
+		_ai_shape(p)
+		return
 	var d := dir_of(p.team)
 	var gx := goal_x(p.team)
 	var ref := ball.position.x
@@ -982,37 +1110,59 @@ func _ai_support(p: Futbolista) -> void:
 	_run_to(p, tgt, p.position.distance_to(tgt) > 4.0)
 
 
+var _marks := {}
+var _pressers := {}
+
+
+func _compute_marks() -> void:
+	## Para cada equipo que defiende: quién presiona y a quién marca cada defensor.
+	_marks.clear()
+	_pressers.clear()
+	var focus := ball.carrier.position if ball.carrier else ball.position
+	for t in [HOME, AWAY]:
+		var field := _field(team_of(t), true)
+		var presser := _closest(field, focus)
+		_pressers[t] = presser
+		var og := Vector3(own_goal_x(t), 0, 0)
+		var attackers := _field(team_of(1 - t), false, true).filter(func(x):
+			return x != ball.carrier and (_hdist(x.position, og) < 34.0 or _hdist(x.position, focus) < 22.0))
+		attackers.sort_custom(func(a, b): return a.position.distance_to(og) < b.position.distance_to(og))
+		var used := {}
+		for atk in attackers:
+			var best: Futbolista = null
+			var bd := INF
+			for df in field:
+				if df == presser or used.has(df):
+					continue
+				var dd: float = df.position.distance_to(atk.position)
+				if dd < bd:
+					bd = dd
+					best = df
+			if best and bd < 30.0:
+				used[best] = true
+				_marks[best] = atk
+
+
+func _ai_shape(p: Futbolista) -> void:
+	var tgt := _shape_spot(p.team, p.slot)
+	_run_to(p, tgt, p.position.distance_to(tgt) > 9.0)
+	if p.move_input.length() < 0.1:
+		p.face_towards(ball.position)
+
+
 func _ai_defend(p: Futbolista, focus: Vector3) -> void:
 	var og := Vector3(own_goal_x(p.team), 0, 0)
-	var field := _field(team_of(p.team), true)
-	var presser := _closest(field, focus)
-	if p == presser:
+	if _pressers.get(p.team) == p:
 		_run_to(p, focus + (og - focus).normalized() * 0.7, true)
 		return
-	var attackers := _field(team_of(1 - p.team), false, true).filter(func(x): return x != ball.carrier)
-	attackers.sort_custom(func(a, b): return a.position.distance_to(og) < b.position.distance_to(og))
-	var free_defs := field.filter(func(x): return x != presser)
-	var assignment := {}
-	for atk in attackers:
-		var best: Futbolista = null
-		var bd := INF
-		for df in free_defs:
-			if assignment.has(df):
-				continue
-			var dd: float = df.position.distance_to(atk.position)
-			if dd < bd:
-				bd = dd
-				best = df
-		if best:
-			assignment[best] = atk
-	if assignment.has(p):
-		var atk2: Futbolista = assignment[p]
-		var tgt := atk2.position + (og - atk2.position).normalized() * 2.0
+	if _marks.has(p):
+		var atk2: Futbolista = _marks[p]
+		var tgt := atk2.position + (og - atk2.position).normalized() * 1.8
 		if absf(tgt.x) > HALF_L - 1.5:
 			tgt.x = signf(tgt.x) * (HALF_L - 1.5)
 		_run_to(p, tgt, p.position.distance_to(tgt) > 2.5)
-	else:
-		_run_to(p, focus.lerp(og, 0.55), true)
+		return
+	_ai_shape(p)
 
 
 func _ai_carrier(p: Futbolista, dt: float) -> void:

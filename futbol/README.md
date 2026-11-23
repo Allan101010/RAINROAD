@@ -1,10 +1,19 @@
-# Fútbol Mánager (versión 0.2)
+# Fútbol Mánager (versión 0.3)
 
 Juego de fútbol para Android: eres el **entrenador** y eliges el once, la formación y los cambios. El partido se simula minuto a minuto y, cuando llega una **jugada clave**, la juegas tú en 3D: atacar, defender, un tiro libre, un penal o un córner.
 
 Hecho con [Godot 4.3](https://godotengine.org) (gratis y de código abierto). Es para uso personal y no se publica en ninguna tienda.
 
-![Menú](docs/menu.png)
+![Partido 11 contra 11](docs/partido.png)
+
+## Novedades de la 0.3
+
+- **Plantillas reales de LaLiga 2026/27**: los 20 equipos de esta temporada (con Racing, Deportivo y Málaga) con sus jugadores y dorsales actuales.
+- **11 contra 11** en todas las jugadas: el resto del equipo mantiene la forma de su formación, marca y se desmarca.
+- **Pases arreglados**: el compañero que va a recibir se marca con un **aro azul**. Al pasar, el receptor va solo a por el balón aunque sigas tocando el joystick.
+- **Juego más pausado y realista**: jugadores más lentos, con inercia al acelerar y girar, y jugadas con más tiempo para pensar.
+- **Nueva forma de correr**: piernas con rodillas, brazos con codos y una zancada que se ajusta a la velocidad.
+- **SPRINT es el botón más grande**, abajo a la derecha.
 
 ## Instalarlo en tu Android
 
@@ -62,10 +71,10 @@ Cada jugador tiene **velocidad, pase, tiro, defensa, portería, tiro libre y res
 | Botón | En ataque | En defensa |
 |---|---|---|
 | Joystick (mitad izquierda) | Mover | Mover |
-| Rojo | **TIRO**: mantén para cargar y suelta. Cerca de un balón aéreo hace un **cabezazo** | **BARRIDA** |
-| Verde | **PASE** al compañero hacia donde apuntas. Desde la banda hacia el área sale un **centro** | **CAMBIAR** de jugador |
+| Amarillo grande (abajo a la derecha) | **SPRINT** | **SPRINT** |
+| Rojo (arriba) | **TIRO**: mantén para cargar y suelta. Cerca de un balón aéreo hace un **cabezazo** | **BARRIDA** |
+| Verde | **PASE** al compañero marcado con el aro azul. Desde la banda hacia el área sale un **centro** | **CAMBIAR** de jugador |
 | Azul | **AL HUECO**: pase al espacio | **PRESIÓN**: mantén y persigue al rival |
-| Amarillo | **SPRINT** | **SPRINT** |
 
 **Tiro libre** (cámara detrás del balón):
 
@@ -80,6 +89,8 @@ Cada jugador tiene **velocidad, pase, tiro, defensa, portería, tiro libre y res
 
 ```
 futbol/
+├── data/                  plantillas reales de LaLiga 2026/27
+├── tools/build_squads.py  genera los datos de los jugadores
 ├── scenes/                menú, carrera, simulación y jugada 3D
 ├── scripts/
 │   ├── game_data.gd       LaLiga, jugadores, alineaciones, liga y guardado
@@ -101,10 +112,12 @@ futbol/
 └── builds/                APK compilado
 ```
 
-## Notas
+## Plantillas y valoraciones
 
-- Los **clubes** son los de LaLiga; los **jugadores son inventados**, porque las plantillas reales cambian cada temporada. Se pueden editar en `scripts/game_data.gd`.
-- Una nueva carrera genera plantillas nuevas para los 20 equipos.
+- **Jugadores y dorsales**: sacados de Wikipedia (plantillas actualizadas entre septiembre y noviembre de 2026) y guardados en `data/plantillas_wikipedia_2026_27.json`.
+- **Valoraciones**: son **aproximadas**, al estilo de los videojuegos de fútbol, porque Wikipedia no trae estadísticas. Unos 400 jugadores tienen valoración propia; los canteranos y suplentes poco conocidos tienen una estimada según el nivel del equipo.
+- Para corregir a alguien, edita la tabla `RATINGS` de `tools/build_squads.py` y ejecuta `python3 tools/build_squads.py`. Se regenera `data/laliga_2026_27.json`.
+- Las partidas de carrera de la 0.2 (con jugadores inventados) no se cargan; empieza una nueva.
 
 ## Compilar
 
