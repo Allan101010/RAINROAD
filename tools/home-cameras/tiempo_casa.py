@@ -25,6 +25,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 LOCAL_TZ = timezone(timedelta(hours=-6))
 HISTORY_PATH = Path.home() / ".raintrack_casa_historial.jsonl"
+LAST_RAIN_PATH = Path.home() / ".raintrack_casa_ultima_lluvia.json"
 HISTORY_DAYS = 3
 STATIONS_EVERY_S = 180
 DEMAND_CHECK_S = 30
@@ -84,6 +85,22 @@ def _save_history(rows: list[dict]) -> None:
     HISTORY_PATH.write_text("".join(json.dumps(r, separators=(",", ":")) + "\n" for r in rows), encoding="utf-8")
 
 
+def _last_rain(cam: str, stamp: str, estimate: dict) -> dict | None:
+    """Última vez que la cámara vio lluvia (se guarda en un archivo para no perderla al reiniciar)."""
+    try:
+        saved = json.loads(LAST_RAIN_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        saved = {}
+    seeing = estimate.get("estimate") == "rain" or (estimate.get("estimate") == "possible_rain" and estimate.get("intensity"))
+    if seeing:
+        saved[cam] = {"t": stamp, "intensity": estimate.get("intensity")}
+        try:
+            LAST_RAIN_PATH.write_text(json.dumps(saved), encoding="utf-8")
+        except OSError:
+            pass
+    return saved.get(cam)
+
+
 def publish_home(message: dict) -> dict | None:
     """Estima la lluvia con la lectura nueva y la publica. Devuelve la estimación (o None si falla)."""
     import camera_training
@@ -95,7 +112,11 @@ def publish_home(message: dict) -> dict | None:
     others = [r for r in _history() if r.get("cam") != row["cam"]]
     _save_history(others + history + [row])
     extra = {k: row["f"][k] for k in ("splash_road", "splash_ref", "saturation", "motion") if k in row["f"]}
-    payload = {"cams": [{"id": "home-" + row["cam"], "t": row["t"], **estimate, "f": extra}]}
+    cam_out = {"id": "home-" + row["cam"], "t": row["t"], **estimate, "f": extra}
+    last = _last_rain(row["cam"], row["t"], estimate)
+    if last:
+        cam_out["last_rain"] = last
+    payload = {"cams": [cam_out]}
     aviones_casa._post(aviones_casa.WORKER, "/casa", aviones_casa._key(), payload)
     return estimate
 

@@ -1098,7 +1098,13 @@ function homeCameraPopupText(summary) {
       : row.estimate === "possible_rain" ? "posible lluvia" + night
       : row.estimate === "no_rain" ? "sin señales de lluvia" + night
       : "sin opinión (" + (HOME_CAMERA_NO_OPINION[row.reason] || "poca visibilidad") + ")";
-    return "• " + homeCameraName(row.id) + ": " + state + " (hace " + minutes + " min)";
+    let last = "";
+    if (row.last_rain && row.last_rain.t) {
+      const since = Math.max(0, Math.round((Date.now() - Date.parse(row.last_rain.t)) / 60000));
+      const rainingNow = homeRainEstimate(row.estimate) || (row.estimate === "possible_rain" && row.intensity);
+      if (!rainingNow) last = "\n   última lluvia vista: " + (since < 1 ? "ahora" : since < 120 ? "hace " + since + " min" : since < 2880 ? "hace " + Math.round(since / 60) + " h" : "hace " + Math.round(since / 1440) + " días");
+    }
+    return "• " + homeCameraName(row.id) + ": " + state + " (hace " + minutes + " min)" + last;
   });
   return "Cámaras de casa (estimación)\n" + lines.join("\n") + "\nSe deduce de la imagen, no es una medición.";
 }
