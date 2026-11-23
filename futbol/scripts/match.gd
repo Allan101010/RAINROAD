@@ -414,6 +414,9 @@ func _play_step(dt: float) -> void:
 		_corner_step()
 	_update_control_target()
 	_compute_marks()
+	if ball.carrier:
+		ball.carrier.hold_t += dt
+		ball.shield = _shield_dir(ball.carrier)
 	_handle_input(dt)
 	for p in players:
 		if p == controlled and not autoplay:
@@ -593,7 +596,7 @@ func _penalty_against_kick() -> void:
 		p_save *= 0.6
 	var on_target := absf(z) < GOAL_HW and y < GOAL_H
 	gk_plan = {"gk": gk, "save": on_target and randf() < p_save, "dive_z": choice * 2.7, "react": 0.03,
-		"y": y, "t": 0.6, "dived": false, "resolved": false, "on_target": on_target}
+		"y": y, "z": z, "t": 0.6, "dive_start": 0.05, "watch": false, "dived": false, "resolved": false, "on_target": on_target}
 	state = State.PLAY
 	state_t = 0.0
 	time_left = 4.0
@@ -674,6 +677,17 @@ func _update_control_target() -> void:
 		_set_controlled(ball.pass_target)
 	elif controlled == null or controlled.role == "GK":
 		_set_controlled(_closest(_field(home, false), ball.position))
+	elif ball.carrier == null and ball.pass_target and ball.pass_target.team == AWAY and ball.kind in ["pass", "through", "cross"]:
+		# Pase del rival: pasa el control al defensor más cercano al receptor.
+		var c3 := _closest(_field(home, false), ball.pass_target.position)
+		if c3 and c3 != controlled and _hdist(c3.position, ball.pass_target.position) + 3.0 < _hdist(controlled.position, ball.pass_target.position):
+			_set_controlled(c3)
+	elif ball.carrier and ball.carrier.team == AWAY:
+		# En defensa, si tu jugador queda lejos de la jugada, pasa al más cercano.
+		var c2 := _closest(_field(home, false), ball.carrier.position)
+		var dc := _hdist(controlled.position, ball.carrier.position)
+		if c2 and c2 != controlled and dc > 10.0 and _hdist(c2.position, ball.carrier.position) + 5.0 < dc and _input_vector().length() < 0.2:
+			_set_controlled(c2)
 	elif ball.carrier == null and not (ball.kind in ["pass", "through", "cross"]):
 		var c := _closest(_field(home, false), ball.position)
 		if c and c.position.distance_to(ball.position) + 3.0 < controlled.position.distance_to(ball.position):
@@ -728,8 +742,20 @@ func _handle_input(dt: float) -> void:
 	if ball.carrier == null and ball.pass_target == p and ball.kind in ["pass", "through", "cross"]:
 		# El receptor va solo a por el balón aunque sigas tocando el joystick.
 		_run_to(p, _receive_point(p), true)
+	elif c_down and ball.carrier == null and ball.last_touch and ball.last_touch.team == AWAY:
+		# PRESIÓN con el balón suelto (pase del rival): corre a cortarlo.
+		var tgt := _receive_point(p) if ball.kind in ["pass", "through", "cross"] else ball.position + Vector3(ball.vel.x, 0, ball.vel.z) * 0.35
+		_run_to(p, tgt, true)
 	elif not attack and c_down and ball.carrier:
-		_run_to(p, ball.carrier.position, true)
+		# PRESIÓN: persigue al rival y, al llegar, mete la pierna.
+		var cp := ball.carrier.position + ball.carrier.velocity * 0.25
+		_run_to(p, cp, true)
+		p.move_input = p.move_input.normalized() if p.move_input.length() > 0.05 else Vector3.ZERO
+		if _hdist(p.position, ball.carrier.position) < 1.5 and p.tackle_cd <= 0.0 and p.stun <= 0.0:
+			_standing_tackle(p, ball.carrier)
+	elif ball.carrier == p and p.hold_t < 0.5 and inp.length() < 0.2 and p.velocity.length() > 1.0:
+		# Recién recibido: sigue en carrera en lugar de frenar en seco.
+		p.move_input = p.velocity.normalized() * clampf(p.velocity.length() / p.max_speed(), 0.4, 1.0)
 	else:
 		p.move_input = inp
 
@@ -844,7 +870,7 @@ func _select_pass_target(p: Futbolista, dir: Vector3) -> Futbolista:
 		if dist < 3.0 or dist > 45.0:
 			continue
 		var align := dir.dot(to / dist)
-		if align < 0.2:
+		if align < -0.2:
 			continue
 		var score := align * 3.0 - dist / 28.0
 		if _lane_blocked(p.position, m.position, p.team, 0.9):
@@ -865,32 +891,55 @@ func _pass(p: Futbolista, through: bool, inp: Vector3) -> void:
 
 
 func _pass_to(p: Futbolista, best: Futbolista, through: bool) -> void:
-	var dsign := dir_of(p.team)
-	var target := best.position
+	var gx := goal_x(p.team)
 	var dist := p.position.distance_to(best.position)
+	var target := best.position
+	var recv_speed := lerpf(4.3, 6.3, best.spd / 100.0) * 1.3
+	var decel := Balon.ROLL_DECEL + 0.06 * 10.0
 	if through:
-		var run := best.velocity.normalized() if best.velocity.length() > 1.0 else Vector3(dsign, 0, 0)
-		target += run * clampf(dist * 0.4, 4.0, 12.0)
+		# Al hueco: al espacio por delante del compañero, en dirección a la portería.
+		# El punto se ajusta para que el balón llegue frenando justo cuando llega él.
+		var to_goal := Vector3(gx, 0, clampf(best.position.z * 0.5, -14.0, 14.0)) - best.position
+		to_goal.y = 0
+		to_goal = to_goal.normalized()
+		var run := best.velocity.normalized() if best.velocity.length() > 2.0 else to_goal
+		var run_dir := (to_goal * 0.65 + run * 0.35).normalized()
+		var lead := 8.0
+		for _i in 4:
+			var tp := best.position + run_dir * lead
+			var dd := Vector2(tp.x - ball.position.x, tp.z - ball.position.z).length()
+			var v0 := sqrt(16.0 + 2.0 * decel * dd)
+			var t_ball := (v0 - 4.0) / decel
+			lead = clampf(recv_speed * 0.75 * t_ball, 5.0, 16.0)
+		target = best.position + run_dir * lead
+		if (gx - target.x) * dir_of(p.team) < 6.0:
+			target.x = gx - dir_of(p.team) * 6.0
 	else:
-		target += best.velocity * (dist / 18.0)
-	target.x = clampf(target.x, -HALF_L + 1, HALF_L - 1)
-	target.z = clampf(target.z, -HALF_W + 1, HALF_W - 1)
+		# Corto: al pie, adelantado según hacia dónde se mueve el compañero.
+		target = best.position + best.velocity * clampf(dist / 16.0, 0.2, 1.0)
+	target.x = clampf(target.x, -HALF_L + 1.5, HALF_L - 1.5)
+	target.z = clampf(target.z, -HALF_W + 1.5, HALF_W - 1.5)
 	var flat := target - ball.position
 	flat.y = 0
 	var d2 := flat.length()
-	var err := randf_range(-1.0, 1.0) * (1.0 - p.pas / 100.0) * 0.14
+	var err := randf_range(-1.0, 1.0) * (1.0 - p.pas / 100.0) * 0.12
 	var dirn := flat.normalized().rotated(Vector3.UP, err)
-	var gx := goal_x(p.team)
 	var is_cross := d2 > 14.0 and absf(p.position.z) > 13.0 and absf(target.x - gx) < 20.0 and absf(target.z) < 14.0
 	if is_cross:
 		var t := d2 / 18.0
 		var v := dirn * 18.0 + Vector3(0, (1.6 - ball.position.y + 0.5 * Balon.GRAVITY * t * t) / t, 0)
 		_kick(p, v, "cross")
 	else:
-		var v_end := 3.5 if through else 4.5
-		var spd := sqrt(v_end * v_end + 2.0 * (Balon.ROLL_DECEL + 0.4) * 1.2 * d2)
-		_kick(p, dirn * spd + Vector3(0, 0.6, 0), "through" if through else "pass")
+		var spd: float
+		if through:
+			# Llega al hueco a unos 4 m/s para que el compañero lo controle en carrera.
+			spd = clampf(sqrt(16.0 + 2.0 * decel * d2), 6.0, 22.0)
+		else:
+			spd = clampf(sqrt(25.0 + 2.0 * decel * d2), 7.0, 22.0)
+		_kick(p, dirn * spd + Vector3(0, 0.4, 0), "through" if through else "pass")
 	ball.pass_target = best
+	ball.pass_point = target
+	best.hold_t = 0.0
 
 
 func _shoot(p: Futbolista, power: float, aim_z: float, header := false) -> void:
@@ -951,7 +1000,7 @@ func _plan_save(shooter: Futbolista) -> void:
 	var spd := ball.vel.length()
 	var p_save := 0.0
 	if on_target and d <= capacity:
-		p_save = 0.25 + gk.gkp / 100.0 * 0.45 - maxf(0.0, spd - 18.0) / 30.0
+		p_save = 0.2 + gk.gkp / 100.0 * 0.45 - maxf(0.0, spd - 18.0) / 30.0
 		p_save += clampf((capacity - d) / 2.5, 0.0, 0.5)
 		if absf(z) > 2.7 and (y > 1.7 or y < 0.45):
 			p_save -= 0.2
@@ -961,12 +1010,21 @@ func _plan_save(shooter: Futbolista) -> void:
 	var save := randf() < p_save
 	var dive_z := z
 	if not save:
-		var dir := signf(z - gk.position.z)
-		dive_z = gk.position.z + dir * maxf(0.0, minf(d, capacity) - randf_range(0.5, 1.0))
-		if not on_target:
-			dive_z = clampf(z, -GOAL_HW - 0.5, GOAL_HW + 0.5) if absf(z) < GOAL_HW + 2.0 else gk.position.z
-	gk_plan = {"gk": gk, "save": save, "on_target": on_target, "t": pc.t, "z": z, "y": y,
-		"dive_z": clampf(dive_z, -GOAL_HW - 0.6, GOAL_HW + 0.6), "react": react, "dived": false, "resolved": false}
+		if on_target:
+			# Se estira pero no llega: se queda a unos centímetros del balón.
+			var dir := signf(z - gk.position.z)
+			if dir == 0.0:
+				dir = 1.0
+			dive_z = z - dir * randf_range(0.45, 0.9) if d > 0.9 else z + dir * randf_range(0.6, 1.0)
+		else:
+			dive_z = clampf(z, -GOAL_HW - 0.3, GOAL_HW + 0.3)
+	var t_arr: float = pc.t
+	# La estirada empieza tarde en los tiros lejanos: antes se ajusta con pasos laterales.
+	var dive_start := maxf(react, t_arr - 0.55)
+	var watch := not on_target and (absf(z) > GOAL_HW + 1.5 or y > 3.4)
+	gk_plan = {"gk": gk, "save": save, "on_target": on_target, "t": t_arr, "z": z, "y": y,
+		"dive_z": clampf(dive_z, -GOAL_HW - 0.6, GOAL_HW + 0.6), "react": react, "dive_start": dive_start,
+		"watch": watch, "dived": false, "resolved": false}
 
 
 func _ai_gk(p: Futbolista, dt: float) -> void:
@@ -979,24 +1037,41 @@ func _ai_gk(p: Futbolista, dt: float) -> void:
 	if p.dive_t > 0.0:
 		var to := p.dive_target - p.position
 		to.y = 0
-		var need := maxf(0.25, float(gk_plan.get("t", 0.6)) - float(gk_plan.get("react", 0.1)) - 0.05)
-		var spd := clampf(to.length() / need, 3.5, 11.0)
-		p.velocity = to.normalized() * spd if to.length() > 0.12 else p.velocity * 0.8
+		var remaining := maxf(0.12, float(gk_plan.get("t", 0.6)) - ball.shot_time)
+		var spd := clampf(to.length() / remaining, 2.0, 10.0)
+		p.velocity = to.normalized() * spd if to.length() > 0.1 else p.velocity * 0.7
+		return
+	if p.down_t > 0.0:
+		p.move_input = Vector3.ZERO
 		return
 	if gk_plan.get("gk") == p and not gk_plan.resolved:
-		if ball.shot_time >= gk_plan.react and not gk_plan.dived:
+		p.face_towards(ball.position)
+		if gk_plan.watch:
+			p.move_input = Vector3.ZERO
+			return
+		if ball.shot_time < gk_plan.dive_start:
+			# Pasos laterales para colocarse mientras viaja el balón.
+			var step_z := lerpf(p.position.z, float(gk_plan.dive_z), 0.6)
+			var tgt2 := Vector3(p.position.x, 0, clampf(step_z, -GOAL_HW, GOAL_HW))
+			_run_to(p, tgt2, false)
+			p.move_input *= 0.7
+			return
+		if not gk_plan.dived:
 			gk_plan.dived = true
 			var dz: float = gk_plan.dive_z - p.position.z
-			p.face_towards(ball.position)
-			if absf(dz) > 0.4 or float(gk_plan.y) > 1.8:
-				p.dive_t = 0.7
-				p.dive_side = signf(dz) if absf(dz) > 0.05 else 0.0
+			var y: float = gk_plan.y
+			if absf(dz) > 0.35 or y > 1.7:
+				p.dive_t = maxf(0.45, float(gk_plan.t) - ball.shot_time + 0.2)
+				p.dive_total = p.dive_t
+				p.dive_side = signf(dz) if absf(dz) > 0.05 else (1.0 if randf() < 0.5 else -1.0)
 				p.dive_target = Vector3(p.position.x, 0, gk_plan.dive_z)
-				p.dive_high = clampf((float(gk_plan.y) - 0.9) / 1.4, 0.0, 1.0)
+				p.dive_high = clampf((y - 0.7) / 1.5, 0.0, 1.0)
 			else:
-				p.head_anim = 0.4 if float(gk_plan.y) > 1.2 else 0.0
+				# Balón al cuerpo: se agacha o salta en el sitio para bloquear.
+				p.head_anim = 0.45 if y > 1.2 else 0.0
+				p.crouch_t = 0.5 if y <= 1.2 else 0.0
 				p.move_input = Vector3.ZERO
-		elif not gk_plan.dived:
+		else:
 			p.move_input = Vector3.ZERO
 		return
 	# Salir a por un balón suelto cerca del área chica
@@ -1036,7 +1111,7 @@ func _check_gk_save() -> void:
 	if not gk_plan.save:
 		return
 	var sp := ball.speed()
-	if sp < 21.0 and randf() < 0.3 + gk.gkp / 250.0:
+	if sp < 20.0 and absf(float(gk_plan.z)) < 2.2 and float(gk_plan.y) < 1.9 and randf() < 0.3 + gk.gkp / 250.0:
 		_give_ball(gk)
 		hud.show_message("¡Atajada de %s!" % gk.pname, 1.2)
 	else:
@@ -1044,7 +1119,12 @@ func _check_gk_save() -> void:
 		if zdir == 0.0:
 			zdir = 1.0 if randf() < 0.5 else -1.0
 		ball.position.x = gk.position.x - side * 0.3
-		ball.vel = Vector3(-side * sp * randf_range(0.15, 0.3), randf_range(2.0, 5.0), zdir * sp * randf_range(0.2, 0.4))
+		var corner_shot := absf(float(gk_plan.z)) > 2.4 or float(gk_plan.y) > 1.9
+		if corner_shot:
+			# Manopla a la escuadra: el balón sale desviado por la línea de fondo o por encima.
+			ball.vel = Vector3(side * sp * randf_range(0.05, 0.15), randf_range(3.0, 6.0), zdir * sp * randf_range(0.35, 0.5))
+		else:
+			ball.vel = Vector3(-side * sp * randf_range(0.15, 0.3), randf_range(2.0, 5.0), zdir * sp * randf_range(0.2, 0.4))
 		ball.spin = Vector3.ZERO
 		ball.kind = "loose"
 		ball.last_touch = gk
@@ -1083,12 +1163,19 @@ func _ai_field(p: Futbolista, dt: float) -> void:
 
 
 func _receive_point(p: Futbolista) -> Vector3:
+	## Adónde corre el receptor: al punto del pase y, cuando el balón está cerca,
+	## al punto de su trayectoria más cercano para recibirlo en carrera.
 	var v := Vector3(ball.vel.x, 0, ball.vel.z)
-	var to := p.position - ball.position
-	to.y = 0
-	var t := clampf(to.length() / maxf(v.length(), 1.0), 0.0, 1.2)
-	var pt := ball.position + v * t * 0.8
-	pt.y = 0
+	var bpos := Vector3(ball.position.x, 0, ball.position.z)
+	if v.length() < 1.0:
+		return bpos
+	var dirv := v.normalized()
+	var along := (p.position - bpos).dot(dirv)
+	if ball.kind == "through" and _hdist(p.position, bpos) > 5.0:
+		return ball.pass_point
+	var pt := bpos + dirv * maxf(along, 0.5)
+	if _hdist(p.position, bpos) < 3.0:
+		pt = bpos + dirv * 0.6
 	return pt
 
 
@@ -1166,7 +1253,6 @@ func _ai_defend(p: Futbolista, focus: Vector3) -> void:
 
 
 func _ai_carrier(p: Futbolista, dt: float) -> void:
-	p.hold_t += dt
 	var d := dir_of(p.team)
 	var goal := Vector3(goal_x(p.team), 0, 0)
 	var dist := _hdist(p.position, goal)
@@ -1319,9 +1405,9 @@ func _check_possession() -> void:
 	for p in players:
 		if p == ball.last_kicker and ball.kicker_ban > 0.0:
 			continue
-		if p.stun > 0.0 or p.dive_t > 0.0:
+		if p.stun > 0.0 or p.dive_t > 0.0 or p.down_t > 0.0:
 			continue
-		var reach := 0.8
+		var reach := 1.0 if ball.pass_target == p else (0.8 if ball.last_touch and ball.last_touch.team == p.team else 0.7)
 		var max_h := 1.1
 		if p.role == "GK":
 			reach = 1.15
@@ -1338,7 +1424,10 @@ func _check_possession() -> void:
 			elif same_team:
 				chance = clampf(1.5 - sp / 28.0, 0.55, 1.0)
 			else:
-				chance = clampf(1.25 - sp / 24.0, 0.12, 1.0) * (0.8 + p.dfn / 500.0)
+				# Cortar un pase: fácil si va flojo, difícil si va tenso y recién golpeado.
+				chance = clampf(1.1 - sp / 16.0, 0.08, 0.9) * (0.75 + p.dfn / 400.0)
+				if ball.last_kicker and _hdist(ball.position, ball.last_kicker.position) < 2.0 and ball.kind in ["pass", "through"]:
+					chance *= 0.3
 			ball.rolled[p] = true
 			if randf() < chance:
 				best = p
@@ -1377,23 +1466,68 @@ func _check_tackles() -> void:
 	for t in players:
 		if t.team == c.team or t.role == "GK" or t.stun > 0.0 or t.slide_t > 0.0 or t.tackle_cd > 0.0:
 			continue
-		if _hdist(t.position, c.position) < 1.1:
-			t.tackle_cd = 1.0
-			var chance := 0.22 + (t.dfn - c.spd) * 0.005
-			if c.sprinting:
-				chance += 0.08
-			if c.is_controlled:
-				chance -= 0.05
-			if t.is_controlled:
-				chance += 0.05
-			if randf() < chance:
-				c.stun = 0.7
-				_give_ball(t)
-				if t.team == AWAY:
-					hud.show_message("¡Te robaron el balón!", 1.0)
-				else:
-					hud.show_message("¡Balón recuperado!", 1.0)
+		if _hdist(t.position, c.position) < 1.0:
+			if _try_tackle(t, c):
 				return
+
+
+func _tackle_chance(t: Futbolista, c: Futbolista) -> float:
+	var chance := 0.18 + (t.dfn - c.spd) * 0.005
+	if c.sprinting:
+		chance += 0.06
+	if c.hold_t < 0.5:
+		chance *= 0.35  # recién recibido: el rival no llega a tiempo
+	# Proteger el balón: si el defensor llega por detrás del poseedor, es mucho más difícil.
+	var from_def := t.position - c.position
+	from_def.y = 0
+	if from_def.length() > 0.01 and from_def.normalized().dot(c.facing) < -0.2:
+		chance *= 0.45
+	if c.is_controlled and not autoplay:
+		chance -= 0.04
+	return clampf(chance, 0.03, 0.75)
+
+
+func _try_tackle(t: Futbolista, c: Futbolista) -> bool:
+	t.tackle_cd = 1.2
+	t.kick_anim = 0.3
+	if randf() < _tackle_chance(t, c):
+		c.stun = 0.7
+		_give_ball(t)
+		hud.show_message("¡Te robaron el balón!" if t.team == AWAY else "¡Balón recuperado!", 1.0)
+		return true
+	return false
+
+
+func _standing_tackle(t: Futbolista, c: Futbolista) -> void:
+	## Entrada de tu defensor al usar PRESIÓN: más efectiva que la automática.
+	t.tackle_cd = 0.9
+	t.kick_anim = 0.3
+	t.face_towards(c.position)
+	var chance := 0.4 + (t.dfn - c.spd) * 0.006
+	var from_def := t.position - c.position
+	from_def.y = 0
+	if from_def.length() > 0.01 and from_def.normalized().dot(c.facing) < -0.2:
+		chance -= 0.15  # por detrás es más difícil
+	if c.hold_t < 0.4:
+		chance -= 0.15
+	chance = clampf(chance, 0.1, 0.8)
+	if randf() < chance:
+		c.stun = 0.7
+		_give_ball(t)
+		hud.show_message("¡Entrada limpia!", 1.0)
+	else:
+		t.stun = 0.25
+		hud.show_message("Falló la entrada", 0.7)
+
+
+func _shield_dir(c: Futbolista) -> Vector3:
+	## El balón se aparta del rival más cercano: el poseedor lo cubre con el cuerpo.
+	var opp := _closest(_field(team_of(1 - c.team), false, true), c.position)
+	if opp == null or _hdist(opp.position, c.position) > 3.0:
+		return Vector3.ZERO
+	var side := Vector3(-c.facing.z, 0, c.facing.x)
+	var to_opp := opp.position - c.position
+	return -side if side.dot(to_opp) > 0.0 else side
 
 
 func _check_end(ev: String, dt: float) -> void:

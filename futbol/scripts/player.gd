@@ -36,6 +36,9 @@ var dive_t := 0.0
 var dive_target := Vector3.ZERO
 var dive_side := 0.0
 var dive_high := 0.0
+var dive_total := 0.7
+var down_t := 0.0
+var crouch_t := 0.0
 var head_anim := 0.0
 var celebrate := 0.0
 var lane_z := 0.0
@@ -243,8 +246,11 @@ func step(dt: float, has_ball: bool) -> void:
 	elif dive_t > 0.0:
 		dive_t -= dt
 		if dive_t <= 0.0:
-			stun = 0.5
-			velocity = Vector3.ZERO
+			down_t = 0.8  # queda tendido en el suelo y luego se levanta
+			velocity = velocity * 0.3
+	elif down_t > 0.0:
+		down_t -= dt
+		velocity = velocity.move_toward(Vector3.ZERO, 10.0 * dt)
 	elif stun > 0.0:
 		stun -= dt
 		velocity = velocity.move_toward(Vector3.ZERO, 14.0 * dt)
@@ -267,9 +273,11 @@ func step(dt: float, has_ball: bool) -> void:
 	position.z = clampf(position.z, -37.0, 37.0)
 	if velocity.length() > 0.3 and slide_t <= 0.0 and dive_t <= 0.0:
 		var rate := lerpf(10.0, 5.0, clampf(velocity.length() / 8.0, 0.0, 1.0))
-		facing = facing.slerp(velocity.normalized(), clampf(dt * rate, 0.0, 1.0))
-		facing.y = 0
-		facing = facing.normalized()
+		var vdir := Vector3(velocity.x, 0, velocity.z).normalized()
+		var nf := facing.lerp(vdir, clampf(dt * rate, 0.0, 1.0))
+		nf.y = 0
+		if nf.length() > 0.05:
+			facing = nf.normalized()
 	var acc := (velocity.length() - prev_speed) / maxf(dt, 0.001)
 	_lean = lerpf(_lean, clampf(acc * 0.04, -0.15, 0.2), clampf(dt * 6.0, 0.0, 1.0))
 	_animate(dt)
@@ -355,19 +363,35 @@ func _animate(dt: float) -> void:
 		_fore_l.rotation.x = 0.0
 		_fore_r.rotation.x = 0.0
 		_body.position.y = absf(sin(celebrate * 8.0)) * 0.3
-	if dive_t > 0.0:
-		var p := clampf(1.0 - dive_t / 0.7, 0.0, 1.0)
-		var lift := sin(p * PI) * (1.0 + dive_high)
+	if crouch_t > 0.0:
+		crouch_t -= dt
+		_body.position.y = -0.25
+		_leg_l.rotation.x = -0.9
+		_leg_r.rotation.x = -0.9
+		_shin_l.rotation.x = 1.6
+		_shin_r.rotation.x = 1.6
+		_arm_l.rotation.x = -0.9
+		_arm_r.rotation.x = -0.9
+	if dive_t > 0.0 or down_t > 0.0:
+		# Estirada en plancha: el cuerpo vuela de lado con los brazos estirados hacia el balón.
+		var p := clampf(1.0 - dive_t / maxf(dive_total, 0.1), 0.0, 1.0) if dive_t > 0.0 else 1.0
 		var local_side := dive_side * (1.0 if facing.x < 0 else -1.0)
-		_body.rotation.z = local_side * 1.35 * minf(p * 3.0, 1.0)
-		_body.position.y = 0.25 + lift * 0.5
-		_arm_l.rotation.z = -2.8
-		_arm_r.rotation.z = 2.8
-		_arm_l.rotation.x = 0.0
-		_arm_r.rotation.x = 0.0
+		var tilt := minf(p * 2.5, 1.0)
+		_body.rotation.z = local_side * lerpf(0.0, 1.45, tilt)
+		if dive_t > 0.0:
+			var lift := sin(minf(p * 1.15, 1.0) * PI)
+			_body.position.y = 0.15 + lift * (0.25 + dive_high * 0.9)
+		else:
+			_body.position.y = 0.12
+		_arm_l.rotation.z = -2.9
+		_arm_r.rotation.z = 2.9
+		_arm_l.rotation.x = -0.2
+		_arm_r.rotation.x = -0.2
 		_fore_l.rotation.x = 0.0
 		_fore_r.rotation.x = 0.0
-		_leg_l.rotation.x = 0.0
-		_leg_r.rotation.x = 0.0
-		_shin_l.rotation.x = 0.2
-		_shin_r.rotation.x = 0.2
+		_leg_l.rotation.x = 0.15
+		_leg_r.rotation.x = -0.1
+		_shin_l.rotation.x = 0.35
+		_shin_r.rotation.x = 0.15
+		_torso.rotation.x = 0.0
+		_torso.rotation.y = 0.0

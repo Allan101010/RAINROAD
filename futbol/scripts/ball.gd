@@ -23,6 +23,8 @@ var last_kicker: Futbolista = null
 var kicker_ban := 0.0
 var kind := ""  # "pass", "through", "cross", "shot", "clear", "loose"
 var pass_target: Futbolista = null
+var pass_point := Vector3.ZERO
+var shield := Vector3.ZERO  # hacia dónde se aparta el balón para protegerlo
 var shot_time := 0.0
 var rolled := {}
 var scored := false
@@ -110,8 +112,9 @@ func step(dt: float) -> String:
 	shot_time += dt
 	prev_pos = position
 	if carrier != null:
-		var ahead := 0.55 + (0.35 if carrier.sprinting else 0.0)
-		var target := carrier.position + carrier.facing * ahead
+		# Conducción pegada al pie; al esprintar el balón va algo más adelantado.
+		var ahead := 0.42 + (0.3 if carrier.sprinting else 0.0)
+		var target := carrier.position + carrier.facing * ahead + shield * 0.22
 		target.y = R
 		position = position.lerp(target, clampf(dt * 18.0, 0.0, 1.0))
 		vel = carrier.velocity

@@ -1,10 +1,19 @@
-# Fútbol Mánager (versión 0.3)
+# Fútbol Mánager (versión 0.4)
 
 Juego de fútbol para Android: eres el **entrenador** y eliges el once, la formación y los cambios. El partido se simula minuto a minuto y, cuando llega una **jugada clave**, la juegas tú en 3D: atacar, defender, un tiro libre, un penal o un córner.
 
 Hecho con [Godot 4.3](https://godotengine.org) (gratis y de código abierto). Es para uso personal y no se publica en ninguna tienda.
 
 ![Partido 11 contra 11](docs/partido.png)
+
+## Novedades de la 0.4
+
+- **Pase al hueco de verdad**: el balón va al espacio por delante del compañero, hacia la portería, y llega frenando justo cuando él llega corriendo.
+- **Pase corto**: va al pie con la fuerza justa, y es más difícil de cortar si va tenso.
+- **Recibir en carrera**: al controlar, el jugador sigue corriendo en lugar de frenar en seco y tiene un instante antes de que puedan quitársela.
+- **Proteger el balón**: el jugador lo cubre con el cuerpo, apartándolo del rival más cercano. Las entradas por la espalda fallan más.
+- **Portero como en la vida real**: se ajusta con pasos laterales, se lanza en plancha en el momento justo, a ras de suelo o a la escuadra, y se queda tendido en el suelo. Los tiros a la escuadra los desvía a córner.
+- **Defensa**: con **PRESIÓN** tu jugador persigue al rival, mete la pierna al llegar y corre a cortar los pases del rival. El control pasa solo al defensor más cercano a la jugada.
 
 ## Novedades de la 0.3
 
@@ -108,6 +117,7 @@ futbol/
 │   └── ui.gd, mesh_util.gd
 ├── tests/
 │   ├── autotest.gd        juega las 110 jugadas, simula partidos y una temporada entera
+│   ├── mecanicas.gd       prueba portero en tiros lejanos, pases, recepción y presión
 │   └── shot.gd            capturas de todas las pantallas
 └── builds/                APK compilado
 ```
