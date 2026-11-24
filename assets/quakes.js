@@ -173,9 +173,7 @@
 
   async function refresh() {
     try {
-      const response = await fetch(DATA_URL + "?t=" + Math.floor(Date.now() / 60000), { cache: "no-store" });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      payload = await response.json();
+      payload = await window.RainTrackDatos.newest("temblores", DATA_URL + "?t=" + Math.floor(Date.now() / 60000));
     } catch (error) {
       console.info("Temblores no disponibles:", error.message);
     }

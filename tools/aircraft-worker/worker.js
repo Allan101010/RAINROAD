@@ -37,6 +37,7 @@ const AI_TEST_MODELS = {
   mistral: "@cf/mistralai/mistral-small-3.1-24b-instruct"
 };
 const AI_TEST_DAILY_CAP = 300;
+const DATA_NAMES = ["camaras", "catalogo", "temblores", "rayos"];
 
 function parseV2(raw) {
   const text = String(raw || "").toLowerCase();
@@ -160,6 +161,24 @@ async function handle(req, env) {
       try { JSON.parse(text); } catch (e) { return json({ error: "json" }, 400); }
       await putRow(env.DB, url.pathname.slice(1), text);
       return json({ ok: true });
+    }
+
+    if (url.pathname.startsWith("/datos/")) {
+      const name = url.pathname.slice(7);
+      if (!DATA_NAMES.includes(name)) return json({ error: "nombre" }, 404);
+      if (req.method === "POST") {
+        if (!(await checkKey(env.DB, req))) return json({ error: "clave" }, 401);
+        const text = await req.text();
+        if (text.length > 1500000) return json({ error: "muy grande" }, 413);
+        try { JSON.parse(text); } catch (e) { return json({ error: "json" }, 400); }
+        await putRow(env.DB, "datos_" + name, text);
+        return json({ ok: true, bytes: text.length });
+      }
+      if (req.method === "GET") {
+        const row = await getRow(env.DB, "datos_" + name);
+        if (!row) return json({ error: "sin datos" }, 404);
+        return new Response(row.v, { headers: { ...JSON_HEAD, "X-Edad": String(nowS() - row.t) } });
+      }
     }
 
     if (url.pathname === "/tiempo" && req.method === "GET") {

@@ -132,3 +132,10 @@ De día, cada 20 min, la tablet baja la foto de las cámaras públicas en línea
 de visión (Cloudflare Workers AI, plan gratis) si se ve LLUVIA, NUBLADO, DESPEJADO o NO_SE_VE. Es una prueba:
 no se muestra en la app hasta compararla con las estaciones. Para apagarla: `"ia_camaras": false`.
 Probar a mano: `python ia_camaras.py 3`. En `camaras.log` aparece como "ia: ...".
+
+## El bot en la tablet (desde el 24-nov)
+GitHub desactivó las Actions del repositorio, así que `bot_tablet.py` hace en la tablet lo que hacía el bot:
+`scripts/monitor_cameras.py` cada 10 min (cámaras públicas y estaciones) y `scripts/quakes.py` (temblores, cada ~30 s).
+Publica en el Worker (`/datos/camaras`, `/datos/catalogo`, `/datos/temblores`) y la app lee de ahí. Se enciende solo
+al arrancar `camaras_casa.py`; para apagarlo, `"bot_en_tablet": false` en `config.json`. Los rayos (GLM) no se pasaron.
+Los archivos de trabajo quedan en `~/raintrack_bot`. Si la tablet se apaga, la app vuelve a usar lo de GitHub.

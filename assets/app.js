@@ -1141,9 +1141,7 @@ document.addEventListener("raintrack:lightning", updateAmbientLocalRain);
 
 async function loadCameraMonitoringData() {
   try {
-    const response = await fetch("camera-alerts.json?rt=" + Date.now(), { cache: "no-store" });
-    if (!response.ok) throw new Error("No existe camera-alerts.json o GitHub Pages aún no lo publicó.");
-    cameraMonitorData = await response.json();
+    cameraMonitorData = await window.RainTrackDatos.newest("camaras", "camera-alerts.json?rt=" + Date.now());
     updateAmbientLocalRain();
     updateHomeCameraMarker();
     renderCameraAlerts();
