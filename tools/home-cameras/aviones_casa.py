@@ -59,6 +59,36 @@ def wind_obs(planes: list) -> list:
     return out
 
 
+ARCHIVE_DIR = Path.home() / "raintrack_vientos_archivo"
+ARCHIVE_FIELDS = ("t", "hex", "lat", "lon", "alt", "wd", "ws", "oat", "track", "gs")
+
+
+def _archive(rows: list, month: str) -> None:
+    """Guarda los vientos en la tablet (un archivo por mes) para estudiarlos cuando vuelva la época lluviosa."""
+    if not rows:
+        return
+    ARCHIVE_DIR.mkdir(exist_ok=True)
+    with open(ARCHIVE_DIR / f"{month}.jsonl", "a", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps([r.get(k) for k in ARCHIVE_FIELDS], separators=(",", ":")) + "\n")
+
+
+def _backfill(worker: str) -> None:
+    """Una sola vez: copia a la tablet lo que el Worker ya tenía guardado (hasta 30 días)."""
+    marker = ARCHIVE_DIR / "listo.txt"
+    if marker.exists():
+        return
+    rows = _get_json(worker + "/vientos?horas=720", timeout=60).get("rows", [])
+    by_month: dict = {}
+    for r in rows:
+        by_month.setdefault(time.strftime("%Y-%m", time.localtime(r["t"])), []).append(r)
+    for month, part in by_month.items():
+        _archive(part, month)
+    ARCHIVE_DIR.mkdir(exist_ok=True)
+    marker.write_text(f"{len(rows)} lecturas copiadas del Worker\n", encoding="utf-8")
+    _log(f"archivo de vientos creado ({len(rows)} lecturas anteriores)")
+
+
 def _post(worker: str, path: str, key: str, payload: dict) -> dict:
     body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
     req = urllib.request.Request(worker + path, data=body, method="POST",
@@ -69,6 +99,10 @@ def _post(worker: str, path: str, key: str, payload: dict) -> dict:
 
 def loop(worker: str = WORKER) -> None:
     key = _key()
+    try:
+        _backfill(worker)
+    except Exception as exc:
+        _log(f"no se pudo copiar el historial de vientos ({type(exc).__name__}); se guarda desde ahora")
     active = False
     last_error = ""
     last_wind = 0.0
@@ -79,6 +113,8 @@ def loop(worker: str = WORKER) -> None:
                 obs = wind_obs((lambda d: d.get("aircraft") or d.get("ac") or [])(_get_json(SOURCE)))
                 if obs:
                     _post(worker, "/vientos", key, {"obs": obs})
+                    now = int(time.time())
+                    _archive([{**o, "t": now} for o in obs], time.strftime("%Y-%m"))
             wanted = bool(_get_json(worker + "/demanda").get("wanted"))
             if wanted != active:
                 _log("alguien está mirando, enviando" if wanted else "nadie mirando, en pausa")
