@@ -12,8 +12,8 @@
 //   GET  /ia?horas=24                  → resultados de la prueba;  GET /ia/foto?id=N → la foto analizada (7 días).
 // Bindings: D1 "DB" y Workers AI "AI".
 // Requiere un binding D1 llamado DB.
-const ORIGIN = "https://allan101010.github.io";
-const CORS = { "Access-Control-Allow-Origin": ORIGIN, "Access-Control-Allow-Methods": "GET", "Vary": "Origin" };
+const ORIGIN = "*";   // datos públicos de solo lectura; la app vive en GitHub Pages y en Cloudflare Pages
+const CORS = { "Access-Control-Allow-Origin": ORIGIN, "Access-Control-Allow-Methods": "GET" };
 const JSON_HEAD = { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" };
 const DEMAND_WINDOW_S = 180;
 const WX_WINDOW_S = 900;
