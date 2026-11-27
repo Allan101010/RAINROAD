@@ -50,12 +50,23 @@ def _seed() -> None:
             shutil.copy(REPO / name, WORK / name)
 
 
-def cameras_loop(worker: str) -> None:
+def _home_env(config: dict) -> dict:
+    """La cámara de la casa: el bot de GitHub la leía de sus secretos; aquí sale de la config de la tablet."""
+    env = dict(os.environ)
+    env["HOME_CAM_TOPIC"] = str(config.get("ntfy_topic") or "")
+    for key, name in (("casa_lat", "HOME_CAM_LAT"), ("casa_lon", "HOME_CAM_LON"), ("alerta_topic", "HOME_CAM_ALERT_TOPIC")):
+        if config.get(key) not in (None, ""):
+            env[name] = str(config[key])
+    return env
+
+
+def cameras_loop(worker: str, config: dict) -> None:
     last_error = ""
+    env = _home_env(config)
     while True:
         started = time.time()
         try:
-            subprocess.run([sys.executable, str(REPO / "scripts" / "monitor_cameras.py")], cwd=WORK,
+            subprocess.run([sys.executable, str(REPO / "scripts" / "monitor_cameras.py")], cwd=WORK, env=env,
                            timeout=CAMERAS_TIMEOUT_S, check=True, capture_output=True, text=True)
             ok = _upload(worker, "camaras", WORK / "camera-alerts.json")
             ok = _upload(worker, "catalogo", WORK / "camera-catalog.json") and ok
@@ -108,6 +119,6 @@ def start(config: dict) -> None:
         return
     worker = str(config.get("aviones_worker") or aviones_casa.WORKER).rstrip("/")
     _seed()
-    threading.Thread(target=cameras_loop, args=(worker,), name="bot-camaras", daemon=True).start()
+    threading.Thread(target=cameras_loop, args=(worker, config), name="bot-camaras", daemon=True).start()
     threading.Thread(target=quakes_loop, args=(worker,), name="bot-temblores", daemon=True).start()
     _log("listo (cámaras cada 10 min, temblores cada ~30 s)")
