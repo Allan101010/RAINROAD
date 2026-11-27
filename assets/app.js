@@ -1151,6 +1151,12 @@ async function loadCameraMonitoringData() {
     console.info("Monitor visual de cámaras pendiente:", error.message);
     renderCameraAlerts();
   }
+  // Si lo que llegó es viejo (la red recién volvía y el Worker no respondió), se reintenta pronto.
+  const age = cameraMonitorData && cameraMonitorData.generated_at ? (Date.now() - Date.parse(cameraMonitorData.generated_at)) / 60000 : Infinity;
+  if (age > 30 && !loadCameraMonitoringData.retrying) {
+    loadCameraMonitoringData.retrying = true;
+    setTimeout(() => { loadCameraMonitoringData.retrying = false; loadCameraMonitoringData(); }, 15000);
+  }
 }
 
 function temperatureColor(t) {
@@ -2967,7 +2973,18 @@ document.addEventListener("visibilitychange", () => {
   refreshLocationIfExpired();
   // Al volver a la app después de un rato, refrescar datos sin esperar al siguiente intervalo.
   const awayMinutes = lastHiddenAt ? (Date.now() - lastHiddenAt) / 60000 : 0;
-  if (awayMinutes >= 2) loadCameraMonitoringData();
+  // El mapa puede quedar en negro al volver (el sistema le quita la memoria gráfica): se redibuja o se recarga.
+  if (map) {
+    try {
+      const gl = map.painter && map.painter.context && map.painter.context.gl;
+      if (gl && gl.isContextLost && gl.isContextLost()) { location.reload(); return; }
+      map.resize();
+      map.triggerRepaint();
+      if (window.RainTrackOwnRain) setTimeout(() => window.RainTrackOwnRain.sync(), 300);
+    } catch (error) { location.reload(); return; }
+  }
+  const dataAge = cameraMonitorData && cameraMonitorData.generated_at ? (Date.now() - Date.parse(cameraMonitorData.generated_at)) / 60000 : Infinity;
+  if (awayMinutes >= 2 || dataAge > 15) loadCameraMonitoringData();
   if (awayMinutes >= 15) refreshWeatherData();
 });
 setInterval(refreshLocationIfExpired, 60 * 1000);
