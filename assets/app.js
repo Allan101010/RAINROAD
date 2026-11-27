@@ -285,7 +285,7 @@ let radarFrames = [];
 const savedRadarSource = localStorage.getItem(SOURCE_STORAGE_KEY);
 let radarSourceKey = "librewxr";
 // "raintrack" = capa propia de lluvia medida por las estaciones del IMN (ver ratelayer.js).
-let ownRainSelected = savedRadarSource !== "librewxr";
+let ownRainSelected = true;
 const savedLibrewxrColor = Number(localStorage.getItem(LIBREWXR_COLOR_STORAGE_KEY));
 let librewxrColorScheme = LIBREWXR_PALETTES.includes(savedLibrewxrColor) ? savedLibrewxrColor : 10;
 let radarFrameIndex = 0;
@@ -3113,7 +3113,7 @@ setupCollapsible("forecastToggle", "forecastPanel", "raintrackcr_section_forecas
 setupCollapsible("solarToggle", "solarPanel", "raintrackcr_section_solar_v1");
 setupCollapsible("quakeSectionToggle", "quakePanel", "raintrackcr_section_quakes_v1");
 
-$("radarSource").value = ownRainSelected ? "raintrack" : (RADAR_SOURCES[radarSourceKey] ? radarSourceKey : "librewxr");
+$("radarSource").value = "raintrack";
 $("librewxrColorScheme").value = String(librewxrColorScheme);
 $("radarSource").addEventListener("change", loadRadarSource);
 $("mapShell").classList.toggle("map-dark", basemapMode === "dark");
@@ -3162,9 +3162,6 @@ function startAutomaticUpdates() {
   cameraMonitorTimer = setInterval(loadCameraMonitoringData, 2 * 60 * 1000);
   // Solo LibreWXR se actualiza automáticamente; los proveedores con KEY
   // quedan bajo actualización manual para no consumir cuota por mosaicos.
-  setInterval(() => {
-    if (mapReady && radarSourceKey === "librewxr") loadRadarSource();
-  }, 5 * 60 * 1000);
   if (imnRefreshTimer) clearInterval(imnRefreshTimer);
   imnRefreshTimer = setInterval(() => {
     if ($('imnMapToggle') && $('imnMapToggle').checked) refreshImnImage();

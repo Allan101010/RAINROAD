@@ -10,12 +10,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css?v=1.9.2">
+  <link rel="stylesheet" href="assets/styles.css?v=1.9.3">
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.9.2</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
+    <div class="brand">🌧️ RainTrack <span>CR</span> <small class="version-tag">v1.9.3</small> <button class="ambient-toggle" id="basemapQuick" type="button" title="Cambiar fondo del mapa" aria-label="Cambiar fondo del mapa">🌙</button></div>
     <div class="system-status" id="systemStatus"><span class="status-dot"></span><span class="status-text">Iniciando sistema</span></div>
   </header>
 
@@ -60,13 +60,11 @@
               <strong>Capas meteorológicas</strong>
               <button class="map-layer-close" id="layersClose" type="button" aria-label="Cerrar capas del mapa">Cerrar ×</button>
             </div>
-            <label for="radarSource">Precipitación sobre el mapa</label>
-            <select class="source-select" id="radarSource">
+            <select class="source-select" id="radarSource" hidden>
               <option value="raintrack">RainTrack · lluvia medida por estaciones del IMN (principal)</option>
-              <option value="librewxr">LibreWXR · precipitación estimada por satélite (secundaria)</option>
             </select>
-            <p class="layer-hint">RainTrack (principal): lluvia animada solo donde una estación del IMN midió lluvia en la última hora (y 10 km alrededor de la casa si su cámara ve lluvia, como estimación); no inventa datos entre estaciones. Si una estación mide lluvia intensa (8 mm/h o más) se dibuja como tormenta, con relámpagos estimados por esa intensidad (el IMN no publica rayos con ubicación). LibreWXR (secundaria): precipitación estimada por satélite que cubre todo el mapa.</p>
-            <div id="librewxrStyleControl">
+            <p class="layer-hint">Lluvia animada solo donde una estación del IMN midió lluvia en la última hora (y 10 km alrededor de la casa si su cámara ve lluvia, como estimación); no inventa datos entre estaciones. Si una estación mide lluvia intensa (8 mm/h o más) se dibuja como tormenta, con relámpagos estimados por esa intensidad (el IMN no publica rayos con ubicación).</p>
+            <div id="librewxrStyleControl" hidden>
               <label for="librewxrColorScheme">Estilo visual del radar LibreWXR</label>
               <select class="source-select" id="librewxrColorScheme">
                 <option value="10">Viper HD · actual</option>
@@ -76,7 +74,7 @@
                 <option value="8">Dark Sky</option>
               </select>
             </div>
-            <button class="btn secondary small-btn" id="radarSourceRefresh" type="button" style="width:100%;margin:9px 0">↻ Actualizar fuente seleccionada</button>
+            <button class="btn secondary small-btn" id="radarSourceRefresh" type="button" style="width:100%;margin:9px 0">↻ Actualizar lluvia</button>
             <div class="layer-group">
               <div class="layer-group-title">🛰️ Imágenes oficiales del IMN</div>
               <label class="layer-check"><input id="imnMapToggle" type="checkbox"> <span class="layer-label"><strong>Mostrar producto satelital</strong><small>Se abre en una ventana dentro del mapa</small></span></label>
@@ -216,7 +214,7 @@
         <span class="legend-item"><span class="legend-dot" style="background:#facc15"></span> Fuerte</span>
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Intensa</span>
       </div>
-      <p class="source-note" id="radarSourceNote">La fuente principal es RainTrack (estaciones del IMN); LibreWXR es la secundaria. Revisa la hora de la lectura antes de interpretar la precipitación.</p>
+      <p class="source-note" id="radarSourceNote">La lluvia viene de las estaciones del IMN. Revisa la hora de la lectura antes de interpretar la precipitación.</p>
     </section>
 
     <section class="section" id="quakeSection">
@@ -313,20 +311,20 @@
 
     <footer>
       <strong>RainTrack CR</strong> · Proyecto personal gratuito para Costa Rica.<br>
-      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: <a href="https://librewxr.net/" target="_blank" rel="noopener">LibreWXR</a> · Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
+      Mapa: <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · Rutas: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> / OpenStreetMap · Datos cartográficos © OpenStreetMap / OpenMapTiles · Pronóstico: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Precipitación: Satélite: <a href="https://www.imn.ac.cr/en/web/imn/imagenes-satelitalesl2" target="_blank" rel="noopener">IMN</a> · Cámaras: <a href="https://webcamscostarica.com/" target="_blank" rel="noopener">Webcams Costa Rica</a>.<br>
       Los pronósticos y las imágenes de precipitación son estimaciones. No sustituyen los avisos oficiales del Instituto Meteorológico Nacional.
     </footer>
 </main>
 
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="assets/datos.js?v=1.9.2"></script>
-  <script src="assets/ambient.js?v=1.9.2"></script>
-  <script src="assets/app.js?v=1.9.2"></script>
-  <script src="assets/landmarks.js?v=1.9.2"></script>
-  <script src="assets/ratelayer.js?v=1.9.2"></script>
-  <script src="assets/lightning.js?v=1.9.2"></script>
-  <script src="assets/quakes.js?v=1.9.2"></script>
-  <script src="assets/aircraft.js?v=1.9.2"></script>
-  <script src="assets/live.js?v=1.9.2"></script>
+  <script src="assets/datos.js?v=1.9.3"></script>
+  <script src="assets/ambient.js?v=1.9.3"></script>
+  <script src="assets/app.js?v=1.9.3"></script>
+  <script src="assets/landmarks.js?v=1.9.3"></script>
+  <script src="assets/ratelayer.js?v=1.9.3"></script>
+  <script src="assets/lightning.js?v=1.9.3"></script>
+  <script src="assets/quakes.js?v=1.9.3"></script>
+  <script src="assets/aircraft.js?v=1.9.3"></script>
+  <script src="assets/live.js?v=1.9.3"></script>
 </body>
 </html>
