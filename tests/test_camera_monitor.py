@@ -36,6 +36,46 @@ class ParsingTests(unittest.TestCase):
         self.assertIn("raintrack_ts=", url)
 
 
+class ImnTimeStampHeaderTests(unittest.TestCase):
+    HTML = (
+        "<table><tr><th>Time Stamp</th><th>ESTACION</th><th>Temp</th><th>RH_Avg</th><th>Lluvia</th><th>FREC_VIEN</th></tr>"
+        "<tr><td>27/11/2026 08:00 p. m.</td><td>17,1</td><td>0,6</td><td>0,0</td></tr></table>"
+        "<table><tr><th>Time Stamp</th><th>Vmax</th><th>SUM_lluv</th><th>LLUV_ayer</th><th>Tmax</th><th>Tmin</th><th>WatchD</th><th>SkipS</th></tr>"
+        "<tr><td>27/11/2026 08:21:33 p. m.</td><td>49,9</td><td>44,6</td><td>32,6</td><td>18,0</td><td>16,0</td></tr></table>"
+        "<table><tr><th>Time Stamp</th><th>Temp</th><th>Td</th><th>HR</th><th>VCORR_m_s_Max</th><th>Velocidad</th><th>Direccion</th></tr>"
+        "<tr><td>27/11/2026</td><td>17,0</td><td>16,3</td><td>96,3</td><td>12,9</td><td>28,9</td></tr></table>"
+    )
+
+    def test_time_stamp_tables_with_short_rows_are_read(self):
+        values = cams.extract_imn_table_values(self.HTML)
+        self.assertEqual(values["image_timestamp"], "2026-11-28T02:21:33Z")
+        self.assertEqual(values["image_timestamp_source"], "imn_html_table")
+        self.assertEqual(values["rain_since_7am_mm"], 44.6)
+        self.assertEqual(values["humidity_percent"], 96.3)
+        self.assertEqual(values["temperature_c"], 17.0)
+        self.assertIsNone(values["rain_last_hour_mm"])
+
+    def test_rain_last_hour_comes_from_the_accumulated_total(self):
+        now = datetime(2026, 11, 28, 2, 30, tzinfo=timezone.utc)
+        station = {"id": "imn-x", "availability_status": "online", "rain_since_7am_mm": 44.6,
+                   "rain_last_hour_mm": None, "image_timestamp_source": "imn_html_table"}
+        previous = {"imn-x": {"sum_history": [["2026-11-28T01:40:00Z", 42.0], ["2026-11-28T02:20:00Z", 44.0]]}}
+        with patch.object(cams, "utc_now", return_value=now):
+            cams.apply_rain_from_accumulated([station], previous)
+        self.assertEqual(station["rain_last_hour_mm"], 2.6)
+        self.assertTrue(station["rain_observed"])
+        self.assertEqual(len(station["sum_history"]), 3)
+
+    def test_accumulated_reset_at_7am_counts_everything_after_reset(self):
+        now = datetime(2026, 11, 28, 13, 10, tzinfo=timezone.utc)
+        station = {"id": "imn-x", "availability_status": "online", "rain_since_7am_mm": 1.2,
+                   "rain_last_hour_mm": None, "image_timestamp_source": "imn_html_table"}
+        previous = {"imn-x": {"sum_history": [["2026-11-28T12:30:00Z", 30.0]]}}
+        with patch.object(cams, "utc_now", return_value=now):
+            cams.apply_rain_from_accumulated([station], previous)
+        self.assertEqual(station["rain_last_hour_mm"], 1.2)
+
+
 class StationFreshnessTests(unittest.TestCase):
     NOW = datetime(2026, 11, 13, 12, 0, tzinfo=timezone.utc)
 

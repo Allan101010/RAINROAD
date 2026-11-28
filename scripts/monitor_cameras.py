@@ -774,7 +774,9 @@ def parse_localized_number(value: str | None) -> float | None:
 
 def normalize_imn_header(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]+", "_", normalized.lower()).strip("_")
+    key = re.sub(r"[^a-z0-9]+", "_", normalized.lower()).strip("_")
+    # Desde el 23-nov el IMN rotula la primera columna "Time Stamp" en vez de "Fecha".
+    return "fecha" if key in ("time_stamp", "timestamp") else key
 
 
 def parse_imn_local_datetime(value: str | None) -> datetime | None:
@@ -831,7 +833,9 @@ def extract_imn_table_values(html: str) -> dict:
                         )
                         if len(numeric_values) >= len(headers) - 1:
                             values = [date_text] + numeric_values[:len(headers) - 1]
-                if len(values) >= len(headers) and values[0]:
+                # Las tablas nuevas del IMN traen filas más cortas que su encabezado (las columnas
+                # del final vienen vacías): se aceptan, y zip() alinea las que sí tienen dato.
+                if values and values[0] and len(values) >= min(len(headers), 3):
                     data_row = dict(zip(headers, values))
                     break
             if data_row:
@@ -955,6 +959,37 @@ def apply_station_history(stations: list[dict], previous_stations: dict) -> None
             station["dead"] = (now - since.astimezone(timezone.utc)) > timedelta(days=DEAD_STATION_DAYS)
         except (TypeError, ValueError):
             station["dead"] = False
+
+
+RAIN_WINDOW_MIN = 65
+
+
+def apply_rain_from_accumulated(stations: list[dict], previous_stations: dict) -> None:
+    """Respaldo para estaciones cuya tabla por hora viene incompleta: la lluvia de la última hora
+    sale de cuánto subió el acumulado "desde las 7 a.m." entre lecturas (el acumulado se reinicia a las 7)."""
+    now = utc_now()
+    for station in stations:
+        total = station.get("rain_since_7am_mm")
+        if total is None or station.get("availability_status") != "online":
+            continue
+        history = []
+        for item in (previous_stations.get(station.get("id"), {}) or {}).get("sum_history") or []:
+            try:
+                when = datetime.fromisoformat(item[0].replace("Z", "+00:00")).astimezone(timezone.utc)
+                if 0 <= (now - when).total_seconds() <= RAIN_WINDOW_MIN * 60:
+                    history.append((when, float(item[1])))
+            except (TypeError, ValueError, IndexError, AttributeError):
+                continue
+        history.append((now, float(total)))
+        station["sum_history"] = [[when.replace(microsecond=0).isoformat().replace("+00:00", "Z"), value] for when, value in history][-12:]
+        if station.get("rain_last_hour_mm") is not None or len(history) < 2:
+            continue
+        oldest = history[0][1]
+        # Si el acumulado bajó, se reinició a las 7 a.m.: todo lo que marca ahora cayó después del reinicio.
+        delta = total if total < oldest else total - oldest
+        station["rain_last_hour_mm"] = round(max(0.0, delta), 1)
+        station["rain_last_hour_source"] = "acumulado_7am"
+        station["rain_observed"] = station["rain_last_hour_mm"] > 0 and station.get("image_timestamp_source") == "imn_html_table"
 
 
 def collect_imn_stations(session: requests.Session) -> list[dict]:
@@ -1467,7 +1502,9 @@ def main() -> int:
     stations = collect_imn_stations(session)
     stations.extend(collect_ucr_stations(session))
     stations.append(collect_ucr_sanluis(session))
-    apply_station_history(stations, {item.get("id"): item for item in previous_payload.get("stations", []) if isinstance(item, dict)})
+    previous_by_id = {item.get("id"): item for item in previous_payload.get("stations", []) if isinstance(item, dict)}
+    apply_rain_from_accumulated(stations, previous_by_id)
+    apply_station_history(stations, previous_by_id)
     external_stations = [fetch_weatherlink_station(session)]
     station_alerts = [
         {
